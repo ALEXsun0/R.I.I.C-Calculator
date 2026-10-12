@@ -44,12 +44,15 @@ WorkbenchShell 已拆出持久化、收益计算及自动配员三个 composable
 
 ## 验证与交付记录
 
-本地开发与集成验证已通过；源码和安装的交付结果在同步后补录。原始证据保存在本机 `artifacts/gamedata-update-20261012/`，不上传真实干员库、排班或本机配置。
+本地开发、集成验证、两个仓库发布及安装同步已完成。实际交付产物由干净源码提交 `27be2ccdfbca06896b44e00b5ac31d96c5be13aa` 重新构建；随后补录交付文档的提交不改变程序产物。原始证据保存在本机 `artifacts/gamedata-update-20261012/`，不上传真实干员库、排班或本机配置。
 
 - 五个固定场景：默认、252 双金、252 三金、342 龙门币、真实用户排班。完整数值和事件比较通过，仅排除明确列出的版本元数据与未建回收站结构。
 - 类型检查、生产构建通过；235 个测试文件中 234 个通过、1 个原有文件跳过，2329 项测试通过、1 项原有审计报告测试跳过，0 失败，进程退出码 0，未处理错误 0。命令 `node node_modules/vitest/vitest.mjs run --testTimeout=60000 --reporter=default --reporter=json --outputFile=artifacts/gamedata-update-20261012/full-tests-final.json`，并发 2，耗时 832.77 秒。
 - 首轮高并发出现两项重计算超时及 runner RPC 超时；限制并发后，两项重计算及完整回归通过。房间数量断言与受保护算法哈希仅按已授权的新设施和规则更新，旧数值断言保留。
-- Windows PowerShell 5 安全同步 15/15 夹具和打包入口 7/7 检查通过。覆盖备份哈希、用户数据保留、路径/链接拒绝、失败恢复，以及失败期间外部编辑和重建文件的保留。安装备份和实际同步结果待写入。
+- Windows PowerShell 5 安全同步 15/15 夹具和打包入口 7/7 检查通过。覆盖备份哈希、用户数据保留、路径/链接拒绝、失败恢复，以及失败期间外部编辑和重建文件的保留。
+- [源码提交](https://github.com/Panda-Panta/R.I.I.C-Calculator/commit/27be2ccdfbca06896b44e00b5ac31d96c5be13aa) 已普通推送，远程 `main` SHA 与本地核对一致；从该提交重跑类型检查、结构/skill 校验及生产构建通过。1532 个来源文件记录哈希，1006 个前端产物和 index 引用核验通过。
+- `D:\Tools\R.I.I.C-Calculator` 已同步并验证 1007 个管理文件；28 个原有非管理文件保留并复核哈希，含原生外壳及用户文件。同步前完整备份 1022 个文件、99842306 字节至 `artifacts/gamedata-update-20261012/install-sync-final/backup/`，全部副本和安装文件再次核对。备份清单 SHA-256：`93c5800b6eeee581e66f20b0160d6e4506bf30c64fb76d41040ee6d4187c1343`；安装 `BUILD-INFO.json` 来源为上述提交，`SourceHadTrackedChanges=false`。交付汇总见本机 `delivery-verification.json`。
+- [GitHub Pages 流水线](https://github.com/Panda-Panta/R.I.I.C-Calculator/actions/runs/38272366494) 成功；[Windows Release 流水线](https://github.com/Panda-Panta/R.I.I.C-Calculator/actions/runs/38272366502) 在交付补录时仍运行，未将本地通过等同于该流水线完成。
 - 独立 skill 仓库：[Panda-Panta/arknights-riic-mechanics](https://github.com/Panda-Panta/arknights-riic-mechanics)，`main` 提交 `5a39c0e30643fe3d68ea12c215c21a62beccd077` 已与远程核对。
 - 包校验覆盖 frontmatter、界面 YAML、43 个相对引用、数据/来源一致性、离线查询和损坏/过期检测；发布前最后联网检查于 `2026-10-12T15:38:46.522Z` 为 `current`，当时 Mower alpha 已前进至 `52dba896f03f0ebb5321ea40852f68eda664ff0f`，所列相关文件 SHA 全部一致。包内容指纹 `0b1260d58ef8a7b3df306df0154973fb271ec92145e32ed8f22dedfd31e4c674`。
 - [完整 skill ZIP 发布](https://github.com/Panda-Panta/arknights-riic-mechanics/releases/tag/v078-20261012.1)：`arknights-riic-mechanics-v078.zip`，861244 字节，SHA-256 `c5686f75cd6f9e6be6b6f42a50fcc9cbbebfcd5849fce2fd5380c861501dd7e7`；GitHub 上传资产摘要与本机一致。完整保留相对目录即可按各 agent 的官方技能目录导入；每次导入前重新运行 freshness 检查。
@@ -59,4 +62,4 @@ WorkbenchShell 已拆出持久化、收益计算及自动配员三个 composable
 
 回收加速 +50% 目前作为界面预览；动态时间线未自动假设持续投料，也未实现有限加速时长。随机材料种类、实际价值和其 82 分收益不作虚构估算。回收站的动态换班走新的排班模拟，旧静态轮换器的范围保持原样。
 
-格式、离线脚本及独立 agent 使用已验收；Codex、Claude Code、Copilot 的目录按官方文档说明，未逐一在每个平台实际安装。数值回归和安装文件校验也不等同于真实游戏操作或每个用户场景的保证。
+格式、离线脚本及独立 agent 使用已验收；Codex、Claude Code、Copilot 的目录按官方文档说明，未逐一在每个平台实际安装。本次同步未执行桌面程序启动；数值回归和安装文件校验也不等同于真实游戏操作或每个用户场景的保证。
