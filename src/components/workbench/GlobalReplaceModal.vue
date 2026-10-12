@@ -295,7 +295,7 @@ import {
   type OperatorSearchItem,
   type ReplacementScopeResult,
 } from '../../workbench/operatorHelpers'
-import type { MowerRoomId } from '../../workbench/model'
+import type { MowerRoomId } from '../../domain/roster'
 
 export interface GlobalReplacePayload {
   sourceId: string

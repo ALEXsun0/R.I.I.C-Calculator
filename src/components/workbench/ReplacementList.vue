@@ -66,7 +66,7 @@ import { NButton } from 'naive-ui'
 import { useRosterWorkbenchStore } from '../../workbench/store'
 import { getOperatorAvatarUrl } from '../../workbench/operatorHelpers'
 import { OPERATOR_MAP } from '../../domain/operators'
-import type { MowerRoomId } from '../../workbench/model'
+import type { MowerRoomId } from '../../domain/roster'
 
 interface Props {
   roomId: MowerRoomId

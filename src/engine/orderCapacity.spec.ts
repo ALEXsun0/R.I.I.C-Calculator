@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest'
 import {createDefaultConfig,createRoom} from '../domain/defaults'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import {evaluateOperators} from './operatorRules'
 import {evaluateTradeOrderCapacity} from './orderCapacity'
 function capacity(names:string[],control:string[]=[],level:1|2|3=3,inactive:string[]=[]){const c=createDefaultConfig(),r=createRoom('t','trading');r.level=level;r.operatorIds=names.map(id);c.rooms=[r];c.controlOperatorIds=control.map(id);const active=new Set([...r.operatorIds,...c.controlOperatorIds].filter(x=>!inactive.map(id).includes(x)));return evaluateTradeOrderCapacity(r,c,active,evaluateOperators(r,c,active))}

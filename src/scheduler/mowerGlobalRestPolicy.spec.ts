@@ -7,7 +7,7 @@ import {createRosterRuntime} from './rosterRuntime'
 import {getMowerSourceRuntime} from './mowerSourceRuntime'
 import {planMowerMetadata} from './mowerMetadata'
 import {MowerTaskQueue,toMowerMicros} from './mowerTaskQueue'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 
 describe('native global rest settings reach runtime metadata',()=>{
  it.each(native.cases)('matches actual alpha decisions for $id',test=>{

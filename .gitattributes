@@ -1,0 +1,3 @@
+# The portable skill validates byte hashes, including Markdown and JSON files.
+# Keep its published bytes identical across Git clients and operating systems.
+.codex/skills/arknights-riic-mechanics/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

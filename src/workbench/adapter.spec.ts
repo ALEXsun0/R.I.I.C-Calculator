@@ -4,7 +4,7 @@ import { calculate } from '../engine/calculate'
 import { createDefaultWorkspace } from './defaults'
 import { migrateAppConfigToWorkspace, COMPAT_OPERATOR_GROUPS_KEY } from './migrate'
 import { compileMainPlanToAppConfig } from './adapter'
-import { MOWER_OUTPUT_ROOM_IDS } from './model'
+import { MOWER_OUTPUT_ROOM_IDS } from '../domain/roster'
 
 function deepFreeze<T>(obj: T): T {
   if (obj === null || typeof obj !== 'object') {

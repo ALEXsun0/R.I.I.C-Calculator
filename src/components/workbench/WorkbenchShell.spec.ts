@@ -50,6 +50,8 @@ import { fileURLToPath } from 'node:url'
 import App from '../../App.vue'
 import WorkbenchShell from './WorkbenchShell.vue'
 import { runCalculationBridge, type CalculationBridgeOptions } from '../../workbench/calculationBridge'
+import type { CalculationWorkerMessage } from '../../workbench/calculationWorker'
+import { migrateAppConfigToWorkspace } from '../../workbench/migrate'
 import PlanToolbar from './PlanToolbar.vue'
 import BaseMap from './BaseMap.vue'
 import FacilityEditor from './FacilityEditor.vue'
@@ -59,7 +61,7 @@ import OperatorSelectModal from './OperatorSelectModal.vue'
 import GlobalReplaceModal from './GlobalReplaceModal.vue'
 import { useRosterWorkbenchStore } from '../../workbench/store'
 import { createDefaultWorkspace } from '../../workbench/defaults'
-import type { RosterWorkspace } from '../../workbench/model'
+import type { RosterWorkspace } from '../../domain/roster'
 import { compileMainPlanToAppConfig } from '../../workbench/adapter'
 import { createDefaultConfig } from '../../domain/defaults'
 import { calculate } from '../../engine/calculate'
@@ -160,6 +162,63 @@ describe('WorkbenchShell.vue and App primary entry integration', () => {
     expect(wrapper.vm.isCalculating).toBe(false)
     expect(pending[0]!.terminate).toHaveBeenCalledOnce()
     expect(JSON.parse(localStorage.getItem(`arc-income-calculator-sim-settings-v1-${EDITION.storageNamespace}`)!).productionWeights).toEqual({ ...productionWeights, gold: 0 })
+  })
+
+  it('restores v7 workspace, settings and inventory through the same persisted contract', async () => {
+    const config = createDefaultConfig()
+    config.planName = '保留旧版排班'
+    config.rooms[0]!.product = 'exp'
+    const expected = migrateAppConfigToWorkspace(config)
+    localStorage.setItem(`arc-income-calculator-config-v7-${EDITION.storageNamespace}`, JSON.stringify(config))
+    localStorage.setItem('arcinc-operator-inventory-v1', JSON.stringify({ enabled: true, text: '芬,1,55' }))
+    const wrapper = mountWithPinia(WorkbenchShell)
+    await flushPromises()
+    expect(wrapper.vm.store.workspace).toEqual(expected)
+    expect(wrapper.vm.simSettings).toMatchObject({ warmupDays: .25, sampleDays: .75, seed: 42 })
+    expect(JSON.parse(localStorage.getItem(`arc-income-calculator-workspace-v8-${EDITION.storageNamespace}`)!)).toEqual(expected)
+    wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '' })
+    await flushPromises()
+    expect(wrapper.vm.calculationError).toBeNull()
+    expect(wrapper.vm.calculationReport).not.toBeNull()
+  })
+
+  it('ignores aborted income-worker callbacks while a new calculation is running', async () => {
+    const pending: IncomeWorker[] = []
+    class IncomeWorker {
+      onmessage: ((event: MessageEvent<CalculationWorkerMessage>) => void) | null = null
+      postMessage = vi.fn()
+      terminate = vi.fn()
+      constructor() { pending.push(this) }
+    }
+    vi.stubGlobal('Worker', IncomeWorker)
+    const wrapper = mountWithPinia(WorkbenchShell)
+    const config = { droneTarget: 'none' as const, droneTradingRoomId: '', useOperatorInventory: false }
+    wrapper.vm.handleConfirmCalculation(config)
+    const oldMessage = pending[0]!.onmessage!
+    wrapper.vm.handleAbortCalculation()
+    expect(pending[0]!.terminate).toHaveBeenCalledOnce()
+    wrapper.vm.handleConfirmCalculation(config)
+    const result = runCalculationBridge(createDefaultWorkspace())
+    oldMessage({ data: { type: 'complete', result, timelineData: null } } as MessageEvent<CalculationWorkerMessage>)
+    oldMessage({ data: { type: 'error', error: '旧任务错误' } } as MessageEvent<CalculationWorkerMessage>)
+    await flushPromises()
+    expect(wrapper.vm.isCalculating).toBe(true)
+    expect(wrapper.vm.calculationReport).toBeNull()
+    expect(wrapper.vm.calculationError).toBeNull()
+    pending[1]!.onmessage!({ data: { type: 'complete', result, timelineData: null } } as MessageEvent<CalculationWorkerMessage>)
+    await flushPromises()
+    expect(wrapper.vm.isCalculating).toBe(false)
+    expect(wrapper.vm.calculationReport).toEqual(result.report)
+  })
+
+  it('terminates a pending income worker when the workbench is unmounted', () => {
+    const terminate = vi.fn()
+    vi.stubGlobal('Worker', class { postMessage = vi.fn(); terminate = terminate })
+    const wrapper = mountWithPinia(WorkbenchShell)
+    wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '', useOperatorInventory: false })
+    expect(wrapper.vm.isCalculating).toBe(true)
+    wrapper.unmount()
+    expect(terminate).toHaveBeenCalledOnce()
   })
 
   // 1. App contains only WorkbenchShell primary entry
@@ -736,7 +795,7 @@ describe('WorkbenchShell.vue and App primary entry integration', () => {
     await flushPromises()
     expect(vm.replaceStatusMessage).toContain('排班成功')
     expect(JSON.stringify(vm.store.workspace)).not.toBe(original)
-    for (const room of Object.values(vm.store.workspace.mainPlan.facilities) as import('../../workbench/model').MowerFacility[]) {
+    for (const room of Object.values(vm.store.workspace.mainPlan.facilities) as import('../../domain/roster').MowerFacility[]) {
       if (room.type === 'dormitory' && room.level > 0) {
         expect(room.slots.some(slot => slot.occupant.kind === 'operator')).toBe(true)
       }

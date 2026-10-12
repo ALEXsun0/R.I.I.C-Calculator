@@ -1,7 +1,7 @@
 import type { OperatorInventory } from '../domain/operatorInventory'
 import { inventoryOperatorRecords } from '../domain/operatorContext'
 import { evaluateOperators } from '../engine/operatorRules'
-import type { RosterWorkspace } from '../workbench/model'
+import type { RosterWorkspace } from '../domain/roster'
 import { projectRosterConfig } from './rosterProjection'
 import { projectControlOutput } from './controlImpact'
 import { productionRoomId } from './productionSingletons'

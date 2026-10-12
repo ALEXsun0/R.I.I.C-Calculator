@@ -3,7 +3,7 @@ import {createDefaultWorkspace} from '../workbench/defaults'
 import {compileRosterSchedule} from './compileRosterSchedule'
 import {compiledScheduleToRuntimeConfig} from './scheduleAdapter'
 import {advanceRoster,createRosterRuntime,nextRosterActionHours,settleRoster,type RuntimeConfig} from './rosterRuntime'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 const config=():RuntimeConfig=>({positions:[{id:'a',roomId:'work',primary:'A',candidates:['X'],group:'g',upperLimit:12,shiftOffThreshold:7,restMoodLimit:true},{id:'b',roomId:'work',primary:'B',candidates:['Y'],group:'g',upperLimit:24,shiftOffThreshold:15,restToFull:true}],beds:[{id:'one',roomId:'dormitory_1',vip:true},{id:'two',roomId:'dormitory_2',vip:true}],mowerPolicy:{restingThreshold:.65,powerPlantCount:2,opeRestingPriority:[],freeRoom:false},initialMorale:{A:11.5,B:16}})
 const rates={workRate:()=>1,recoveryRate:()=>4}
 describe('Mower default Ling/Xi rest mood limit',()=>{

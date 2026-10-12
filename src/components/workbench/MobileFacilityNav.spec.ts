@@ -60,8 +60,29 @@ describe('MobileFacilityNav.vue', () => {
     await supportTab.trigger('click')
 
     chips = wrapper.findAll('.facility-chip')
-    expect(chips.length).toBe(4) // Meeting, Factory, Contact, Train
+    expect(chips.length).toBe(5) // Meeting, Factory, Contact, Train, Recycle
     expect(chips[0]!.text()).toContain('会客')
+  })
+
+  it('selects the recycle room from support facilities and reflects its actual slot count', async () => {
+    const wrapper = mount(MobileFacilityNav)
+    const store = useRosterWorkbenchStore()
+    await wrapper.get('[data-test="cat-tab-support"]').trigger('click')
+    const chip = wrapper.get('[data-test="facility-chip-recycle"]')
+    expect(chip.text()).toContain('回收站')
+    expect(chip.get('.chip-staff').text()).toBe('0/0')
+    await chip.trigger('click')
+    expect(store.selectedRoomId).toBe('recycle')
+    expect(wrapper.emitted('select-room')?.[0]).toEqual(['recycle'])
+    expect(wrapper.get('.current-selected-label').text()).toContain('回收站')
+
+    store.updateFacility('recycle', {
+      level: 1,
+      slots: [{ occupant: { kind: 'operator', operatorId: 'char_4232_hbound' }, groupId: null, replacements: [] }],
+    })
+    await wrapper.vm.$nextTick()
+    expect(chip.get('.chip-staff').text()).toBe('1/1')
+    wrapper.unmount()
   })
 
   it('selects room in store and emits select-room when chip is clicked', async () => {

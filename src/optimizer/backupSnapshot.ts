@@ -1,5 +1,5 @@
-import {resolveOperatorCharId as resolveId} from '../workbench/compat/mowerJson'
-import type {RosterWorkspace} from '../workbench/model'
+import { resolveOperatorCharId as resolveId } from '../domain/operatorIdentifiers'
+import type {RosterWorkspace} from '../domain/roster'
 const participants=(w:RosterWorkspace)=>Object.values(w.mainPlan.facilities).flatMap(r=>r.slots.flatMap(s=>[
  ...(s.occupant.kind==='operator'?[resolveId(s.occupant.operatorId)]:[]),...s.replacements.map(resolveId),
 ]))

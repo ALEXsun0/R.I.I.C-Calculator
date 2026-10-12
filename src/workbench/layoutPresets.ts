@@ -2,6 +2,7 @@ import { toRaw } from 'vue'
 import { EDITION } from '../domain/edition'
 import { normalizeMissingFacilities } from './facilityState'
 import { createDefaultWorkspace } from './defaults'
+import { facilityCapacity as capacity } from '../domain/facilities'
 import {
   MOWER_ROOM_IDS,
   type MowerFacilityType,
@@ -9,7 +10,7 @@ import {
   type MowerRoomId,
   type MowerSlot,
   type RosterWorkspace,
-} from './model'
+} from '../domain/roster'
 
 export const LAYOUT_PRESETS_STORAGE_KEY = `arc-income-calculator-layout-presets-v1-${EDITION.storageNamespace}`
 
@@ -29,14 +30,6 @@ const outputTypes: MowerFacilityType[] = ['manufacture', 'trading', 'power']
 const productByType: Record<string, readonly MowerProduct[]> = {
   manufacture: ['gold', 'exp', 'fragment'],
   trading: ['money', 'orundum'],
-}
-
-function capacity(type: MowerFacilityType, level: number): number {
-  if (level === 0) return 0
-  if (type === 'manufacture' || type === 'trading') return level
-  if (type === 'central' || type === 'dormitory') return 5
-  if (type === 'meeting' || type === 'train') return 2
-  return 1
 }
 
 function emptySlot(): MowerSlot {
@@ -75,7 +68,8 @@ export function isValidFacilityLayout(value: unknown): value is Record<MowerRoom
       : roomId === 'meeting' ? 'meeting'
       : roomId === 'factory' ? 'factory'
       : roomId === 'contact' ? 'contact'
-      : roomId === 'train' ? 'train' : null
+      : roomId === 'train' ? 'train'
+      : roomId === 'recycle' ? 'recycle' : null
     if (expectedType ? room.type !== expectedType : !outputTypes.includes(room.type)) return false
     const maxLevel = roomId === 'central' || roomId.startsWith('dormitory_') ? 5
       : roomId.startsWith('gaming_') ? 1 : 3
@@ -100,6 +94,9 @@ export function readLayoutPresets(storage: Pick<Storage, 'getItem'>): LayoutPres
       const candidate = item as LayoutPreset
       if (typeof candidate.id !== 'string' || !candidate.id || ids.has(candidate.id)) return false
       if (typeof candidate.name !== 'string' || !candidate.name.trim() || candidate.name.length > 32 || names.has(candidate.name)) return false
+      if (candidate.facilities && typeof candidate.facilities === 'object' && !candidate.facilities.recycle) {
+        candidate.facilities.recycle = { type: 'recycle', level: 0 }
+      }
       if (!isValidFacilityLayout(candidate.facilities)) return false
       ids.add(candidate.id)
       names.add(candidate.name)

@@ -3,8 +3,8 @@ import * as neighborhood from './backupNeighborhood'
 import * as scoring from './incomeComparison'
 import {runRosterIncomeSearch,type IncomeSearchProgress} from './rosterIncomeSearch'
 import {createDefaultWorkspace} from '../workbench/defaults'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
-import type {RosterWorkspace} from '../workbench/model'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
+import type {RosterWorkspace} from '../domain/roster'
 const inventory=[
  {operator:'砾',elitePhase:2,level:70},{operator:'断罪者',elitePhase:2,level:70},
  {operator:'芬',elitePhase:1,level:55},{operator:'香草',elitePhase:1,level:55},

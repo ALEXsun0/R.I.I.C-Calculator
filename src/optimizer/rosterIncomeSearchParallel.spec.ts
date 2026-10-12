@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createDefaultWorkspace } from '../workbench/defaults'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { runRosterIncomeSearch, runRosterIncomeSearchParallel, type IncomeSearchProgress } from './rosterIncomeSearch'
 import { simulateCandidate, type CandidateSimulationJob } from './candidateSimulation'
 import * as neighborhood from './backupNeighborhood'

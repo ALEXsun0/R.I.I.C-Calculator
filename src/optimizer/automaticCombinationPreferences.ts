@@ -1,5 +1,5 @@
-import type { RosterWorkspace } from '../workbench/model'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import type { RosterWorkspace } from '../domain/roster'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { ATOMIC_UNITS, type AtomicMember } from './riicAtomicUnits'
 import { physicalBackupOperatorIds, type CombinationVariant, type RosterRole } from './combinationModel'
 

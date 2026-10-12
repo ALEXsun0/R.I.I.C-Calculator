@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createDefaultWorkspace } from '../workbench/defaults'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { compareWorkspacePreference } from './automaticCombinationPreferences'
 
 function perception(blackkey = false, role: 'main' | 'backup' = 'main') {

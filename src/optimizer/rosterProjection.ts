@@ -1,7 +1,7 @@
 import {createDefaultConfig} from '../domain/defaults'
 import {compileMainPlanToAppConfig} from '../workbench/adapter'
-import {resolveOperatorCharId as resolveId} from '../workbench/compat/mowerJson'
-import {type RosterWorkspace} from '../workbench/model'
+import { resolveOperatorCharId as resolveId } from '../domain/operatorIdentifiers'
+import {type RosterWorkspace} from '../domain/roster'
 import {projectControlOutput} from './controlImpact'
 
 export function projectRosterConfig(workspace:RosterWorkspace){

@@ -1,6 +1,6 @@
 import { runSmartRosterParallel, type SmartRosterOptions } from './smartRoster'
 import { CandidateSimulationPool } from './candidateSimulationPool'
-import type { RosterWorkspace } from '../workbench/model'
+import type { RosterWorkspace } from '../domain/roster'
 import type { OwnedOperatorInput } from '../domain/operatorInventory'
 
 export interface SmartRosterWorkerMessage {

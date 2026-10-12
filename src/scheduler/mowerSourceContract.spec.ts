@@ -1,10 +1,10 @@
-import { simulateMoraleTimeline } from '../simulator/moraleTimeline'
+import { simulateMoraleTimeline } from '../test/helpers/moraleTimeline'
 import { describe, it, expect } from 'vitest'
 import { createDefaultWorkspace } from '../workbench/defaults'
 import { compileRosterSchedule } from './compileRosterSchedule'
 import { compiledScheduleToRuntimeConfig } from './scheduleAdapter'
 import { createRosterRuntime, settleRoster, nextCandidate, moraleDerivative, nextRosterEventHours, nextRosterActionHours, advanceRoster, type RuntimeConfig } from './rosterRuntime'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 function projected(name: string, conf: Record<string, unknown> = {}) {
   const w = createDefaultWorkspace()
   Object.assign(w.mainPlan.conf, conf)

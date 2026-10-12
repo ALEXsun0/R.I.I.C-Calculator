@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { compileOperatorInventory, fullCatalogIdleInventory } from '../domain/operatorInventory'
 import { createDefaultWorkspace } from '../workbench/defaults'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { runGlobalPerCapitaReplacement } from './globalPerCapitaReplacement'
 import { productionTeamTheory } from './productionSingletons'
 

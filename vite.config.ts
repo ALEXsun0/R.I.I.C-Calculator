@@ -23,6 +23,10 @@ export default defineConfig({
     port: 4173,
   },
   test: {
+    // The full suite includes CPU-bound 72/168-hour roster simulations. Bound
+    // worker concurrency so they do not starve runner RPCs and wall-clock limits.
+    maxWorkers: 2,
+    testTimeout: 60_000,
     exclude: [
       ...configDefaults.exclude,
       '.worktrees/**',

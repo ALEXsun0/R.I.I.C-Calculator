@@ -78,6 +78,7 @@ function resolveRoomType(roomId: string, rawType?: string): string {
   if (roomId === 'factory') return 'workshop'
   if (roomId === 'contact') return 'office'
   if (roomId === 'train') return 'training'
+  if (roomId === 'recycle') return 'recycle'
   return 'manufacture'
 }
 
@@ -436,7 +437,7 @@ export function buildTimelineData(report: ScheduleSimulationReport): TimelineDat
   }
 
   // Sort tracks deterministically
-  const facilityOrder = ['manufacture', 'trading', 'power', 'central', 'dormitory', 'meeting', 'office', 'training', 'workshop']
+  const facilityOrder = ['manufacture', 'trading', 'power', 'central', 'dormitory', 'meeting', 'office', 'training', 'workshop', 'recycle']
   const sortedFacilities = Array.from(roomTracksMap.values()).sort((a, b) => {
     const ai = facilityOrder.indexOf(a.roomType)
     const bi = facilityOrder.indexOf(b.roomType)

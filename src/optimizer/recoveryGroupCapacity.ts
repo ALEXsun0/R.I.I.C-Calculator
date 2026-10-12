@@ -1,5 +1,5 @@
-import type { RosterWorkspace } from '../workbench/model'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import type { RosterWorkspace } from '../domain/roster'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 
 /** A whole shift must fit even when every usable recovery bed is vacant. */
 export function recoveryGroupCapacityIssues(workspace: RosterWorkspace, preparingDorms = false): { code: string; message: string }[] {

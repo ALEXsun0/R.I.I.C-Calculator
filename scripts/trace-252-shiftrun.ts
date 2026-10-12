@@ -1,14 +1,14 @@
 import { OPERATORS } from '../src/domain/operators'
 import { type OwnedOperatorInput } from '../src/domain/operatorInventory'
 import { createDefaultWorkspace } from '../src/workbench/defaults'
-import { restoreOperatorMowerName } from '../src/workbench/compat/mowerJson'
+import { restoreOperatorMowerName } from '../src/domain/operatorIdentifiers'
 import { runSmartRoster, type SmartRosterProgress } from '../src/optimizer/smartRoster'
 import { validatePhysicalRoster } from '../src/optimizer/rosterDraft'
 import { validateRosterWorkspace } from '../src/workbench/validate'
 import { compileMainPlanToAppConfig } from '../src/workbench/adapter'
 import { createDefaultConfig } from '../src/domain/defaults'
 import { calculate } from '../src/engine/calculate'
-import type { RosterWorkspace } from '../src/workbench/model'
+import type { RosterWorkspace } from '../src/domain/roster'
 
 const allOwned: OwnedOperatorInput[] = OPERATORS.map((o) => ({
   operator: o.name,

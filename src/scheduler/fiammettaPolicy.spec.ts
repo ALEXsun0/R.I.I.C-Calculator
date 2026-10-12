@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { simulateMoraleTimeline } from '../simulator/moraleTimeline'
+import { simulateMoraleTimeline } from '../test/helpers/moraleTimeline'
 it('Fiammetta recovers at exactly 2/h, exchanges morale and reselects ordered targets', () => {
   const r = simulateMoraleTimeline({ positions: [
     { id: 'a', roomId: 'r', primary: 'A', candidates: [], permanent: true },

@@ -416,13 +416,13 @@ describe('Mower QR Codec', () => {
       // 15 items
       const chunks15 = Array.from({ length: 15 }, () => 'abc')
       expect(() => decodeRosterFrom16QrChunks(chunks15)).toThrow(
-        /expected exactly 16 chunks, but got 15/i
+        /expected exactly 16 chunks or 14 chunks, but got 15/i
       )
 
       // 17 items
       const chunks17 = Array.from({ length: 17 }, () => 'abc')
       expect(() => decodeRosterFrom16QrChunks(chunks17)).toThrow(
-        /expected exactly 16 chunks, but got 17/i
+        /expected exactly 16 chunks or 14 chunks, but got 17/i
       )
 
       // 16 items but one item is not a string

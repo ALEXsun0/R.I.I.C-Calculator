@@ -66,7 +66,7 @@ import ReplacementList from './ReplacementList.vue'
 import { useRosterWorkbenchStore } from '../../workbench/store'
 import { getOperatorAvatarUrl } from '../../workbench/operatorHelpers'
 import { OPERATOR_MAP } from '../../domain/operators'
-import type { MowerRoomId, MowerSlot } from '../../workbench/model'
+import type { MowerRoomId, MowerSlot } from '../../domain/roster'
 
 interface Props {
   roomId: MowerRoomId

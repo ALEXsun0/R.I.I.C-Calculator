@@ -2,25 +2,10 @@
 import OperatorInventoryPanel from './OperatorInventoryPanel.vue'
 import ProductionWeightsEditor from './ProductionWeightsEditor.vue'
 import type { OwnedOperatorInput } from '../../domain/operatorInventory'
-import { DEFAULT_PRODUCTION_WEIGHTS, type ProductionWeights } from '../../domain/productionWeights'
+import { DEFAULT_PRODUCTION_WEIGHTS } from '../../domain/productionWeights'
 
-export interface SimulationSettings {
-  sampleDays: number
-  warmupDays: number
-  step: number
-  seed: number
-  droneTarget: 'gold' | 'exp' | 'trading' | 'none'
-  droneTradingRoomId?: string
-  droneRoomId?: string
-  useOperatorInventory?: boolean
-  jayeElite0?: boolean
-  fiammettaFool?: boolean
-  fiammettaThreshold?: number
-  restingThreshold?: number
-  rescueThreshold?: number
-  freeRoom?: boolean
-  productionWeights?: ProductionWeights
-}
+import type { SimulationSettings } from '../../workbench/settings'
+export type { SimulationSettings } from '../../workbench/settings'
 
 const props = defineProps<{
   settings: SimulationSettings

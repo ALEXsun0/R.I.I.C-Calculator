@@ -47,6 +47,15 @@ const number = (n: number | undefined | null) =>
     ? n.toLocaleString('zh-CN', { maximumFractionDigits: 2 })
     : '0'
 
+function sampledCompletions(room: { roomId: string; roomType: string }): string {
+  const production = props.report?.production
+  if (room.roomType === 'recycle') return production?.recycle ? number(production.recycle.sampleCompletedItems) : '—'
+  if (room.roomType === 'manufacture' && production) {
+    return number(production.manufacturing.find(item => item.roomId === room.roomId)?.sampleCompletedItems)
+  }
+  return '—'
+}
+
 const signed = (n: number | undefined | null) => {
   if (typeof n !== 'number' || !Number.isFinite(n)) return '0'
   return n > 0 ? '+' + number(n) : number(n)
@@ -247,7 +256,7 @@ function exportJson(mode: ExportReportMode = 'summary'): void {
                 <td>{{ getRoomDisplayName(room.roomId, room.roomType) }}</td>
                 <td><strong>{{ number(room.averageEfficiencyPercent) }}%</strong></td>
                 <td>{{ number(room.occupiedHours) }} 小时</td>
-                <td>{{ room.roomType==='manufacture' && report.production ? number(report.production.manufacturing.find(item=>item.roomId===room.roomId)?.sampleCompletedItems) : '—' }}</td>
+                <td>{{ sampledCompletions(room) }}</td>
                 <td>{{ room.teams.length }} 组</td>
               </tr>
             </tbody>

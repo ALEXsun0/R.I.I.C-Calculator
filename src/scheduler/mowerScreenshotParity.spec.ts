@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { importMowerJson } from '../workbench/compat/mowerJson'
 import { runScheduleSimulationBridge } from '../workbench/scheduleSimulationBridge'
 import { mowerReportMetrics } from '../workbench/mowerReportMetrics'
+import { testEvidenceFile } from '../test/evidence'
 
 const root = new URL('../../validation/mower-backup-2026-09-22/', import.meta.url)
 const workspace = importMowerJson(readFileSync(new URL('roster.json', root), 'utf8'))
@@ -17,11 +18,11 @@ it.each(scenarios)('records alpha screenshot control with cyclic backup 0 disabl
   await new Promise(resolve => setTimeout(resolve, 150))
   const control=structuredClone(workspace);Reflect.set(control.compatibility.backupPlans[0]!,'trigger','False')
   const result = runScheduleSimulationBridge(control, { warmupHours: 72, sampleHours: process.env.MOWER_PARITY_LONG ? 672 : 168, recordSegments: false, production: { outputMode: 'potential', runOrderMode: 'ideal', droneTarget, seed: Number(process.env.MOWER_PARITY_SEED ?? 42) } }, assumptions)
-  if (!result.report?.success) writeFileSync(new URL('screenshot-failure.json',root),JSON.stringify(result,null,2))
+  if (!result.report?.success) writeFileSync(testEvidenceFile('screenshot-failure.json'),JSON.stringify(result,null,2))
   expect(result.report?.success, result.error ?? JSON.stringify(result.report?.diagnostics)).toBe(true)
   const r = result.report!
   summaries.push({ controlDisabledBackups:[0],droneTarget, configuredAssumptions: assumptions, assumptions: r.assumptions, metrics: mowerReportMetrics(r), operators: r.operators, rooms: r.rooms, production: r.production, rosterEvents: r.events, diagnostics: r.diagnostics })
-  writeFileSync(new URL(process.env.MOWER_PARITY_OUTPUT ?? 'screenshot-scenarios.json', root), JSON.stringify(summaries, null, 2))
+  writeFileSync(testEvidenceFile(process.env.MOWER_PARITY_OUTPUT ?? 'screenshot-scenarios.json'), JSON.stringify(summaries, null, 2))
   // The default control matches the user's three-day warmup and seven-day sample.
   // Later cyclic combinations are tested separately against the native preview.
 }, 1200000)

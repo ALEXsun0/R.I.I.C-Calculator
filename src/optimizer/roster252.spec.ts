@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { OPERATORS } from '../domain/operators'
 import { type OwnedOperatorInput } from '../domain/operatorInventory'
 import { createDefaultWorkspace } from '../workbench/defaults'
-import { restoreOperatorMowerName } from '../workbench/compat/mowerJson'
+import { restoreOperatorMowerName } from '../domain/operatorIdentifiers'
 import { runSmartRoster, type SmartRosterProgress } from './smartRoster'
 import { validatePhysicalRoster } from './rosterDraft'
 

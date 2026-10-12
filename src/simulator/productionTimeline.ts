@@ -10,6 +10,8 @@ import {startOrder,advanceOrder,finishOrder,type ActiveOrder} from './orderTimel
 import {createLedger,type ResourceAmounts,type ResourceKind} from './resourceLedger'
 import {createDroneState,generateDrones,spendDrones} from './droneTimeline'
 import {MANUFACTURING_FORMULAS,startManufacturing,authorizeManufacturingBatch,advanceManufacturing,collectManufacturing,nextManufacturingEvent,updateManufacturingCapacity,type ManufacturingFormulaId,type ManufacturingState} from './manufacturingTimeline'
+import { evaluateRecycleEfficiency } from '../engine/supportFacilitySkills'
+import { createRecycleTimeline, type RecycleProduction } from './recycleTimeline'
 
 /** Reject legacy persisted/API options as well as typed callers. */
 export function assertRunOrderMode(mode: unknown): void {
@@ -31,6 +33,7 @@ type CompletedOrder=ReturnType<typeof finishOrder>
 interface ManufactureRoom {roomId:string;state:ManufacturingState;blockedHours:number;blockedMaterialHours:number;collectedItems:number}
 interface TradeRoom {roomId:string;active:ActiveOrder|null;pending:CompletedOrder[];completedOrders:number;collectedOrders:number;blockedHours:number;limit:number|null;disabled:boolean;rng:number}
 export interface ProductionReport {
+ recycle?: RecycleProduction
  success:boolean;ledger:ReturnType<typeof createLedger>;sample:{completed:{exp:number;gold:number;orderLmd:number};opening:ResourceAmounts;closing:ResourceAmounts;inflows:ResourceAmounts;outflows:ResourceAmounts;net:ResourceAmounts}
  materialsConsumed:ResourceAmounts
  drones:ReturnType<typeof createDroneState>
@@ -62,6 +65,7 @@ export function createProductionTimeline(schedule:CompiledSchedule,state:Runtime
  const ledger=createLedger(initial),materialsConsumed:ResourceAmounts={}
  let drones=createDroneState(initial.drone??0),serial=0,valid=true,nextCollection=interval||Infinity
  const events:ProductionEvent[]=[],manufactures=new Map<string,ManufactureRoom>(),trades=new Map<string,TradeRoom>()
+ let recycle: ReturnType<typeof createRecycleTimeline> | undefined
  const capacityByEvaluation=new WeakMap<ProductionFrame['evaluations'],Map<string,{moodBand:string;bonus:number}>>()
  let opening:ResourceAmounts|undefined=warmupHours===0?{...ledger.balances}:undefined,openingIn:ResourceAmounts={},openingOut:ResourceAmounts={}
  const unsupported=(code:string,message:string)=>{valid=false;diagnostic(code,message)}
@@ -77,7 +81,7 @@ export function createProductionTimeline(schedule:CompiledSchedule,state:Runtime
  let openingCompleted={exp:0,gold:0,orderLmd:0}
  let openingManufactured=new Map<string,number>()
  const completedSample=()=>{const total=completedTotals();return {exp:total.exp-openingCompleted.exp,gold:total.gold-openingCompleted.gold,orderLmd:total.orderLmd-openingCompleted.orderLmd}}
- const markObservation=()=>{if(!opening&&state.time>=warmupHours-EPS){opening={...ledger.balances};openingIn={...ledger.inflows};openingOut={...ledger.outflows};openingCompleted=completedTotals();openingManufactured=new Map([...manufactures].map(([id,m])=>[id,m.state.lifetimeItems]))}}
+ const markObservation=()=>{if(!opening&&state.time>=warmupHours-EPS){opening={...ledger.balances};openingIn={...ledger.inflows};openingOut={...ledger.outflows};openingCompleted=completedTotals();openingManufactured=new Map([...manufactures].map(([id,m])=>[id,m.state.lifetimeItems]));recycle?.markObservation()}}
  const cost=(m:ManufacturingState):ResourceAmounts=>Object.fromEntries(m.formula.costs.map(c=>[c.id==='4001'?'lmd':c.id==='30012'?'orirock':'device',-c.count]))
  const fund=(m:ManufactureRoom)=>{
   if(!m.state.awaitingPayment||m.state.storedWeight+m.state.formula.storageWeight>m.state.capacityWeight+EPS)return
@@ -93,6 +97,7 @@ export function createProductionTimeline(schedule:CompiledSchedule,state:Runtime
  }
  const rng=(t:TradeRoom)=>{t.rng=(Math.imul(1664525,t.rng)+1013904223)>>>0;return t.rng/4294967296}
  const synchronize=(frame:ProductionFrame)=>{
+  if(frame.config.facilities.recycle&&!recycle)recycle=createRecycleTimeline(frame.config.facilities.recycle)
   for(const room of frame.config.rooms){
    const evaluation=frame.evaluations[room.id]!
    if(room.type==='manufacture'){
@@ -202,7 +207,10 @@ export function createProductionTimeline(schedule:CompiledSchedule,state:Runtime
   }
   const settle=(getFrame:()=>ProductionFrame)=>{
    let frame=getFrame();synchronize(frame);finish(frame)
-   if(!nativeScheduler&&(interval===0||state.time>=nextCollection-EPS)){collect();if(interval>0)nextCollection=(Math.floor((state.time+EPS)/interval)+1)*interval}
+   if(!nativeScheduler&&(interval===0||state.time>=nextCollection-EPS)){
+    collect();const collected=recycle?.collect()??0;if(collected)record('recycle-collected',{roomId:'recycle',amount:collected})
+    if(interval>0)nextCollection=(Math.floor((state.time+EPS)/interval)+1)*interval
+   }
    frame=getFrame();synchronize(frame);openWork(frame)
    while(true){
     const beforeSpending=serial
@@ -218,6 +226,7 @@ export function createProductionTimeline(schedule:CompiledSchedule,state:Runtime
   const nextStep=(maximum:number,getFrame:(offset:number)=>ProductionFrame)=>{
    let dt=Math.min(maximum,nativeScheduler?Infinity:nextCollection-state.time)
    const zero=getFrame(0)
+   if(recycle)dt=Math.min(dt,recycle.nextEventHours(evaluateRecycleEfficiency(zero.config,{activeIds:zero.active}).efficiencyPercent))
    // Capped charging is an event; smaller numerical steps must not change spending policy.
    const targetTrade=(options.droneRoomId||options.droneTradingRoomId)?trades.get((options.droneRoomId||options.droneTradingRoomId)!):[...trades.values()][0]
    const rate=chargeRate(zero),canSpend=target==='trading'?(targetTrade?.active!==null&&targetTrade?.active!==undefined):(target!=='none'&&[...manufactures.values()].some(m=>(options.droneRoomId?m.roomId===options.droneRoomId:m.state.formula.product===target)&&nextManufacturingEvent(m.state)!==null))
@@ -237,6 +246,7 @@ export function createProductionTimeline(schedule:CompiledSchedule,state:Runtime
    return dt
   }
   const advance=(hours:number,frame:ProductionFrame)=>{
+   if(recycle)recycle.advance(hours,evaluateRecycleEfficiency(frame.config,{activeIds:frame.active}).efficiencyPercent)
    const previous=drones;drones=generateDrones(drones,hours*60,chargeRate(frame));const accepted=drones.stock-previous.stock
    if(accepted>0)transact({drone:accepted},'drone-generated',state.time+hours)
    for(const m of manufactures.values()){
@@ -247,6 +257,7 @@ export function createProductionTimeline(schedule:CompiledSchedule,state:Runtime
    for(const t of trades.values())if(t.active)t.active=advanceOrder(t.active,{elapsedMinutes:hours*60,efficiency:frame.evaluations[t.roomId]!.efficiencyPercent/100}).order;else if(!t.disabled)t.blockedHours+=hours
   }
   const report=():ProductionReport=>({success:valid,ledger,sample:{completed:completedSample(),opening:opening??{...ledger.balances},closing:{...ledger.balances},inflows:difference(ledger.inflows,openingIn),outflows:difference(ledger.outflows,openingOut),net:difference(ledger.balances,opening??ledger.balances)},materialsConsumed:{...materialsConsumed},drones,events,
+   ...(recycle?{recycle:recycle.report()}:{}),
    assumptions:{outputMode,inventoryMode,seed,runOrderMode:'ideal',droneTarget:target,droneRoomId:options.droneRoomId,droneReserve:reserve,collectionIntervalHours:interval,orderSnapshotPolicy:'acquisition-start-v1: base draw and Pepe/Closure workload at start; U-Official/Proviso/Tequila conversion at completion; payment at collection; simultaneous facilities use schedule order'},
    manufacturing:[...manufactures.values()].map(m=>({roomId:m.roomId,product:m.state.formula.product,completedItems:m.state.lifetimeItems,sampleCompletedItems:m.state.lifetimeItems-(openingManufactured.get(m.roomId)??0),pendingItems:m.state.pendingItems,remainingBaseMinutes:m.state.remainingBaseMinutes,blockedHours:m.blockedHours,blockedMaterialHours:m.blockedMaterialHours})),
    trading:[...trades.values()].map(t=>({roomId:t.roomId,completedOrders:t.completedOrders,collectedOrders:t.collectedOrders,pendingOrders:t.pending,remainingBaseMinutes:t.active?.remainingBaseMinutes??null,blockedHours:t.blockedHours}))})
@@ -303,6 +314,8 @@ export function createProductionTimeline(schedule:CompiledSchedule,state:Runtime
   }
   const nativeAcceptOrder=(room:string,frame:ProductionFrame)=>{finish(frame);const trade=trades.get(room);if(!trade)throw new Error('Native trade facility is unavailable: '+room);const before=trade.collectedOrders;collect(room,true,false,1);openWork(frame);return trade.collectedOrders>before}
   return {settle,nextStep,advance,report,
+   nativePendingRecycleItems:()=>recycle?.report().pendingItems??0,
+   nativeCollectRecycleItems:()=>{const collected=recycle?.collect()??0;if(collected)record('recycle-collected',{roomId:'recycle',amount:collected})},
    nativeHasTrade:(room:string)=>trades.has(room),nativeHasManufacture:(room:string)=>manufactures.has(room),nativeManufactureDroneMaximum,nativeSpendManufacturingDrones,
    nativePendingTradeOrders:(room?:string)=>[...trades.values()].filter(t=>room===undefined||t.roomId===room).reduce((n,t)=>n+t.pending.length,0),
    nativePendingManufacturingItems:()=>[...manufactures.values()].reduce((n,m)=>n+m.state.pendingItems,0),

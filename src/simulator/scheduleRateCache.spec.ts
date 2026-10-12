@@ -1,7 +1,7 @@
 import {expect,it,vi} from 'vitest'
 import {createDefaultWorkspace} from '../workbench/defaults'
 import {compileRosterSchedule} from '../scheduler/compileRosterSchedule'
-import {resolveOperatorCharId} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId } from '../domain/operatorIdentifiers'
 import {currentMoraleRates} from '../engine/morale'
 import {simulateSchedule} from './scheduleSimulation'
 

@@ -14,7 +14,7 @@ import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import BaseMap from './BaseMap.vue'
 import { useRosterWorkbenchStore } from '../../workbench/store'
-import { MOWER_OUTPUT_ROOM_IDS, type MowerRoomId, type MowerFacilityType } from '../../workbench/model'
+import { MOWER_OUTPUT_ROOM_IDS, type MowerRoomId, type MowerFacilityType } from '../../domain/roster'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -37,10 +37,10 @@ describe('BaseMap.vue', () => {
     expect(wrapper.find('.right_box').exists()).toBe(true)
   })
 
-  it('renders exactly 18 cards without gaming rooms', () => {
+  it('renders exactly 19 cards including recycle and without gaming rooms', () => {
     const wrapper = mount(BaseMap)
     const cards = wrapper.findAll('.facility-card')
-    expect(cards.length).toBe(18)
+    expect(cards.length).toBe(19)
 
     const gamingCards = cards.filter((card) => {
       const roomId = card.attributes('data-room-id') || ''
@@ -71,10 +71,10 @@ describe('BaseMap.vue', () => {
       expect(card.classes()).toContain('size-center')
     }
 
-    // Right column: 4 support rooms with size-support / facility-support
+    // Right column: 5 support rooms with size-support / facility-support
     const rightCards = wrapper.findAll('.right_box .facility-card')
-    expect(rightCards.length).toBe(4)
-    const rightIds = ['meeting', 'factory', 'contact', 'train']
+    expect(rightCards.length).toBe(5)
+    const rightIds = ['meeting', 'factory', 'contact', 'train', 'recycle']
     for (const id of rightIds) {
       const card = wrapper.find(`[data-room-id="${id}"]`)
       expect(card.exists()).toBe(true)
@@ -85,6 +85,28 @@ describe('BaseMap.vue', () => {
     const trainCard = wrapper.find('[data-room-id="train"]')
     expect(trainCard.text()).toContain('协助位')
     expect(trainCard.text()).toContain('训练位')
+  })
+
+  it('keeps unbuilt recycle visible and selectable and renders assigned staff after building', async () => {
+    const store = useRosterWorkbenchStore()
+    const wrapper = mount(BaseMap)
+    const card = wrapper.get('[data-room-id="recycle"]')
+    expect(card.attributes('aria-label')).toContain('回收站')
+    expect(card.text()).toContain('待建造')
+    expect(card.attributes('draggable')).toBe('false')
+    await card.trigger('click')
+    expect(store.selectedRoomId).toBe('recycle')
+
+    store.updateFacility('recycle', {
+      level: 1,
+      slots: [{ occupant: { kind: 'operator', operatorId: 'char_4232_hbound' }, groupId: null, replacements: [] }],
+    })
+    await wrapper.vm.$nextTick()
+    expect(card.text()).toContain('回收站')
+    expect(card.text()).not.toContain('待建造')
+    expect(card.get('img').attributes('alt')).toBe('旅骨')
+    expect(card.attributes('aria-selected')).toBe('true')
+    wrapper.unmount()
   })
 
   it('renders product watermark URL correctly for manufacture and trading rooms', () => {

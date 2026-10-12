@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createDefaultWorkspace } from '../workbench/defaults'
 import { compileRosterSchedule } from '../scheduler/compileRosterSchedule'
 import { compiledScheduleToRuntimeConfig } from '../scheduler/scheduleAdapter'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { simulateSchedule } from './scheduleSimulation'
 
 const owned = (operator: string, elitePhase: number) => ({ operator, elitePhase, level: 1 })

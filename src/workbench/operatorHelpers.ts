@@ -7,7 +7,7 @@
 import { match, pinyin } from 'pinyin-pro'
 import { OPERATOR_MAP, OPERATORS, type OperatorRecord } from '../domain/operators'
 import { isTradeRunOrderOperator } from '../domain/shiftRunPolicy'
-import type { MowerFacilityType, MowerMainConf, MowerMainPlan, MowerRoomId } from './model'
+import type { MowerFacilityType, MowerMainConf, MowerMainPlan, MowerRoomId } from '../domain/roster'
 import { resolveAssetUrl } from '../utils/assets'
 export { resolveAssetUrl }
 
@@ -150,6 +150,7 @@ const FACILITY_TYPE_NAMES: Record<string, string> = {
   factory: '加工站',
   contact: '办公室',
   train: '训练室',
+  recycle: '回收站',
   gaming: '活动室',
 }
 
@@ -173,6 +174,7 @@ export function getRoomDisplayName(roomId: string, type?: MowerFacilityType | st
   if (roomId === 'factory') return '加工站'
   if (roomId === 'contact') return '办公室'
   if (roomId === 'train') return '训练室'
+  if (roomId === 'recycle') return '回收站'
   if (roomId.startsWith('gaming_')) {
     const num = roomId.replace('gaming_', '')
     return `活动室${num}`

@@ -62,6 +62,31 @@ describe('RiicSkillsBrowser.vue', () => {
     expect(wrapper.find('[data-test="result-status-text"]').text()).toContain('位干员')
   })
 
+  it('finds the v078 operators by plain pinyin initials including Toledo without punctuation', async () => {
+    const wrapper = mount(RiicSkillsBrowser)
+    const input = wrapper.get<HTMLInputElement>('[data-test="search-operator-input"]')
+    for (const [query, name] of [['dtld', '德·托莱多'], ['detuolaiduo', '德·托莱多'], ['lg', '旅骨'], ['klms', '克莱门莎']]) {
+      await input.setValue(query!)
+      expect(wrapper.find(`[data-test="op-card-${name}"]`).exists()).toBe(true)
+    }
+    wrapper.unmount()
+  })
+
+  it('shows both recycling skill stages and excludes workshop skills in the recycle tab', async () => {
+    const wrapper = mount(RiicSkillsBrowser)
+    await wrapper.get('[data-test="tab-RECYCLE"]').trigger('click')
+    await wrapper.get<HTMLInputElement>('[data-test="search-operator-input"]').setValue('lg')
+    const card = wrapper.get('[data-test="op-card-旅骨"]')
+    expect(wrapper.get('[data-test="result-status-text"]').text()).toContain('1 位干员')
+    expect(card.text()).toContain('拾荒者')
+    expect(card.text()).toContain('捡海人')
+    expect(card.text()).not.toContain('指尖的光')
+    await wrapper.get('[data-test="tab-WORKSHOP"]').trigger('click')
+    expect(card.text()).toContain('指尖的光')
+    expect(card.text()).not.toContain('捡海人')
+    wrapper.unmount()
+  })
+
   it('toggles synergy-only filter', async () => {
     const wrapper = mount(RiicSkillsBrowser)
     const synergyBtn = wrapper.find('[data-test="synergy-toggle-btn"]')

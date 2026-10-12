@@ -118,7 +118,7 @@ import {
   type ValidationResult,
 } from '../../workbench/validate'
 import { getRoomDisplayName } from '../../workbench/operatorHelpers'
-import type { MowerRoomId } from '../../workbench/model'
+import type { MowerRoomId } from '../../domain/roster'
 
 export interface ValidationFocusPayload {
   roomId?: MowerRoomId | string

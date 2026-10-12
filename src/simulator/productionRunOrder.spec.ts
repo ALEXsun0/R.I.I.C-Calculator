@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest'
 import {createDefaultWorkspace} from '../workbench/defaults'
 import {compileRosterSchedule} from '../scheduler/compileRosterSchedule'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import {simulateSchedule,type ScheduleSimulationOptions} from './scheduleSimulation'
 
 function base(primary='芬', replacements=['但书'], second=false){

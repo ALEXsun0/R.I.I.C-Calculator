@@ -3,7 +3,7 @@ import {createDefaultWorkspace} from '../workbench/defaults'
 import {compileRosterSchedule} from './compileRosterSchedule'
 import {createBackupPlanController} from './backupPlans'
 import {compiledScheduleToRuntimeConfig,createRosterRuntime,settleRoster,advanceRoster,nextRosterActionHours} from './rosterRuntime'
-import {simulateMoraleTimeline} from '../simulator/moraleTimeline'
+import {simulateMoraleTimeline} from '../test/helpers/moraleTimeline'
 
 it('releases recovered free_room residents at recovery time rather than the next 2.5h scan',()=>{
  const result=simulateMoraleTimeline({positions:[{id:'work',roomId:'room',primary:'A',candidates:['B'],permanent:true}],beds:[{id:'bed',roomId:'dormitory_1',vip:true}],initialMorale:{A:24,B:23},idleOperators:[],mowerPolicy:{restingThreshold:.65,freeRoom:true,powerPlantCount:2,opeRestingPriority:[]}},1,{workRate:()=>0,recoveryRate:()=>4})

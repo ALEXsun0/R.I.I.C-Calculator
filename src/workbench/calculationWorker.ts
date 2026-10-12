@@ -1,5 +1,5 @@
 import { runCalculationBridge, type CalculationBridgeOptions, type CalculationBridgeResult } from './calculationBridge'
-import type { RosterWorkspace } from './model'
+import type { RosterWorkspace } from '../domain/roster'
 import { buildTimelineData, type TimelineDataset } from './timeline/timelineModel'
 
 export interface CalculationProgress { label: string; fraction: number }

@@ -3,8 +3,8 @@ import {mowerDormOrderError} from './mowerGlobalDormOrder'
 import {readMowerMoodLimits} from './mowerMoodLimits'
 import { isTradeRunOrderOperator } from '../domain/shiftRunPolicy'
 import { GAME_DATA_VERSION, OPERATOR_MAP } from '../domain/operators'
-import { resolveOperatorCharId } from '../workbench/compat/mowerJson'
-import type { MowerMainConf, RosterWorkspace } from '../workbench/model'
+import { resolveOperatorCharId } from '../domain/operatorIdentifiers'
+import type { MowerMainConf, RosterWorkspace } from '../domain/roster'
 import type { CompiledSchedule, CompiledSlot, SimulationAssumptions } from './types'
 
 const LIST_POLICIES = ['exhaust_require', 'rest_in_full', 'resting_priority', 'resting_priority_replacement', 'free_room_exclusions', 'resting_standby', 'free_blacklist', 'workaholic', 'refresh_trading', 'refresh_drained', 'ope_resting_priority'] as const

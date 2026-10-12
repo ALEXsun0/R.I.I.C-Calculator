@@ -1,6 +1,6 @@
 import type { OperatorInventory } from '../domain/operatorInventory'
-import type { RosterWorkspace } from '../workbench/model'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import type { RosterWorkspace } from '../domain/roster'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { ATOMIC_UNITS } from './riicAtomicUnits'
 import { availableCoreVariants, physicalBackupOperatorIds, type RosterRole } from './combinationModel'
 import { combinationAssignmentGroups } from './combinationEnumeration'

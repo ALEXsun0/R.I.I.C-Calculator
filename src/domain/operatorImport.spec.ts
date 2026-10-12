@@ -41,7 +41,7 @@ describe('operatorImport', () => {
       if (existsSync(path)) {
         const raw = readFileSync(path, 'utf-8')
         const res = parseMaaJson(raw)
-        expect(res.totalInFile).toBe(429)
+        expect(res.totalInFile).toBe(432)
         expect(res.unownedCount).toBe(24)
         expect(res.entries).toHaveLength(405)
       }
@@ -68,7 +68,7 @@ describe('operatorImport', () => {
       if (existsSync(path)) {
         const raw = readFileSync(path, 'utf-8')
         const res = parseMaaCsv(raw)
-        expect(res.totalInFile).toBe(429)
+        expect(res.totalInFile).toBe(432)
         expect(res.unownedCount).toBe(24)
         expect(res.entries).toHaveLength(405)
       }
@@ -96,7 +96,7 @@ describe('operatorImport', () => {
       if (existsSync(path)) {
         const raw = readFileSync(path, 'utf-8')
         const res = parseMaaMarkdown(raw)
-        expect(res.totalInFile).toBe(429)
+        expect(res.totalInFile).toBe(432)
         expect(res.unownedCount).toBe(24)
         expect(res.entries).toHaveLength(405)
       }

@@ -18,7 +18,7 @@ import {compileRosterSchedule} from './compileRosterSchedule'
 import {compiledScheduleToRuntimeConfig} from './scheduleAdapter'
 import {createRosterRuntime} from './rosterRuntime'
 import {getMowerSourceRuntime,settleMowerSource} from './mowerSourceRuntime'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 it('executes configured refresh_trading during an actual current-room observation change',()=>{
  const ws=createDefaultWorkspace()
  for(const room of Object.values(ws.mainPlan.facilities))room.slots=[]

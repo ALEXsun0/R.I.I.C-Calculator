@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { createDefaultWorkspace } from '../workbench/defaults'
 import { compileRosterSchedule } from '../scheduler/compileRosterSchedule'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { importMowerJson } from '../workbench/compat/mowerJson'
 import { simulateSchedule } from './scheduleSimulation'
 import sourceRoster from '../../validation/mower-output-2026-09-27/roster.json'

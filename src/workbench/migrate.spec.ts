@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { createDefaultConfig } from '../domain/defaults'
 import { migrateAppConfigToWorkspace, COMPAT_OPERATOR_GROUPS_KEY } from './migrate'
-import { MOWER_OUTPUT_ROOM_IDS } from './model'
+import { MOWER_OUTPUT_ROOM_IDS } from '../domain/roster'
 
 describe('migrateAppConfigToWorkspace', () => {
   it('migrates standard v7 AppConfig into v8 RosterWorkspace mapping all 9 output rooms, control, dorms, and functional rooms', () => {

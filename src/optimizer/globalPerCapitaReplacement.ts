@@ -1,6 +1,6 @@
 import { configureRunOrder } from './configureRunOrder'
-import type { MowerRoomId, RosterWorkspace } from '../workbench/model'
-import { resolveOperatorCharId as resolveId } from '../workbench/compat/mowerJson'
+import type { MowerRoomId, RosterWorkspace } from '../domain/roster'
+import { resolveOperatorCharId as resolveId } from '../domain/operatorIdentifiers'
 import { type OperatorInventory } from '../domain/operatorInventory'
 import {
   ATOMIC_UNITS,
@@ -170,7 +170,7 @@ export function runGlobalPerCapitaReplacement(
   }
 
   function ensureValidBackups(targetWs: RosterWorkspace): boolean {
-    const positions = Object.values(targetWs.mainPlan.facilities).filter(room => ['manufacture', 'trading', 'power', 'central', 'meeting', 'contact', 'factory', 'train'].includes(room.type))
+    const positions = Object.values(targetWs.mainPlan.facilities).filter(room => ['manufacture', 'trading', 'power', 'central', 'meeting', 'contact', 'factory', 'train', 'recycle'].includes(room.type))
       .flatMap(room => room.slots.flatMap((slot, slotIndex) => {
         if (slot.occupant.kind !== 'operator' || lockedPositions.has(`${room.roomId}:${slotIndex}`) ||
           slot.replacements.some(id => isOrdinaryReplacementCandidate(id, room.type)) ||

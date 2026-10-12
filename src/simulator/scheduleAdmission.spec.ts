@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest'
 import {createDefaultWorkspace} from '../workbench/defaults'
 import {compileRosterSchedule} from '../scheduler/compileRosterSchedule'
 import {fullCatalogIdleInventory} from '../domain/operatorInventory'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import {simulateSchedule} from './scheduleSimulation'
 import {summarizeIncome} from '../optimizer/incomeComparison'
 

@@ -1,7 +1,7 @@
 import {simulateSchedule} from '../simulator/scheduleSimulation'
 import {describe,it,expect} from 'vitest'
 import {createDefaultWorkspace} from '../workbench/defaults'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import {compileRosterSchedule} from './compileRosterSchedule'
 import {createBackupPlanController} from './backupPlans'
 import {advanceRoster,compiledScheduleToRuntimeConfig,createRosterRuntime,settleRoster,nextRosterActionHours,type RuntimeConfig,type RuntimeState} from './rosterRuntime'

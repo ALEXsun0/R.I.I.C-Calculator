@@ -1,7 +1,7 @@
 import {it,expect,vi,afterEach} from 'vitest'
 import {OPERATORS} from '../domain/operators'
 import {createDefaultWorkspace} from '../workbench/defaults'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import {runRosterIncomeSearch} from './rosterIncomeSearch'
 import * as control from './controlNeighborhood'
 import * as backup from './backupNeighborhood'

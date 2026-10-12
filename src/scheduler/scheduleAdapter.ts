@@ -2,7 +2,7 @@ import {orderMowerRecoveryBeds} from './mowerGlobalDormOrder'
 import {readMowerMoodLimits} from './mowerMoodLimits'
 import { isTradeRunOrderOperator } from '../domain/shiftRunPolicy'
 import { OPERATOR_MAP } from '../domain/operators'
-import { resolveOperatorCharId } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId } from '../domain/operatorIdentifiers'
 import type { CompiledSchedule } from './types'
 import type { RuntimeBed, RuntimeConfig, RuntimePosition } from './rosterRuntime'
 
@@ -170,6 +170,7 @@ export function compiledScheduleToRuntimeConfig(schedule: CompiledSchedule): Run
     mowerDeviceTiming:{roomReturnMicros:500_000},
     mowerTaskScheduling:{configuredDelayMinutes:3,enableMastery:schedule.assumptions.enableMastery},
     mowerDroneCountLimit:schedule.assumptions.droneCountLimit??100,
+    mowerRecycleBuilt:schedule.rooms.some(room=>room.type==='recycle')||undefined,
     mowerRunLoopClock:{minimumClockStepMicros:1,notificationSleepMicros:1_000_000},
     mowerSourcePlan:Object.fromEntries(schedule.rooms.filter(r=>r.type!=='gaming'&&r.type!=='').flatMap(r=>{let last=r.slots.length-1;while(last>=0&&!r.slots[last]!.primaryOperatorId&&r.slots[last]!.occupant.kind!=='free')last--;return last<0?[]:[[r.roomId,r.slots.slice(0,last+1).map(slot=>({agent:slot.primaryOperatorId??(slot.occupant.kind==='free'?'Free':'Current'),group:slot.groupId??'',replacement:[...slot.orderedCandidates]}))]]})),
     mowerSourceRules:{workaholic:sourceList('workaholic'),exhaustRequire:sourceList('exhaust_require'),restInFull:sourceList('rest_in_full'),lowPriority:sourceList('resting_priority'),refreshDrained:sourceList('refresh_drained'),refreshTrading:sourceList('refresh_trading'),lingMode:mode,standby:sourceList('resting_standby'),priorityReplacement:sourceList('resting_priority_replacement'),freeRoomExclusions:sourceList('free_room_exclusions')},

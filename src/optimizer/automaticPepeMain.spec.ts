@@ -2,7 +2,7 @@ import { expect, it } from 'vitest'
 import { OPERATORS } from '../domain/operators'
 import { compileOperatorInventory } from '../domain/operatorInventory'
 import { createDefaultWorkspace } from '../workbench/defaults'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { generateMolecularCandidates } from './molecularSynthesis'
 import { buildSingletonFallback } from './singletonFallback'
 

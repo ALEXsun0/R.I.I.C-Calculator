@@ -7,9 +7,10 @@ import {createProductionTimeline,assertRunOrderMode,type ProductionOptions,type 
 import {createDefaultConfig,createRoom} from '../domain/defaults'
 import {OPERATORS,OPERATOR_MAP} from '../domain/operators'
 import {compileOperatorInventory,type OwnedOperatorInput} from '../domain/operatorInventory'
-import {validateScheduleInventory} from '../optimizer/inventoryAdmission'
+import {validateScheduleInventory} from '../scheduler/inventoryValidation'
 import type {AppConfig,EfficiencyResources} from '../domain/types'
 import {currentMoraleRates} from '../engine/morale'
+import {evaluateRecycleEfficiency} from '../engine/supportFacilitySkills'
 import {evaluateDormitoryRecovery} from '../engine/dormitoryRecovery'
 import {evaluateOperators} from '../engine/operatorRules'
 import {buildRiicGlobalContext} from '../engine/globalContext'
@@ -88,6 +89,8 @@ export function projectScheduleState(schedule:CompiledSchedule,state:RuntimeStat
   c.facilityOperatorIds[key]=room?occupants(room.roomId).filter(Boolean):[]
   c.facilities[key]=(room?.level??0) as 0|1|2|3
  }
+ const recycle=schedule.rooms.find(r=>r.type==='recycle')
+ if(recycle){c.facilities.recycle=recycle.level as 1|2|3;c.facilityOperatorIds.recycle=occupants(recycle.roomId).filter(Boolean)}
  c.efficiencyResources.trainingOperatorIds=[...c.facilityOperatorIds.training]
  c.operatorMorale={...state.morale}
  // Dormitory skills continue during recovery, including the instant of entering at zero.
@@ -174,6 +177,7 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
  refreshSessions()
  const stats=new Map(Object.keys(state.morale).map(id=>[id,{operatorId:id,operatorName:OPERATOR_MAP.get(id)?.name??id,mainWorkHours:0,substituteWorkHours:0,workHours:0,exhaustedHours:0,restHours:0,idleHours:0,permanentPrimaryOccupancyHours:0,workFraction:0,workRestRatio:null,initialMorale:initial[id]!,finalMorale:initial[id]!} as SimulatedOperator]))
  const roomStats=new Map(projectScheduleState(schedule,state).rooms.map(r=>[r.id,{roomId:r.id,roomType:r.type,averageEfficiencyPercent:0,efficiencyPercentHours:0,occupiedHours:0,teams:[]} as SimulatedRoom]))
+ if(schedule.rooms.some(r=>r.type==='recycle'))roomStats.set('recycle',{roomId:'recycle',roomType:'recycle',averageEfficiencyPercent:0,efficiencyPercentHours:0,occupiedHours:0,teams:[]})
   // Rate formulas depend on physical occupancy and discrete morale thresholds.
   // Keep the result across native I/O ticks while every input stays in the same band.
   let cachedRecoveryOrderVersion=-1
@@ -338,7 +342,10 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
   }
   return {time:state.time+offset,config:c,active,morale,evaluations:evaluations!}
  }
- const efficiencies=(frame:ProductionFrame)=>Object.fromEntries(Object.entries(frame.evaluations).map(([id,r])=>[id,r.efficiencyPercent]))
+ const efficiencies=(frame:ProductionFrame):Record<string,number>=>({
+  ...Object.fromEntries(Object.entries(frame.evaluations).map(([id,r])=>[id,r.efficiencyPercent])),
+  ...(frame.config.facilities.recycle?{recycle:evaluateRecycleEfficiency(frame.config,{activeIds:frame.active}).efficiencyPercent}:{}),
+ })
  const production=options.production?createProductionTimeline(schedule,state,options.production,warmupHours,diagnostic,!!state.config.mowerSourcePlan):undefined
  // Real facilities exist before native scheduling first reads a countdown.
  production?.settle(()=>frameAt(0))
@@ -435,7 +442,7 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
     else s.idleHours+=dt
    }
    for(const [id,r] of roomStats){
-    r.efficiencyPercentHours+=eff[id]!*dt
+    r.efficiencyPercentHours+=(eff[id]??0)*dt
     const cached=cachedRoomTeams.get(id)
     if(cached){if(cached.hasOccupants)r.occupiedHours+=dt;cached.team.hours+=dt}
    }

@@ -3,8 +3,8 @@ import * as neighborhood from './backupNeighborhood'
 import * as scoring from './incomeComparison'
 import {runRosterIncomeSearch} from './rosterIncomeSearch'
 import {createDefaultWorkspace} from '../workbench/defaults'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
-import type {RosterWorkspace} from '../workbench/model'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
+import type {RosterWorkspace} from '../domain/roster'
 const entries=['砾','断罪者','芬','香草','调香师','Castle-3'].map(operator=>({operator,elitePhase:['芬','香草'].includes(operator)?1:operator==='Castle-3'?0:2,level:operator==='Castle-3'?30:1}))
 function workspace(a=false,b=false){const w=createDefaultWorkspace();for(const [i,name] of ['砾','断罪者'].entries()){const room=w.mainPlan.facilities[i===0?'room_1_1':'room_1_2'];room.slots[0]!.occupant={kind:'operator',operatorId:id(name)};room.slots[0]!.replacements=[id(i===0?(a?'调香师':'芬'):(b?'Castle-3':'香草'))]};return w}
 const node=(w:RosterWorkspace)=>(w.mainPlan.facilities.room_1_1.slots[0]!.replacements[0]===id('调香师')?'1':'0')+(w.mainPlan.facilities.room_1_2.slots[0]!.replacements[0]===id('Castle-3')?'1':'0')

@@ -1,4 +1,5 @@
-import { OPERATOR_MAP, OPERATORS, type OperatorRecord } from '../../domain/operators'
+import { resolveOperatorCharId, restoreOperatorMowerName } from '../../domain/operatorIdentifiers'
+export { resolveOperatorCharId, restoreOperatorMowerName } from '../../domain/operatorIdentifiers'
 import { createDefaultWorkspace } from '../defaults'
 import { inferFacilityLevels } from '../levelInference'
 import { hasDormKeeper } from '../facilityState'
@@ -9,31 +10,7 @@ import {
   type MowerRoomId,
   type MowerSlot,
   type RosterWorkspace,
-} from '../model'
-
-const OPERATOR_BY_NAME = new Map<string, OperatorRecord>()
-const OPERATOR_BY_APPELLATION = new Map<string, OperatorRecord>()
-const OPERATOR_BY_ID = new Map<string, OperatorRecord>()
-
-for (const op of OPERATORS) {
-  OPERATOR_BY_NAME.set(op.name, op)
-  OPERATOR_BY_APPELLATION.set(op.appellation.toLowerCase(), op)
-  OPERATOR_BY_ID.set(op.charId, op)
-}
-
-export function resolveOperatorCharId(identifier: string): string {
-  if (OPERATOR_BY_ID.has(identifier)) return identifier
-  const byName = OPERATOR_BY_NAME.get(identifier)
-  if (byName) return byName.charId
-  const byAppellation = OPERATOR_BY_APPELLATION.get(identifier.toLowerCase())
-  if (byAppellation) return byAppellation.charId
-  return identifier
-}
-
-export function restoreOperatorMowerName(charIdOrName: string): string {
-  const op = OPERATOR_MAP.get(charIdOrName)
-  return op ? op.name : charIdOrName
-}
+} from '../../domain/roster'
 
 export function parseProduct(product: unknown): MowerProduct | undefined {
   if (typeof product !== 'string') return undefined
@@ -129,6 +106,13 @@ export function importMowerJson(text: string): RosterWorkspace {
     const roomId = roomIdStr as MowerRoomId
     const facility = ws.mainPlan.facilities[roomId]
 
+    // Native Mower plans omit right-side levels. As for existing support rooms,
+    // assume the maximum built level unless explicit local metadata provides it.
+    if (roomId === 'recycle') {
+      facility.level = Number.isInteger(rawFacility.level) && Number(rawFacility.level) >= 0 && Number(rawFacility.level) <= 3
+        ? Number(rawFacility.level) : 3
+    }
+
     const facilityExtra: Record<string, unknown> = {}
     for (const [k, v] of Object.entries(rawFacility)) {
       if (k !== 'name' && k !== 'plans' && k !== 'product') {
@@ -139,6 +123,10 @@ export function importMowerJson(text: string): RosterWorkspace {
     if (rawFacility.name === '制造站') facility.type = 'manufacture'
     else if (rawFacility.name === '贸易站') facility.type = 'trading'
     else if (rawFacility.name === '发电站') facility.type = 'power'
+    else if (roomId === 'recycle' && rawFacility.name === '回收站') {
+      facility.type = 'recycle'
+      facilityExtra.rawName = rawFacility.name
+    }
     else if (typeof rawFacility.name === 'string' && rawFacility.name) {
       facility.type = ''
       facilityExtra.rawName = rawFacility.name
@@ -291,6 +279,26 @@ export function importMowerJson(text: string): RosterWorkspace {
   return ws
 }
 
+/** Older versions retained recycle as an opaque room. Promote it without touching other plans. */
+export function promotePreservedRecycleRoom(workspace: RosterWorkspace): void {
+  const raw = workspace.compatibility.unrecognizedRooms?.recycle
+  if (!isRecord(raw) || workspace.mainPlan.facilities.recycle?.level) return
+  let imported: RosterWorkspace
+  try {
+    imported = importMowerJson(JSON.stringify({ default: 'plan1', plan1: { recycle: raw } }))
+  } catch {
+    // An old opaque room may be malformed. Retain it for export and inspection;
+    // migration must not make the rest of the user's workspace inaccessible.
+    return
+  }
+  workspace.mainPlan.facilities.recycle = imported.mainPlan.facilities.recycle
+  const metadata = imported.compatibility.facilityMetadata?.recycle
+  if (metadata) (workspace.compatibility.facilityMetadata ??= {}).recycle = metadata
+  const present = workspace.compatibility.importedPresentRooms
+  if (present && !present.includes('recycle')) present.push('recycle')
+  delete workspace.compatibility.unrecognizedRooms!.recycle
+}
+
 export function exportMowerJson(workspace: RosterWorkspace): string {
   const planObj: Record<string, unknown> = {}
   const facilities = workspace.mainPlan.facilities
@@ -383,6 +391,7 @@ export function exportMowerJson(workspace: RosterWorkspace): string {
   // Include any unrecognized rooms preserved from import
   if (workspace.compatibility.unrecognizedRooms) {
     for (const [uRoomId, uRoomData] of Object.entries(workspace.compatibility.unrecognizedRooms)) {
+      if (uRoomId === 'recycle' && planObj.recycle !== undefined) continue
       planObj[uRoomId] = uRoomData
     }
   }

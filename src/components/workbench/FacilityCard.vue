@@ -96,7 +96,7 @@ import {
   type MowerOccupant,
   type MowerOutputRoomId,
   type MowerRoomId,
-} from '../../workbench/model'
+} from '../../domain/roster'
 
 const props = withDefaults(
   defineProps<{
@@ -155,6 +155,7 @@ const facilityDisplayName = computed(() => {
   if (id === 'factory') return '加工站'
   if (id === 'contact') return '办公室'
   if (id === 'train') return '训练室'
+  if (id === 'recycle') return '回收站'
 
   const t: string = props.facility.type
   if (t === 'manufacture' || t === '制造站') return '制造站'

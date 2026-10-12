@@ -4,10 +4,10 @@ import { setTimeout as yieldToRunner } from 'node:timers/promises'
 import { OPERATORS } from '../domain/operators'
 import { compileOperatorInventory, type OwnedOperatorInput } from '../domain/operatorInventory'
 import { createDefaultWorkspace } from '../workbench/defaults'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { runSmartRoster, type SmartRosterProgress } from './smartRoster'
 import { validatePhysicalRoster } from './rosterDraft'
-import { MOWER_OUTPUT_ROOM_IDS } from '../workbench/model'
+import { MOWER_OUTPUT_ROOM_IDS } from '../domain/roster'
 import { runCalculationBridge } from '../workbench/calculationBridge'
 
 // Each synchronous simulation takes tens of seconds. Flush pending test-runner

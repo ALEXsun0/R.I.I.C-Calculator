@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createDefaultWorkspace } from '../workbench/defaults'
 import { compileOperatorInventory } from '../domain/operatorInventory'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { configureRunOrder } from './configureRunOrder'
 import { calculateRunOrderGains } from './runOrderGains'
 

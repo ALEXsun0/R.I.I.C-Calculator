@@ -7,6 +7,7 @@ import { hasRiicTag } from '../domain/riicTags'
 import type { AppConfig, OutputRoom, QualityRule, SpecialOrder } from '../domain/types'
 import { OPERATOR_MAP, type OperatorRecord, type OperatorSkill } from '../domain/operators'
 import { buildRiicGlobalContext, deriveCentralManufactureBonus, type RiicGlobalContext } from './globalContext'
+import { recyclingOccupants } from './supportFacilities/conditions'
 
 export interface OperatorBonusItem {
   name: string
@@ -804,6 +805,7 @@ export function evaluateOperators(
             ...config.controlOperatorIds, ...config.rooms.flatMap(r => r.operatorIds),
             ...config.facilityOperatorIds.reception, ...config.facilityOperatorIds.workshop,
             ...config.facilityOperatorIds.office, ...config.facilityOperatorIds.training,
+            ...recyclingOccupants(config),
             ...config.efficiencyResources.extraWorkplaceOperatorIds,
           ]).map(op => op.name))
           applied = 30 + (workplaceNames.has('伊内丝') ? 5 : 0) + (workplaceNames.has('W') ? 5 : 0)

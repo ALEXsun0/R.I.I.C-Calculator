@@ -113,6 +113,25 @@ describe('RosterPosterModal.vue', () => {
     expect(incomeCard.text()).toContain('20.0')
   })
 
+  it('includes an actually built recycle room and its operator in the exported poster', async () => {
+    const workspace = createDefaultWorkspace()
+    const wrapper = mount(RosterPosterModal, {
+      props: { open: true, workspace, calculationReport: null },
+      global: { stubs: { teleport: true } },
+    })
+    expect(wrapper.findAll('.support-card').some(card => card.text().includes('回收站'))).toBe(false)
+    const built = structuredClone(workspace)
+    built.mainPlan.facilities.recycle.level = 1
+    built.mainPlan.facilities.recycle.slots = [{
+      occupant: { kind: 'operator', operatorId: 'char_4232_hbound' }, groupId: null, replacements: [],
+    }]
+    await wrapper.setProps({ workspace: built })
+    const recycle = wrapper.findAll('.support-card').find(card => card.text().includes('回收站'))
+    expect(recycle?.text()).toContain('旅骨')
+    expect(recycle?.findAll('img')).toHaveLength(1)
+    wrapper.unmount()
+  })
+
   it('triggers download when download button clicked', async () => {
     const workspace = createDefaultWorkspace()
     const wrapper = mount(RosterPosterModal, {

@@ -10,7 +10,7 @@ afterEach(() => yieldToRunner(5))
 import { OPERATORS } from '../domain/operators'
 import { compileOperatorInventory, type OwnedOperatorInput } from '../domain/operatorInventory'
 import { createDefaultWorkspace } from '../workbench/defaults'
-import { restoreOperatorMowerName } from '../workbench/compat/mowerJson'
+import { restoreOperatorMowerName } from '../domain/operatorIdentifiers'
 import { generateMolecularCandidates } from './molecularSynthesis'
 import { runSmartRoster } from './smartRoster'
 

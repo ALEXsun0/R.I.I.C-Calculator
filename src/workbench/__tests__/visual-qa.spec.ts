@@ -51,6 +51,7 @@ import FacilityCard from '../../components/workbench/FacilityCard.vue'
 import PlanToolbar from '../../components/workbench/PlanToolbar.vue'
 import GlobalReplaceModal from '../../components/workbench/GlobalReplaceModal.vue'
 import { EDITION } from '../../domain/edition'
+import { MOWER_OUTPUT_ROOM_IDS, type MowerFacility } from '../../domain/roster'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -75,6 +76,17 @@ describe('WorkbenchShell Multi-Resolution Responsive QA', () => {
     })
     activeWrappers.push(wrapper)
     return wrapper
+  }
+
+  function expectLegacyCardsAndUnbuiltRecycle(facilities: readonly MowerFacility[]): void {
+    expect(facilities.map(facility => facility.roomId)).toEqual([
+      ...MOWER_OUTPUT_ROOM_IDS,
+      'central', 'dormitory_1', 'dormitory_2', 'dormitory_3', 'dormitory_4',
+      'meeting', 'factory', 'contact', 'train', 'recycle',
+    ])
+    expect(facilities.find(facility => facility.roomId === 'recycle')).toMatchObject({
+      type: 'recycle', level: 0, slots: [],
+    })
   }
 
   beforeEach(() => {
@@ -153,7 +165,7 @@ describe('WorkbenchShell Multi-Resolution Responsive QA', () => {
       expect(planContainer.exists()).toBe(true)
       expect(planContainer.classes()).toContain('plan-container')
 
-      // 3-column layout structure: Left (9 rooms), Mid (5 rooms), Right (4 rooms) = 18 base facilities
+      // 3-column layout: 18 existing cards plus the default unbuilt recycling station.
       const leftBox = baseMap.find('.left_box')
       expect(leftBox.exists()).toBe(true)
       expect(leftBox.findAll('.facility-card')).toHaveLength(9)
@@ -164,7 +176,8 @@ describe('WorkbenchShell Multi-Resolution Responsive QA', () => {
 
       const rightBox = baseMap.find('.right_box')
       expect(rightBox.exists()).toBe(true)
-      expect(rightBox.findAll('.facility-card')).toHaveLength(4)
+      expect(rightBox.findAll('.facility-card')).toHaveLength(5)
+      expectLegacyCardsAndUnbuiltRecycle(baseMap.findAllComponents(FacilityCard).map(card => card.props('facility')))
 
       // Footer attribution matches docs and displays exact copyright
       const footer = wrapper.find('[data-test="workbench-footer"]')
@@ -220,9 +233,10 @@ describe('WorkbenchShell Multi-Resolution Responsive QA', () => {
       const centerCards = baseMap.findAll('.facility-card.facility-center, .facility-card.facility-5')
       expect(centerCards).toHaveLength(5)
 
-      // Support cards maintain 4 facilities layout
+      // The four existing support cards remain alongside the unbuilt recycling station.
       const supportCards = baseMap.findAll('.facility-card.facility-support, .facility-card.facility-2')
-      expect(supportCards).toHaveLength(4)
+      expect(supportCards).toHaveLength(5)
+      expectLegacyCardsAndUnbuiltRecycle(baseMap.findAllComponents(FacilityCard).map(card => card.props('facility')))
     })
   })
 
@@ -259,9 +273,10 @@ describe('WorkbenchShell Multi-Resolution Responsive QA', () => {
       expect(planContainer.exists()).toBe(true)
       expect(planContainer.classes()).toContain('plan-container')
 
-      // All 3 columns and all 18 facility cards remain present in the DOM
+      // All 18 existing cards and the unbuilt recycling station remain present in the DOM.
       const allCards = baseMap.findAll('.facility-card')
-      expect(allCards).toHaveLength(18)
+      expect(allCards).toHaveLength(19)
+      expectLegacyCardsAndUnbuiltRecycle(baseMap.findAllComponents(FacilityCard).map(card => card.props('facility')))
 
       // Left box retains 3 grid columns (not collapsed)
       const leftGrid = baseMap.findAll('.left_contain')

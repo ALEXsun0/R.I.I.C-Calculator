@@ -5,7 +5,8 @@ import {compiledScheduleToRuntimeConfig} from './scheduleAdapter'
 import {createRosterRuntime} from './rosterRuntime'
 import {getMowerSourceRuntime} from './mowerSourceRuntime'
 import {createBackupPlanController} from './backupPlans'
-import {importMowerJson,exportMowerJson,resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
+import { importMowerJson, exportMowerJson } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 
 describe('native PlanConfig list policies reach the active scheduler',()=>{
  it('unions all eleven native backup lists and restores their original values on exit',()=>{

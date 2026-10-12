@@ -6,7 +6,7 @@ import {
   type MowerProduct,
   type MowerSlot,
   type RosterWorkspace,
-} from './model'
+} from '../domain/roster'
 
 const DORM_ROOM_IDS = [
   'dormitory_1',
@@ -129,6 +129,11 @@ export function migrateAppConfigToWorkspace(config: AppConfig): RosterWorkspace 
     facilities.train.slots = config.facilityOperatorIds.training.map((opId) =>
       createOperatorSlot(opId, config),
     )
+  }
+
+  if (config.facilities?.recycle !== undefined) {
+    facilities.recycle.level = config.facilities.recycle
+    facilities.recycle.slots = (config.facilityOperatorIds?.recycle ?? []).map(opId => createOperatorSlot(opId, config))
   }
 
   // 5. Initial morale and extra simulation fields preserved in compatibility envelope

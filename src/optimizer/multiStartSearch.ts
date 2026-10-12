@@ -8,8 +8,8 @@ import {seededSearchOrder} from './dailyTarget'
 import {summarizeIncome,compareIncome,type IncomeCase,type IncomeComparison} from './incomeComparison'
 import {runScheduleSimulationBridge} from '../workbench/scheduleSimulationBridge'
 import {validatePhysicalRoster} from './rosterDraft'
-import {resolveOperatorCharId as resolveId} from '../workbench/compat/mowerJson'
-import type {RosterWorkspace} from '../workbench/model'
+import { resolveOperatorCharId as resolveId } from '../domain/operatorIdentifiers'
+import type {RosterWorkspace} from '../domain/roster'
 
 export interface MultiStartValidation {
  status:'passed'|'no-improvement'|'failed';selectedId:string|null;reasons:string[]

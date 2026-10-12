@@ -30,6 +30,7 @@ export interface RuntimeConfig {
  mowerMoodLimits?:MowerMoodLimitConfig
   positions: RuntimePosition[]; beds: RuntimeBed[]; initialMorale?: Record<string, number>
   mowerSourcePlan?: Record<string,{agent:string;group:string;replacement:string[]}[]>
+  mowerRecycleBuilt?: boolean
   /** Disable order tasks only for the old no-wake comparison. */
   mowerRunOrderEnabled?: boolean
   mowerDroneCountLimit?: number

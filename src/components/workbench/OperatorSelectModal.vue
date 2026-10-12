@@ -163,7 +163,7 @@ import {
   searchOperators,
   type OperatorSearchItem,
 } from '../../workbench/operatorHelpers'
-import type { MowerRoomId } from '../../workbench/model'
+import type { MowerRoomId } from '../../domain/roster'
 
 export interface OperatorSelectionPayload {
   mode: 'main' | 'replacement'

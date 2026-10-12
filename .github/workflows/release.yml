@@ -52,6 +52,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check source structure and skill package
+        run: |
+          pnpm structure:check
+          pnpm skill:validate
+
+      - name: Run regression tests
+        run: pnpm test
+
       - name: Run Typecheck
         run: pnpm typecheck
 

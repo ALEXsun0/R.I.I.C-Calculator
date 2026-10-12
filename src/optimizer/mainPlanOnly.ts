@@ -1,4 +1,4 @@
-import type { RosterWorkspace } from '../workbench/model'
+import type { RosterWorkspace } from '../domain/roster'
 import { normalizeMissingFacilities } from '../workbench/facilityState'
 
 /** Automatic generation may use ordinary replacements, never conditional plans. */

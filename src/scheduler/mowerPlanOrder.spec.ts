@@ -6,7 +6,7 @@ import {compiledScheduleToRuntimeConfig} from './scheduleAdapter'
 import {createRosterRuntime} from './rosterRuntime'
 import {getMowerSourceRuntime} from './mowerSourceRuntime'
 import {createBackupPlanController} from './backupPlans'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 describe('native Pydantic plan order reaches operator/group registration',()=>{
  it('compiles facilities in Plan1 model field order regardless of local UI insertion order',()=>{
   const ws=createDefaultWorkspace()

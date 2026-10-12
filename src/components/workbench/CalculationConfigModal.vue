@@ -1,18 +1,12 @@
 <script lang="ts">
-export interface CalculationConfig {
-  productionWeights?: import('../../domain/productionWeights').ProductionWeights
-  droneTarget: 'gold' | 'exp' | 'trading' | 'none'
-  droneTradingRoomId: string
-  droneRoomId?: string
-  useOperatorInventory?: boolean
-  jayeElite0?: boolean
-}
+import type { CalculationConfig } from '../../workbench/settings'
+export type { CalculationConfig } from '../../workbench/settings'
 </script>
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { NButton, NModal } from 'naive-ui'
 import { droneFacilities } from '../../workbench/droneTargets'
-import type { RosterWorkspace } from '../../workbench/model'
+import type { RosterWorkspace } from '../../domain/roster'
 import ProductionWeightsEditor from './ProductionWeightsEditor.vue'
 import { normalizeProductionWeights } from '../../domain/productionWeights'
 

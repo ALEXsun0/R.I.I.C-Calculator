@@ -1,6 +1,6 @@
 import type { OperatorInventory } from '../domain/operatorInventory'
-import type { MowerFacility, MowerRoomId, RosterWorkspace } from '../workbench/model'
-import { resolveOperatorCharId as resolveId } from '../workbench/compat/mowerJson'
+import type { MowerFacility, MowerRoomId, RosterWorkspace } from '../domain/roster'
+import { resolveOperatorCharId as resolveId } from '../domain/operatorIdentifiers'
 import { ATOMIC_UNITS, type AtomicMember, type AtomicUnit } from './riicAtomicUnits'
 import { availableCoreVariants, availableOptionalMembers, facilityCapacity, physicalBackupOperatorIds, type CombinationPlacement, type CombinationVariant } from './combinationModel'
 import { isProductionSingletonCandidate } from './productionSingletons'

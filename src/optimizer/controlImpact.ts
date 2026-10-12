@@ -5,7 +5,7 @@ import {evaluateOperators} from '../engine/operatorRules'
 import type {TimeContext} from '../engine/timeDependentSkills'
 import {captureOrder,getOrderDistribution,type OrderMode,type SpecialCapture} from '../rules/orderRules'
 import {MANUFACTURING_FORMULAS} from '../simulator/manufacturingTimeline'
-import {scoreProduction} from './productionObjective'
+import { scoreProduction } from '../domain/productionScore'
 import {virtualGoldEquivalent} from '../rules/orderValue'
 import type {ProductionWeights} from '../domain/productionWeights'
 

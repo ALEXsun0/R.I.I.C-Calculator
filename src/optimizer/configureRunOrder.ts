@@ -2,12 +2,12 @@ import { inventoryOperatorRecords, runOrderSkillRank, hasOperatorSkill } from '.
 import { EDITION } from '../domain/edition'
 import type { OperatorInventory } from '../domain/operatorInventory'
 import { isTradeRunOrderOperator } from '../domain/shiftRunPolicy'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
-import type { RosterWorkspace } from '../workbench/model'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
+import type { RosterWorkspace } from '../domain/roster'
 import { compileMainPlanToAppConfig } from '../workbench/adapter'
 import { createDefaultConfig } from '../domain/defaults'
 import { evaluateOperators } from '../engine/operatorRules'
-import { mowerRoomToOutputRoomId } from '../workbench/model'
+import { mowerRoomToOutputRoomId } from '../domain/roster'
 import { calculateRunOrderGains } from './runOrderGains'
 
 export function runOrderInventoryDiagnostics(workspace: RosterWorkspace, inventory: OperatorInventory) {

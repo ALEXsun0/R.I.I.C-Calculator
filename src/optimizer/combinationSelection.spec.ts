@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { compileOperatorInventory, fullCatalogIdleInventory } from '../domain/operatorInventory'
 import { createDefaultWorkspace } from '../workbench/defaults'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { buildCombinationPool } from './combinationEvaluation'
 import { allocateCombinationSkeleton, normalizeProductionShifts } from './combinationAllocation'
 import { productionTeamHourlyOutput, productionTeamTheory } from './productionSingletons'

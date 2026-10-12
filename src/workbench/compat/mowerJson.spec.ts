@@ -3,12 +3,8 @@ import { setActivePinia, createPinia } from 'pinia'
 import { readFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import {
-  importMowerJson,
-  exportMowerJson,
-  resolveOperatorCharId,
-  restoreOperatorMowerName,
-} from './mowerJson'
+import { importMowerJson, exportMowerJson } from './mowerJson'
+import { resolveOperatorCharId, restoreOperatorMowerName } from '../../domain/operatorIdentifiers'
 import { createDefaultWorkspace } from '../defaults'
 import { useRosterWorkbenchStore } from '../store'
 import { validateRosterWorkspace } from '../validate'

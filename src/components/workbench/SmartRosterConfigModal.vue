@@ -201,18 +201,8 @@
 </template>
 
 <script lang="ts">
-export interface SmartRosterConfig {
-  productionWeights?: import('../../domain/productionWeights').ProductionWeights
-  trials: number
-  maxStaticEvals: number
-  simulationTopK: number
-  simulationSampleHours: number
-  simulationWarmupHours: number
-  enableDeepSearch: boolean
-  droneTarget: 'gold' | 'exp' | 'trading' | 'none'
-  droneRoomId?: string
-  seed: number
-}
+import type { SmartRosterConfig } from '../../workbench/settings'
+export type { SmartRosterConfig } from '../../workbench/settings'
 
 export const STORAGE_KEY_SMART_ROSTER = 'arcinc-smart-roster-options-v1'
 
@@ -232,7 +222,7 @@ export const DEFAULT_CONFIG: SmartRosterConfig = {
 import { computed, ref, watch } from 'vue'
 import { NButton, NModal } from 'naive-ui'
 import { droneFacilities } from '../../workbench/droneTargets'
-import type { RosterWorkspace } from '../../workbench/model'
+import type { RosterWorkspace } from '../../domain/roster'
 import ProductionWeightsEditor from './ProductionWeightsEditor.vue'
 import { normalizeProductionWeights, type ProductionWeights } from '../../domain/productionWeights'
 

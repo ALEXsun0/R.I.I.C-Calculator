@@ -2,7 +2,7 @@ import type { QualityRule } from '../domain/types'
 import type { ProductionWeights } from '../domain/productionWeights'
 import { getOrderDistribution, captureOrder, type SpecialCapture } from '../rules/orderRules'
 import { virtualGoldEquivalent } from '../rules/orderValue'
-import { scoreProduction } from './productionObjective'
+import { scoreProduction } from '../domain/productionScore'
 
 export interface RunOrderChoice {
   key: string

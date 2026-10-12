@@ -15,7 +15,7 @@
     "_merge_deferred_dorm_schedules",
     "estimate_dorm_minutes"
   ],
-  "scope": "Actual native task scheduling, default and experimental, with fixed clock and explicitly supplied maintenance/timing inputs. No order reading, drone adjustment, task execution or complete-cycle assertion.",
+  "scope": "Actual native task scheduling, default and experimental, with fixed clock and explicitly supplied maintenance/timing inputs. No order reading, drone adjustment, task execution or complete-cycle assertion.; supported default scheduling cases only; obsolete Grandet switch inputs omitted, captured outputs unchanged",
   "cases": [
     {
       "name": "empty",
@@ -24,7 +24,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -43,7 +42,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -93,66 +91,12 @@
       }
     },
     {
-      "name": "close-orders-disabled",
-      "input": {
-        "nowMicros": 0,
-        "runOrderDelayMinutes": 5,
-        "executionMinutes": 0.75,
-        "configuredDelayMinutes": 5,
-        "grandet": false,
-        "enableMastery": true,
-        "experimental": false,
-        "maintenance": null,
-        "dormDurations": {},
-        "tasks": [
-          {
-            "seconds": 100,
-            "type": "RUN_ORDER",
-            "plan": {},
-            "metadata": "room_1_1",
-            "adjusted": false,
-            "strict": false
-          },
-          {
-            "seconds": 200,
-            "type": "RUN_ORDER",
-            "plan": {},
-            "metadata": "room_1_2",
-            "adjusted": false,
-            "strict": false
-          }
-        ]
-      },
-      "output": {
-        "tasks": [
-          {
-            "originalIndex": 0,
-            "timeMicros": 100000000,
-            "type": "RUN_ORDER",
-            "metadata": "room_1_1",
-            "adjusted": false,
-            "plan": {}
-          },
-          {
-            "originalIndex": 1,
-            "timeMicros": 200000000,
-            "type": "RUN_ORDER",
-            "metadata": "room_1_2",
-            "adjusted": false,
-            "plan": {}
-          }
-        ],
-        "conflict": null
-      }
-    },
-    {
       "name": "first-already-due",
       "input": {
         "nowMicros": 0,
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -205,7 +149,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -258,7 +201,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -331,7 +273,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -404,7 +345,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -639,7 +579,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -692,7 +631,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -745,7 +683,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -798,7 +735,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -871,7 +807,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -948,7 +883,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -1001,7 +935,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -1054,7 +987,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -1121,7 +1053,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -1188,7 +1119,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": false,
         "experimental": false,
         "maintenance": null,
@@ -1241,7 +1171,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 11,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": null,
@@ -1294,7 +1223,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": false,
         "maintenance": [
@@ -1385,7 +1313,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": true,
         "maintenance": null,
@@ -1446,7 +1373,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": true,
         "maintenance": null,
@@ -1511,7 +1437,6 @@
         "runOrderDelayMinutes": 5,
         "executionMinutes": 0.75,
         "configuredDelayMinutes": 5,
-        "grandet": true,
         "enableMastery": true,
         "experimental": true,
         "maintenance": null,

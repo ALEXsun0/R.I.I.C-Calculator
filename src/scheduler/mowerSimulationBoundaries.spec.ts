@@ -1,6 +1,6 @@
 import {describe,expect,it} from 'vitest'
 import {createDefaultWorkspace} from '../workbench/defaults'
-import {resolveOperatorCharId} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId } from '../domain/operatorIdentifiers'
 import {runScheduleSimulationBridge} from '../workbench/scheduleSimulationBridge'
 import {validateRosterWorkspace} from '../workbench/validate'
 import type {ScheduleSimulationOptions} from '../simulator/scheduleSimulation'

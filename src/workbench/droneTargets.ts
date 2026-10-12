@@ -1,4 +1,4 @@
-import { MOWER_OUTPUT_ROOM_IDS, type RosterWorkspace } from './model'
+import { MOWER_OUTPUT_ROOM_IDS, type RosterWorkspace } from '../domain/roster'
 
 export function droneFacilities(workspace: RosterWorkspace) {
   return MOWER_OUTPUT_ROOM_IDS.flatMap(id => {

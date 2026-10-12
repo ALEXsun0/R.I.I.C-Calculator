@@ -736,6 +736,7 @@ export function settleMowerSource(s:RuntimeState,rates:RuntimeRates,onPhase?:(ph
    }
    if(rates.mowerNotificationIO){
     const notificationState={queue,flags:source.runFlags!,
+     get collectRecycle(){return s.config.mowerRecycleBuilt||Object.prototype.hasOwnProperty.call(s.config.mowerSourcePlan??{},'recycle')},
      get lastTodoMicros(){return source.lastTodoMicros??null},set lastTodoMicros(value:number|null){source.lastTodoMicros=value}}
     retryTimes=3
     while(!source.runFlags!.collectNotification||rates.mowerTodoListVisible?.()){

@@ -12,6 +12,9 @@ import { createPinia, setActivePinia } from 'pinia'
 import FacilityEditor from './FacilityEditor.vue'
 import SlotRow from './SlotRow.vue'
 import ReplacementList from './ReplacementList.vue'
+import SupportFacilityPreview from './SupportFacilityPreview.vue'
+import { OPERATOR_MAP } from '../../domain/operators'
+import { selectUnlockedSkills } from '../../domain/operatorInventory'
 import { useRosterWorkbenchStore } from '../../workbench/store'
 
 function asVueWrapper<T = Record<string, unknown>>(wrapper: unknown): VueWrapper<T> {
@@ -33,6 +36,46 @@ describe('FacilityEditor.vue and subcomponents', () => {
 
     const wrapper = mount(FacilityEditor)
     expect(wrapper.find('.mower-facility-editor').exists()).toBe(false)
+  })
+
+  it('builds recycle with one or two physical slots and removes the preview when unbuilt', async () => {
+    const store = useRosterWorkbenchStore()
+    store.selectRoom('recycle')
+    const wrapper = mount(FacilityEditor)
+    const levelSelect = asVueWrapper(wrapper.findComponent('.level-select'))
+    expect(wrapper.text()).toContain('回收站')
+    expect(getProps(levelSelect)['options']).toEqual([
+      { label: '未建造', value: 0 }, { label: '1级', value: 1 },
+      { label: '2级', value: 2 }, { label: '3级', value: 3 },
+    ])
+    expect(wrapper.findComponent(SupportFacilityPreview).exists()).toBe(false)
+
+    for (const [level, capacity] of [[1, 1], [2, 2], [3, 2], [1, 1], [0, 0]]) {
+      levelSelect.vm.$emit('update:value', level)
+      await wrapper.vm.$nextTick()
+      expect(store.selectedRoom?.level).toBe(level)
+      expect(store.selectedRoom?.slots).toHaveLength(capacity!)
+      expect(wrapper.findAllComponents(SlotRow)).toHaveLength(capacity!)
+      expect(wrapper.findComponent(SupportFacilityPreview).exists()).toBe(level! > 0)
+    }
+    wrapper.unmount()
+  })
+
+  it('passes real inventory skill stages to the recycle preview without changing the shared catalog', async () => {
+    const store = useRosterWorkbenchStore()
+    const operator = OPERATOR_MAP.get('char_4232_hbound')!
+    store.updateFacility('recycle', {
+      level: 3,
+      slots: [{ occupant: { kind: 'operator', operatorId: operator.charId }, groupId: null, replacements: [] }],
+    })
+    store.selectRoom('recycle')
+    const records = { [operator.charId]: { ...operator, skills: selectUnlockedSkills(operator, 0, 1) } }
+    const wrapper = mount(FacilityEditor, { props: { operatorRecords: records } })
+    expect(wrapper.get('[data-test="recycle-preview"]').text()).toContain('141%')
+    await wrapper.setProps({ operatorRecords: { [operator.charId]: { ...operator, skills: selectUnlockedSkills(operator, 2, 1) } } })
+    expect(wrapper.get('[data-test="recycle-preview"]').text()).toContain('151%')
+    expect(OPERATOR_MAP.get(operator.charId)!.skills.map(skill => skill.buffId)).toContain('recycle_spd&cost[010]')
+    wrapper.unmount()
   })
 
   it('can leave a dorm or training room unbuilt, remove staffing, and rebuild empty slots', async () => {

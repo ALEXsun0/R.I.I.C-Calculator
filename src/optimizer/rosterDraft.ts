@@ -3,12 +3,13 @@ import {OPERATOR_MAP} from '../domain/operators'
 import {compileOperatorInventory,type OwnedOperatorInput,type OperatorInventory} from '../domain/operatorInventory'
 import {compileRosterSchedule} from '../scheduler/compileRosterSchedule'
 import {isOrdinaryReplacementCandidate} from '../scheduler/scheduleAdapter'
-import {MOWER_ROOM_IDS,MOWER_OUTPUT_ROOM_IDS,type MowerFacilityType,type MowerProduct,type MowerRoomId,type RosterWorkspace} from '../workbench/model'
-import {resolveOperatorCharId as resolveId} from '../workbench/compat/mowerJson'
+import {MOWER_ROOM_IDS,MOWER_OUTPUT_ROOM_IDS,type MowerFacilityType,type MowerProduct,type MowerRoomId,type RosterWorkspace} from '../domain/roster'
+import { resolveOperatorCharId as resolveId } from '../domain/operatorIdentifiers'
 import {validateRosterWorkspace} from '../workbench/validate'
 import {admitCombinationCandidates} from './inventoryAdmission'
 import type {CandidateAvailability,CandidateRoom} from './combinationCandidates'
 import {rankStaffingCandidates} from './staffingQuality'
+import { facilityCapacity as capacity } from '../domain/facilities'
 
 export const CANDIDATE_FACILITY_TYPES:Record<CandidateRoom,MowerFacilityType>={MANUFACTURE:'manufacture',TRADING:'trading',POWER:'power',CONTROL:'central',DORMITORY:'dormitory',HIRE:'contact',TRAINING:'train',MEETING:'meeting'}
 export interface LayoutAssignment {
@@ -50,16 +51,9 @@ export function compileCandidateLayout(candidate:CandidateAvailability):LayoutCo
   (candidate.constraints[kind as 'facility'|'roster'|'morale'|'resources'|'conflicts'|'moraleCaveats']??[]).map(text=>({kind,text:`${candidate.name}：${text}`})))
  return {candidateId:candidate.id,assignments,temporal:TEMPORAL_TEMPLATES.has(candidate.id),uncheckedConditions}
 }
-function capacity(type:MowerFacilityType,level:number){
- if(level===0)return 0
- if(type==='manufacture'||type==='trading')return level
- if(type==='central'||type==='dormitory')return 5
- if(type==='meeting'||type==='train')return 2
- return ['power','contact','factory'].includes(type)?1:0
-}
 export function validatePhysicalRoster(workspace:RosterWorkspace):DraftDiagnostic[]{
  const diagnostics:DraftDiagnostic[]=[]
- const fixed:Partial<Record<MowerRoomId,MowerFacilityType>>={central:'central',meeting:'meeting',factory:'factory',contact:'contact',train:'train'}
+ const fixed:Partial<Record<MowerRoomId,MowerFacilityType>>={central:'central',meeting:'meeting',factory:'factory',contact:'contact',train:'train',recycle:'recycle'}
  for(const roomId of MOWER_ROOM_IDS){
   const room=workspace.mainPlan.facilities[roomId]
   if(!room)continue
@@ -211,7 +205,12 @@ export function assignBackups(draft:RosterWorkspace,inventory:OperatorInventory,
  const positions=ordinaryPositions.filter(p=>{const room=draft.mainPlan.facilities[p.roomId];return !room.slots[p.slotIndex]!.replacements.some(id=>isOrdinaryReplacementCandidate(id,room.type))})
  const roomTypes=new Map(Object.entries(CANDIDATE_FACILITY_TYPES).map(([game,type])=>[type,game]))
  roomTypes.set('factory', 'WORKSHOP')
- const pools=positions.map(p=>rankStaffingCandidates(draft,inventory,p,inventory.operators.filter(o=>!reserved.has(o.charId)&&isOrdinaryReplacementCandidate(o.charId,draft.mainPlan.facilities[p.roomId].type)&&o.name!=='菲亚梅塔'&&o.skills.some(s=>s.roomType===roomTypes.get(draft.mainPlan.facilities[p.roomId].type))).map(o=>o.charId),'backup',{completingReliefTeam:true}))
+ roomTypes.set('recycle', 'RECYCLE')
+ const pools=positions.map(p=>{
+  const room=draft.mainPlan.facilities[p.roomId]
+  // Any ordinary relief worker supplies the recycling staff bonus; a second RECYCLE skill is not required.
+  return rankStaffingCandidates(draft,inventory,p,inventory.operators.filter(o=>!reserved.has(o.charId)&&isOrdinaryReplacementCandidate(o.charId,room.type)&&o.name!=='菲亚梅塔'&&(room.type==='recycle'||o.skills.some(s=>s.roomType===roomTypes.get(room.type)))).map(o=>o.charId),'backup',{completingReliefTeam:true,allowNeutral:room.type==='recycle'})
+ })
  // Bipartite augmentation avoids consuming a scarce multi-facility backup greedily.
  const owner=new Map<string,number>()
  function match(index:number,seen:Set<string>):boolean{
@@ -237,6 +236,7 @@ export function improveBackups(draft:RosterWorkspace,inventory:OperatorInventory
  const excluded=new Set(excludedOperatorIds.map(resolveId))
  const roomTypes=new Map(Object.entries(CANDIDATE_FACILITY_TYPES).map(([game,type])=>[type,game]))
  roomTypes.set('factory','WORKSHOP')
+ roomTypes.set('recycle','RECYCLE')
  for(let pass=0;pass<2;pass++){
   let changed=false
   for(const p of positions){
@@ -249,8 +249,8 @@ export function improveBackups(draft:RosterWorkspace,inventory:OperatorInventory
    const current=resolveId(slot.replacements[index]!)
    if(excluded.has(current))continue
    const reserved=new Set(Object.values(draft.mainPlan.facilities).flatMap(r=>r.slots.flatMap(s=>[...(s.occupant.kind==='operator'?[resolveId(s.occupant.operatorId)]:[]),...s.replacements.map(resolveId)])))
-   const pool=inventory.operators.filter(o=>!excluded.has(o.charId)&&!reserved.has(o.charId)&&isOrdinaryReplacementCandidate(o.charId,room.type)&&o.name!=='菲亚梅塔'&&o.skills.some(s=>s.roomType===roomTypes.get(room.type)))
-   const best=rankStaffingCandidates(draft,inventory,p,[current,...pool.map(o=>o.charId)],'backup')[0]
+   const pool=inventory.operators.filter(o=>!excluded.has(o.charId)&&!reserved.has(o.charId)&&isOrdinaryReplacementCandidate(o.charId,room.type)&&o.name!=='菲亚梅塔'&&(room.type==='recycle'||o.skills.some(s=>s.roomType===roomTypes.get(room.type))))
+   const best=rankStaffingCandidates(draft,inventory,p,[current,...pool.map(o=>o.charId)],'backup',{allowNeutral:room.type==='recycle'})[0]
    if(best&&best!==current){slot.replacements[index]=best;changed=true}
    else if(!best&&room.type==='trading'){slot.replacements.splice(index,1);changed=true}
   }

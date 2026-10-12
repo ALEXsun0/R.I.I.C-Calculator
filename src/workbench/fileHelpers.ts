@@ -1,10 +1,10 @@
 /**
  * Browser-safe file helper module for Mower Plan Toolbar.
  *
- * Provides lossless Mower JSON and 16-QR JPG file operations:
+ * Provides lossless Mower JSON and current/legacy QR JPG file operations:
  * - JSON import & export (UTF-8 application/json, preserving unknown fields)
- * - JPG import (16-QR decode via RGBA canvas)
- * - JPG export (high-resolution DOM capture + 16-QR overlay)
+ * - JPG import (14/16-QR decode via RGBA canvas)
+ * - JPG export (high-resolution DOM capture + current 14-QR overlay)
  * - Safe filename sanitization
  * - Injected test adapters for deterministic headless testing
  *
@@ -22,7 +22,7 @@ import {
   REFERENCE_IMAGE_WIDTH,
   type QrTheme,
 } from './compat/mowerQrConstants'
-import type { RosterWorkspace } from './model'
+import type { RosterWorkspace } from '../domain/roster'
 
 export interface FileDownloadAdapter {
   downloadBlob(blob: Blob, filename: string): void
@@ -356,8 +356,8 @@ export async function exportPlanToImage(params: {
   // 3. Serialize workspace to Mower JSON
   const jsonText = exportMowerJson(params.workspace)
 
-  // 4. Overlay 16 QR codes onto the canvas and export to JPEG blob
-  const blob = await exportRosterTo16Qr(targetCanvas, jsonText, theme)
+  // Current Mower uses 14 QR codes, preserving the bottom-right recycle card.
+  const blob = await exportRosterTo16Qr(targetCanvas, jsonText, theme, 14)
 
   // 5. Download blob
   const filename = sanitizeFilename(params.filename ?? 'mower_plan.jpg', 'mower_plan.jpg')

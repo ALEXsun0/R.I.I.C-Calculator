@@ -1,4 +1,4 @@
-import type { RosterWorkspace } from '../workbench/model'
+import type { RosterWorkspace } from '../domain/roster'
 import { compileRosterSchedule } from '../scheduler/compileRosterSchedule'
 import { compiledScheduleToRuntimeConfig } from '../scheduler/scheduleAdapter'
 import { createRosterRuntime } from '../scheduler/rosterRuntime'

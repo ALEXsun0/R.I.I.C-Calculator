@@ -1,9 +1,9 @@
 import { OPERATOR_MAP, OPERATORS, type OperatorRecord } from '../domain/operators'
 import { compileOperatorInventory, type OwnedOperatorInput, type OperatorInventory } from '../domain/operatorInventory'
-import { resolveOperatorCharId as resolveId } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as resolveId } from '../domain/operatorIdentifiers'
 import { hasRiicTag } from '../domain/riicTags'
 import { inventoryOperatorRecords } from '../domain/operatorContext'
-import type { MowerRoomId, RosterWorkspace } from '../workbench/model'
+import type { MowerRoomId, RosterWorkspace } from '../domain/roster'
 
 export interface SmartDormitoryOptions {
   /** Available operator IDs or names from pool/inventory. If omitted, uses all recognized operators. */

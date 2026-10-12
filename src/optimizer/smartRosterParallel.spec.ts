@@ -12,7 +12,7 @@ import { createRosterRuntime } from '../scheduler/rosterRuntime'
 import { getMowerSourceRuntime } from '../scheduler/mowerSourceRuntime'
 import { planMowerMetadata } from '../scheduler/mowerMetadata'
 import { MowerTaskQueue, MOWER_TASK_TYPES as T, toMowerMicros } from '../scheduler/mowerTaskQueue'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { productionTeamHourlyOutput } from './productionSingletons'
 import { compileOperatorInventory, fullCatalogIdleInventory } from '../domain/operatorInventory'
 

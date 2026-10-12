@@ -265,7 +265,7 @@ import {
   PLAN_FILE_ADAPTERS_KEY,
   type PlanFileAdapters,
 } from '../../workbench/fileHelpers'
-import type { RosterWorkspace } from '../../workbench/model'
+import type { RosterWorkspace } from '../../domain/roster'
 import { useRosterWorkbenchStore } from '../../workbench/store'
 
 export interface PlanToolbarProps {

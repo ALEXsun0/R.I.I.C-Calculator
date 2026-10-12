@@ -2,6 +2,8 @@
 
 ## 当前版本：Mower 排班与长期仿真
 
+2026-10-12 数据更新采用 GameData v078 固定提交 `17759cc8cdf37388414145d16262a3a06f3ab25e`，包含 432 份基建档案、929 条阶段技能版本。新增德·托莱多、旅骨、克莱门莎，并按实际技能解锁条件计算招聘、宿舍、会客、回收与指定加工配方的效果；数据与明日方舟工具箱、PRTS 对照，来源版本和哈希见 [GameData 清单](src/data/riic-gamedata-source-manifest.json)。
+
 `main` 分支提供 Mower 排班导入、编辑、理想跑单与长期收益测算。跑单仅支持理想模式：新单开始时锁定已配置且技能已解锁的佩佩／可露希尔订单模式，在普通订单完成时应用 U-Official／但书／龙舌兰收益。保留 Mower 对订单任务的读取、排序与唤醒，不执行临时跑单换人、等待或恢复；常规换班、休息、收取和无人机任务继续按 Mower 时间线模拟。综合收益默认采用 82 口径，可自定义产出加权系数，结果提供逐制造站采样完成件数供核对。
 
 导入干员库时，库内条目是闲置候选；未导入时，按全体干员总表提供闲置候选。主副表已在岗的干员无需列入闲置库。材料库存默认无限，Party Time 线索交流固定关闭；休息、急救及菲亚阈值在设置页调整，孑的精 0 选项在「计算产出」菜单调整。
@@ -13,6 +15,8 @@
 2026-09-27 的固定条件历史复验中，指定 Mower Test 排班在 7 天预热、9 天采样后，默认 82 综合日均与截图参考值相差 0.2404%，普通生产干员 0 心情进驻审计为 0。该历史数值不是当前版本或任意自定义权重的精度承诺，也不证明与实际账号的逐帧识别、屏幕同优先级排序或完整原版循环严格一致。详情见 [长期复验报告](validation/mower-output-2026-09-27/idlePool9-report.md) 与 [排班外部条件](validation/mower-output-2026-09-27/scheduling-external-conditions-2026-09-28.md)。
 
 当前常规排班决策对齐 Mower 2026-10-03 alpha `b2d9ac8`：包含完整换班预演、执行过程锁、动态恢复床与任务保护。副表触发在预演中形成循环时会明确失败，保留任务并停止部分换人；过程锁不额外引入副表冷却。原生决策对照、原图循环原因与 3 天预热/7 天采样对照见 [排班核验报告](validation/mower-parity-2026-10-04/README.md)。
+
+回收站与新二维码布局单独参考 Mower alpha `7aac30fbf6a89592ffdfbaad0c52e6b64946f81e`。回收站默认未建，1/2/3 级工位为 1/2/2，耗电为 0；材料按效率转化，无人驻守时继续，满仓暂停，待办收取后恢复。统计转化件数与心情、在岗联动，不将随机材料虚构为龙门币收益。加工与招聘/线索专项面板为当前配置预览；回收站转化提效预览不自动给长期模拟添加投料。
 
 基础收益计算还实现：
 
@@ -43,14 +47,15 @@
 本版本提供与 [Arknights Mower](https://github.com/ArkMowers/arknights-mower) 高度互通的 980px 固定画布主排班工作台，实现排班数据的双向无损交换与确定性收益测算：
 
 - **核心主排班范围 (Core Main-Roster Scope):**
-  专注于 18 设施卡片主力主排班（`plan1` / active default plan）以及全局策略配置（`conf`）。覆盖左侧 3×3 矩阵共 9 个产出设施（制造站、贸易站、发电站）、控制中枢、4 间宿舍以及 4 间右侧功能设施（会客室、加工站、办公室、训练室）。视觉设计严格遵循 Mower 经典暗色调风格（980px 宽度、设施分类左侧主题色边框、产物水印、45px 干员头像、拖拽换位交互）。
-- **JSON / 16-QR 排班图双向导入导出 (JSON/JPG Interchange):**
+  提供 19 个设施卡片的主排班（`plan1` / active default plan）以及全局策略配置（`conf`）。覆盖左侧 3×3 矩阵共 9 个产出设施（制造站、贸易站、发电站）、控制中枢、4 间宿舍以及 5 间右侧功能设施（会客室、加工站、办公室、训练室、回收站）。沿用 Mower 的 980px 固定宽度、暗色配色、设施主题色、产物水印和拖拽换位交互。
+- **JSON / QR 排班图双向导入导出 (JSON/JPG Interchange):**
   - **Mower JSON 无损互通 (`mowerJson.ts`):** 原生解析并生成标准 Mower JSON 顶层结构（`default`、`plan1`、`conf`、`backup_plans`）。通过兼容信封（`MowerCompatibilityEnvelope`）无损保留多方案及第三方自定义字段，确保往返保存时非主排班配置不丢失；
-  - **16-QR 排班图互通 (`mowerQrCodec.ts`):** 严格依照 Mower `arknights_mower/utils/qrcode.py` 几何标准（顶部 7 个，左下 7 个，右下 2 个，zlib level 9 压缩 + RFC 9285 Base45 编码），使用坐标掩模与纯几何排序算法直接从画布提取并还原排班，**完全不依赖 OCR**。
+  - **14/16 QR 排班图互通 (`mowerQrCodec.ts`):** 按新版 Mower 导出 14 个二维码（顶部 7 个、左下 7 个），避免遮挡新增回收站；导入兼容这套布局和旧版右下额外 2 个的 16 QR 图片。压缩与编码沿用 zlib level 9 + RFC 9285 Base45，按几何位置排序提取，不依赖 OCR。
 - **2/3 发电站设施等级推导规则 (2/3 Power Facility Inference):**
   针对 Mower 排班数据中不持久化设施等级的特点，内置智能等级推导：
-  - **3 发电站（如 243、333 等）:** 810 kW 发电量充沛，推导所有 9 个产出设施为 3 级，4 间宿舍全部为 5 级，控制中枢 5 级，右侧功能设施均为 3 级；
+  - **3 发电站（如 243、333 等）:** 810 kW 发电量充沛，推导所有 9 个产出设施为 3 级，4 间宿舍全部为 5 级，控制中枢 5 级，已有右侧功能设施均为 3 级；
   - **2 发电站（如 252、342 等）:** 电力预算受限，推导 4 间宿舍为 1 级，发电站 3 级，中枢 5 级，右侧功能设施 3 级；制造站与贸易站则根据在岗干员人数推导：$\text{level} = \max(1, \min(3, \text{staffedCount} \parallel 1))$。
+  - **回收站:** 原生 JSON 未包含 `recycle` 时保留未建状态；包含该设施但未给等级时采用 3 级编辑默认值，可在工作台改成实际等级。这个默认值不证明账号中的实际建筑等级。
 - **收益测算桥接 (Calculation Bridge):**
   静态收益适配器仍可生成常规收益预估；长期排班使用独立动态模拟，执行主副表、候补、宿舍、定时任务与跑单生产事件。静态投影不可代替长期工休结果。
 - **动态覆盖与限制 (Dynamic Coverage and Limits):**
@@ -106,7 +111,9 @@ pnpm dev
 
 ## 更新干员数据
 
-GameData 更新后，在本项目根目录执行以下命令，重新生成规范化数据。请将 `<GameData目录>` 替换为你下载或克隆的 GameData 根目录，保留路径外的引号：
+完整更新流程见 [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md)。发布或导入 skill 前先检查 GameData、PRTS、明日方舟工具箱和相关 Mower 的最新状态，并固定版本、提交和哈希；跨来源数据同步使用 `scripts/sync-riic-catalog.mjs`，先生成到临时目录并完成审计。
+
+仅从指定 GameData 导入档案时，在项目根目录执行以下命令。请将 `<GameData目录>` 替换为你下载或克隆的 GameData 根目录，保留路径外的引号：
 
 ```powershell
 node scripts/import-gamedata.mjs "<GameData目录>/zh_CN/gamedata/excel"
@@ -114,11 +121,17 @@ node scripts/import-gamedata.mjs "<GameData目录>/zh_CN/gamedata/excel"
 
 导入器会保留每个基建技能槽的全部版本及精英阶段、等级解锁条件，计算时按用户填写的实际练度选择已解锁版本；`skills` 字段仍保留每槽最高阶段的兼容快照，完整版本位于 `skillSlots`。缺失技能定义或无效解锁条件会使导入失败，不会覆盖原数据。技能引擎采用“通用解析器 + 专项规则处理器”，因此新加入的普通百分比技能通常可直接识别，复杂状态、库存、心情和跨设施联动则逐条纳入专项规则。界面中的“手动效率修正”可临时覆盖尚未量化的效果。
 
-`pnpm audit:data "<GameData目录>/zh_CN/gamedata/excel"` 会逐一核对所有设施类型的完整技能槽、各版本解锁条件及最高阶段快照，包括控制中枢、宿舍、办公室、制造站、贸易站、会客室、发电站、训练室和加工站；任何档案、技能槽或解锁阶段缺失都会以非零状态退出。
+`pnpm audit:data "<GameData目录>/zh_CN/gamedata/excel"` 会逐一核对所有设施类型的完整技能槽、各版本解锁条件及最高阶段快照，包括控制中枢、宿舍、办公室、制造站、贸易站、会客室、发电站、训练室、加工站和回收站；任何档案、技能槽或解锁阶段缺失都会以非零状态退出。
 
-导入器生成指定 GameData 的官方档案。当前发布数据还包含经核验的补充档案；更新这类数据时，应先在临时目录导入并通过官方档案审计，按新版本核对并合并补充档案后，再替换发布数据。
+导入器生成指定 GameData 的官方档案。工具箱拼音和已有角色标识等附加元数据与官方技能档案分别维护；更新时先在临时目录导入并通过完整技能阶段审计，再核对跨来源字段后替换发布数据。
 
-数据口径：PRTS 的 427 个正式战斗形态包含阿米娅的近卫、医疗两个职业转换形态；GameData 中三种阿米娅形态共用 `char_002_amiya` 的一份基建档案，因此有效基建档案为 425 份。导入器会排除没有 `building_data` 记录、无法常驻玩家基建的集成战略及卫戍协议专属角色。
+数据按 GameData 的基建档案计数，不直接按战斗形态总数计算。阿米娅的三种职业形态共用 `char_002_amiya` 的一份基建档案。导入器排除没有 `building_data` 记录、无法常驻玩家基建的集成战略及卫戍协议专属角色；当前固定版本为 432 份有效档案。
+
+## 源码结构
+
+根目录 [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) 提供模块职责和自动生成的完整源码索引。新增、移动或删除文件时运行 `node scripts/update-project-structure.mjs`，交付前以 `--check` 校验。依赖约定详见 [源码结构说明](src/README.md)，维护要求见 [AGENTS.md](AGENTS.md)。
+
+后勤 skill 的独立发布目标为 [arknights-riic-mechanics](https://github.com/Panda-Panta/arknights-riic-mechanics)。格式、来源新鲜度与离线验证按更新流程执行；实际发布状态见本次交付报告，通用 Agent Skills 格式检查不代表所有 agent 平台均已实际导入。
 
 ## 验证
 
@@ -127,4 +140,8 @@ pnpm typecheck
 pnpm test
 pnpm audit:data "<GameData目录>/zh_CN/gamedata/excel"
 pnpm build
+node scripts/update-project-structure.mjs --check
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-sync-tools.ps1
 ```
+
+更新通过验证后提交并同步远程源码仓库，再使用 `scripts/sync-tools.ps1` 同步 `D:\Tools\R.I.I.C-Calculator`。该工具备份并逐文件校验安装，不强制关闭程序，保留用户配置、排班和浏览器数据；详细参数与交付证据要求见更新流程。

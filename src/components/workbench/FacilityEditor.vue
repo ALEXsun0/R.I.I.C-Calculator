@@ -69,6 +69,7 @@
           </tbody>
         </table>
       </n-space>
+      <SupportFacilityPreview v-if="selectedRoom.level > 0" :config="previewConfig" :room-id="selectedRoom.roomId" />
 
       <!-- Second row: Slots table -->
       <n-space justify="center" class="slots-space">
@@ -99,6 +100,11 @@
 import { computed, h, toRaw, type VNode } from 'vue'
 import { NAvatar, NButton, NSelect, NSpace, type SelectOption } from 'naive-ui'
 import SlotRow from './SlotRow.vue'
+import SupportFacilityPreview from './SupportFacilityPreview.vue'
+import { createDefaultConfig } from '../../domain/defaults'
+import { facilityCapacity } from '../../domain/facilities'
+import { compileMainPlanToAppConfig } from '../../workbench/adapter'
+import type { OperatorRecord } from '../../domain/operators'
 import { resolveAssetUrl } from '../../workbench/operatorHelpers'
 import { useRosterWorkbenchStore } from '../../workbench/store'
 import {
@@ -107,7 +113,7 @@ import {
   type MowerProduct,
   type MowerRoomId,
   type MowerSlot,
-} from '../../workbench/model'
+} from '../../domain/roster'
 
 const emit = defineEmits<{
   (
@@ -117,6 +123,12 @@ const emit = defineEmits<{
 }>()
 
 const store = useRosterWorkbenchStore()
+const props = defineProps<{ operatorRecords?: Readonly<Record<string, OperatorRecord>> }>()
+const previewConfig = computed(() => {
+  const config = compileMainPlanToAppConfig(store.workspace.mainPlan, store.workspace, createDefaultConfig())
+  config.operatorRecords = props.operatorRecords
+  return config
+})
 
 const selectedRoom = computed(() => store.selectedRoom)
 
@@ -140,21 +152,10 @@ const rightSideFacilityName = computed<string>(() => {
   if (id === 'factory') return '加工站'
   if (id === 'contact') return '办公室'
   if (id === 'train') return '训练室'
+  if (id === 'recycle') return '回收站'
   if (id.startsWith('gaming')) return '活动室'
   return '未知'
 })
-
-function getFacilityCapacity(type: MowerFacilityType, level: number): number {
-  if (level === 0) return 0
-  if (type === 'power') return 1
-  if (type === 'manufacture' || type === 'trading') return Math.max(1, level)
-  if (type === 'central' || type === 'dormitory') return 5
-  if (type === 'meeting') return 2
-  if (type === 'factory' || type === 'contact') return 1
-  if (type === 'train') return 2
-  if (type === 'gaming') return 1
-  return 1
-}
 
 function createEmptySlots(count: number): MowerSlot[] {
   return Array.from({ length: count }, () => ({
@@ -267,7 +268,7 @@ function renderProductLabel(option: SelectOption): VNode {
 function onTypeChange(newType: MowerFacilityType): void {
   if (!selectedRoom.value) return
   const currentLevel = selectedRoom.value.level
-  const targetCap = getFacilityCapacity(newType, currentLevel)
+  const targetCap = facilityCapacity(newType, currentLevel)
   const newSlots = adjustSlots(selectedRoom.value.slots, targetCap)
 
   let product: MowerProduct | undefined = selectedRoom.value.product
@@ -293,7 +294,7 @@ function onTypeChange(newType: MowerFacilityType): void {
 function onLevelChange(newLevel: number): void {
   if (!selectedRoom.value) return
   const currentType = selectedRoom.value.type
-  const targetCap = getFacilityCapacity(currentType, newLevel)
+  const targetCap = facilityCapacity(currentType, newLevel)
   const newSlots = adjustSlots(selectedRoom.value.slots, targetCap)
 
   store.updateFacility(selectedRoom.value.roomId, {

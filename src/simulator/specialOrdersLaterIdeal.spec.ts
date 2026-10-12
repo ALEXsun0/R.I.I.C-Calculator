@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import sourceRoster from '../../validation/mower-output-2026-09-27/roster.json'
-import { importMowerJson, resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { importMowerJson } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { runScheduleSimulationBridge } from '../workbench/scheduleSimulationBridge'
 
 const kinds = { 但书: 'proviso', 龙舌兰: 'tequila', 佩佩: 'pepe', 可露希尔: 'closure', 'U-Official': 'uOfficial' } as const

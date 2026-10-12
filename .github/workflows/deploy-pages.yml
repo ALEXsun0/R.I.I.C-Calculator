@@ -40,6 +40,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check source structure and skill package
+        run: |
+          pnpm structure:check
+          pnpm skill:validate
+
       - name: Build static site
         run: pnpm build
         env:

@@ -1,4 +1,4 @@
-import type { MowerFacilityType, MowerMainConf, MowerOccupant, MowerProduct, RosterWorkspace } from '../workbench/model'
+import type { MowerFacilityType, MowerMainConf, MowerOccupant, MowerProduct, RosterWorkspace } from '../domain/roster'
 
 export interface CompileDiagnostic {
   code: string

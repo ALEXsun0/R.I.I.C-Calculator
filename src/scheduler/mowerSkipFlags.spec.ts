@@ -4,7 +4,7 @@ import {compileRosterSchedule} from './compileRosterSchedule'
 import {compiledScheduleToRuntimeConfig} from './scheduleAdapter'
 import {createRosterRuntime} from './rosterRuntime'
 import {getMowerSourceRuntime,settleMowerSource,nextMowerSourceActionHours} from './mowerSourceRuntime'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import {MowerTask} from './mowerTaskQueue'
 describe('native skip flags after blocked correction',()=>{
  it('retains an 80-second task without entering notification sleep when two rooms require 90 seconds',()=>{

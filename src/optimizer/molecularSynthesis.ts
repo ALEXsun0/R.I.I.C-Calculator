@@ -1,15 +1,15 @@
 import { mainPlanOnly } from './mainPlanOnly'
 import { ensureBuiltDormKeepers } from './dormKeepers'
 import { configureRunOrder } from './configureRunOrder'
-import type { MowerRoomId, RosterWorkspace } from '../workbench/model'
-import { resolveOperatorCharId as resolveId } from '../workbench/compat/mowerJson'
+import type { MowerRoomId, RosterWorkspace } from '../domain/roster'
+import { resolveOperatorCharId as resolveId } from '../domain/operatorIdentifiers'
 import { compileOperatorInventory, type OperatorInventory, type OwnedOperatorInput } from '../domain/operatorInventory'
 import { isOrdinaryReplacementCandidate, isShiftRunOperator } from '../scheduler/scheduleAdapter'
 import { ATOMIC_UNITS, type AtomicMember, type AtomicUnit, type AtomicUnitConfPolicy } from './riicAtomicUnits'
 import { assignBackups, validatePhysicalRoster } from './rosterDraft'
 import { applySmartDormitoryPolicy } from '../scheduler/smartDormitoryPolicy'
 import { runScheduleSimulationBridge } from '../workbench/scheduleSimulationBridge'
-import { scoreSimulationProduction } from './productionObjective'
+import { scoreSimulationProduction } from '../simulator/productionScore'
 import { normalizeProductionWeights } from '../domain/productionWeights'
 import { rankStaffingCandidates } from './staffingQuality'
 import { buildSingletonFallback } from './singletonFallback'
@@ -49,7 +49,7 @@ export function checkAtomicAvailability(
 }
 const skillTypes: Record<string, string> = {
   manufacture: 'MANUFACTURE', trading: 'TRADING', central: 'CONTROL', power: 'POWER',
-  contact: 'HIRE', meeting: 'MEETING', factory: 'WORKSHOP', train: 'TRAINING',
+  contact: 'HIRE', meeting: 'MEETING', factory: 'WORKSHOP', train: 'TRAINING', recycle: 'RECYCLE',
 }
 
 /** Retry different production footprints in measured order when the best footprint cannot be completed. */
@@ -105,11 +105,11 @@ function finishSkeleton(source: RosterWorkspace, entries: readonly OwnedOperator
   if (!completeBackups()) return null
   // Auxiliary stations consume only resources left after both productive shifts.
   for (const room of Object.values(ws.mainPlan.facilities)) {
-    if (!room.level || !['meeting', 'contact', 'factory', 'train'].includes(room.type)) continue
+    if (!room.level || !['meeting', 'contact', 'factory', 'train', 'recycle'].includes(room.type)) continue
     for (const [slotIndex, slot] of room.slots.entries()) {
       if (!['empty', 'free'].includes(slot.occupant.kind) || locked.has(`${room.roomId}:${slotIndex}`)) continue
       const pool = candidates(room.roomId)
-      if (pool.length < 2) continue
+      if (pool.length < (room.type === 'recycle' ? 1 : 2)) continue
       const best = rankStaffingCandidates(ws, inventory, { roomId: room.roomId, slotIndex }, pool, 'main')[0]
       if (!best) continue
       const before = structuredClone(slot)

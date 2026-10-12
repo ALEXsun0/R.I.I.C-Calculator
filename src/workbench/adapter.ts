@@ -14,7 +14,7 @@ import {
   type MowerMainPlan,
   type MowerOutputRoomId,
   type RosterWorkspace,
-} from './model'
+} from '../domain/roster'
 import { COMPAT_OPERATOR_GROUPS_KEY } from './migrate'
 import { isRunOrderOperator } from './operatorHelpers'
 
@@ -425,5 +425,13 @@ export function compileMainPlanToAppConfig(
   if (baseWorkspace.productionWeights) result.productionWeights = { ...baseWorkspace.productionWeights }
   // Retain the legacy default shape for full level-five layouts.
   if (result.facilities.central === 5 && cloned.facilities.central === undefined) delete result.facilities.central
+  const recycle = mainPlan.facilities.recycle
+  if (recycle?.level) {
+    result.facilities.recycle = recycle.level as 1 | 2 | 3
+    result.facilityOperatorIds.recycle = recycle.slots.map(extractOperatorId).filter((id): id is string => id !== null)
+  } else {
+    delete result.facilities.recycle
+    delete result.facilityOperatorIds.recycle
+  }
   return result
 }

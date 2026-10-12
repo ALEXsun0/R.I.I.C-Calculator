@@ -184,7 +184,7 @@ import { match } from 'pinyin-pro'
 import { OPERATOR_MAP, OPERATORS } from '../../domain/operators'
 import { useRosterWorkbenchStore } from '../../workbench/store'
 import { getOperatorAvatarUrl } from '../../workbench/operatorHelpers'
-import type { MowerMainConf } from '../../workbench/model'
+import type { MowerMainConf } from '../../domain/roster'
 import {
   POLICY_LIST_FIELDS,
   type PolicyOperatorListKey,

@@ -5,6 +5,7 @@ import { compileRosterSchedule } from '../../scheduler/compileRosterSchedule'
 import { compiledScheduleToRuntimeConfig } from '../../scheduler/scheduleAdapter'
 import { validateRosterWorkspace } from '../validate'
 import { runScheduleSimulationBridge } from '../scheduleSimulationBridge'
+import { testEvidenceFile } from '../../test/evidence'
 
 // Characterizes current limitations; this is not acceptance of backup execution.
 // Decoded from the user's 3012 x 1236 Mower JPEG on 2026-09-22.
@@ -34,7 +35,7 @@ describe('supplied nine-backup Mower roster', () => {
     const options = { sampleHours: 24, warmupHours: 0, maxEvents: 10000, recordSegments: true,production:{runOrderMode:'ideal' as const,outputMode:'potential' as const,droneTarget:'gold' as const,seed:42} }
     const backups = JSON.stringify(workspace.compatibility.backupPlans)
     const result = runScheduleSimulationBridge(workspace, options)
-    writeFileSync('validation/mower-backup-2026-09-22/implementation-evidence.json',JSON.stringify(result,null,2))
+    writeFileSync(testEvidenceFile('implementation-evidence.json'),JSON.stringify(result,null,2))
     expect(result.error).toBeUndefined()
     expect(result.report?.success).toBe(true)
     expect(result.report?.production?.success).toBe(true)

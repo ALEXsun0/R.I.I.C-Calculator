@@ -1,8 +1,8 @@
 import {OPERATOR_MAP} from '../domain/operators'
 import {compileOperatorInventory,type OwnedOperatorInput} from '../domain/operatorInventory'
 import {isShiftRunOperator} from '../scheduler/scheduleAdapter'
-import {resolveOperatorCharId as resolveId} from '../workbench/compat/mowerJson'
-import type {RosterWorkspace} from '../workbench/model'
+import { resolveOperatorCharId as resolveId } from '../domain/operatorIdentifiers'
+import type {RosterWorkspace} from '../domain/roster'
 import {validatePhysicalRoster} from './rosterDraft'
 import {rankStaffingCandidates} from './staffingQuality'
 

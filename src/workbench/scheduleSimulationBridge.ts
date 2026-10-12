@@ -1,7 +1,7 @@
 import { compileRosterSchedule } from '../scheduler/compileRosterSchedule'
 import type { SimulationAssumptions } from '../scheduler/types'
 import { simulateSchedule, type ScheduleSimulationOptions, type ScheduleSimulationReport, type ScheduleSimulationProgress } from '../simulator/scheduleSimulation'
-import type { RosterWorkspace } from './model'
+import type { RosterWorkspace } from '../domain/roster'
 import { validateRosterWorkspace } from './validate'
 import { normalizeProductionWeights } from '../domain/productionWeights'
 

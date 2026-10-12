@@ -1,7 +1,7 @@
 import type { OperatorInventory } from '../domain/operatorInventory'
 import { hasDormKeeper } from '../workbench/facilityState'
-import { resolveOperatorCharId } from '../workbench/compat/mowerJson'
-import type { RosterWorkspace } from '../workbench/model'
+import { resolveOperatorCharId } from '../domain/operatorIdentifiers'
+import type { RosterWorkspace } from '../domain/roster'
 
 /** Keep explicitly built dorms identifiable after exporting and reimporting their roster. */
 export function ensureBuiltDormKeepers(workspace: RosterWorkspace, inventory: OperatorInventory, locked: ReadonlySet<string> = new Set()): boolean {

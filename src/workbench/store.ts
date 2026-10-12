@@ -3,6 +3,7 @@ import { computed, ref, toRaw } from 'vue'
 import { createDefaultWorkspace } from './defaults'
 import { inferFacilityLevels } from './levelInference'
 import { normalizeMissingFacilities } from './facilityState'
+import { promotePreservedRecycleRoom } from './compat/mowerJson'
 import {
   MOWER_OUTPUT_ROOM_IDS,
   type MowerFacility,
@@ -12,7 +13,7 @@ import {
   type MowerRoomId,
   type MowerSlot,
   type RosterWorkspace,
-} from './model'
+} from '../domain/roster'
 
 export type MowerFacilityPatch = Partial<Omit<MowerFacility, 'roomId'>>
 
@@ -27,6 +28,7 @@ export const useRosterWorkbenchStore = defineStore('rosterWorkbench', () => {
 
   function loadWorkspace(candidate: RosterWorkspace): void {
     workspace.value = structuredClone(toRaw(candidate))
+    promotePreservedRecycleRoom(workspace.value)
     normalizeMissingFacilities(workspace.value)
   }
 

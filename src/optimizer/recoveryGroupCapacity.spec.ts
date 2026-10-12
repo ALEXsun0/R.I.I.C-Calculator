@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createDefaultWorkspace } from '../workbench/defaults'
 import { fullCatalogIdleInventory, compileOperatorInventory } from '../domain/operatorInventory'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { regroupCombination } from './combinationAllocation'
 import { simulateCandidate } from './candidateSimulation'
 import * as bridge from '../workbench/scheduleSimulationBridge'

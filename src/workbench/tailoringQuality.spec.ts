@@ -5,7 +5,8 @@ import { compileOperatorInventory, type OwnedOperatorInput } from '../domain/ope
 import type { QualityRule } from '../domain/types'
 import { evaluateOperators } from '../engine/operatorRules'
 import { compileMainPlanToAppConfig } from './adapter'
-import { importMowerJson, resolveOperatorCharId as id } from './compat/mowerJson'
+import { importMowerJson } from './compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { runScheduleSimulationBridge } from './scheduleSimulationBridge'
 
 const expectedProbabilities: Record<QualityRule, number[]> = {

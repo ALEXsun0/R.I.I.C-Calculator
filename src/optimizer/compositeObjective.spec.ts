@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest'
 import {createDefaultWorkspace} from '../workbench/defaults'
 import {runScheduleSimulationBridge} from '../workbench/scheduleSimulationBridge'
 import {compareIncome,summarizeIncome} from './incomeComparison'
-import {scoreProduction} from './productionObjective'
+import { scoreProduction } from '../domain/productionScore'
 const cases=()=>[1,2].flatMap(seed=>[.25,.125].map(maxStepHours=>summarizeIncome(runScheduleSimulationBridge(createDefaultWorkspace(),{sampleHours:1,warmupHours:0,maxStepHours,production:{outputMode:'potential',droneTarget:'none',seed}},{idleOperators:[]}).report!)))
 describe('user-defined conventional composite output',()=>{
  it('applies EXP + .8 * gold value + .2 * order face value without double-counting inventory',()=>{

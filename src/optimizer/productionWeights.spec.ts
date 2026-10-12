@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { scoreProduction } from './productionObjective'
+import { scoreProduction } from '../domain/productionScore'
 
 describe('shared production weights', () => {
   const completed = { exp: 1000, gold: 2, orderLmd: 2000, virtualGold: 1, fragments: 3, orundum: 20 }

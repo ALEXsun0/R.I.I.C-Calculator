@@ -1,6 +1,6 @@
 import {compileRosterSchedule} from '../scheduler/compileRosterSchedule'
 import {validatePhysicalRoster} from './rosterDraft'
-import type {RosterWorkspace} from '../workbench/model'
+import type {RosterWorkspace} from '../domain/roster'
 import {compareIncome,type IncomeCase} from './incomeComparison'
 
 export interface DailyTargetAssessment {

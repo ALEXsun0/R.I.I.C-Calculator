@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import {createDefaultWorkspace} from '../workbench/defaults'
 import {compileRosterSchedule} from './compileRosterSchedule'
 import {compiledScheduleToRuntimeConfig} from './scheduleAdapter'

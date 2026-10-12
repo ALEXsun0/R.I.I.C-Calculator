@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { advanceRoster, createRosterRuntime, settleRoster } from './rosterRuntime'
-import { simulateMoraleTimeline } from '../simulator/moraleTimeline'
+import { simulateMoraleTimeline } from '../test/helpers/moraleTimeline'
 
 const rates = { workRate: () => 1, recoveryRate: () => 2 }
 describe('event roster runtime', () => {

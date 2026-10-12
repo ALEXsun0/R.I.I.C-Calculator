@@ -325,6 +325,7 @@ const FACILITY_TABS = [
   { label: '加工站', code: 'WORKSHOP' },
   { label: '人力办公室', code: 'HIRE' },
   { label: '训练室', code: 'TRAINING' },
+  { label: '回收站', code: 'RECYCLE' },
 ]
 
 const RARITY_OPTIONS = [
@@ -388,8 +389,10 @@ const resetAllFilters = () => {
 }
 
 // Filtered List
+const normalizePinyin = (value: string) => value.toLowerCase().replace(/[\s·.\-_'’]/g, '')
 const filteredList = computed(() => {
   const oQ = opQuery.value.trim().toLowerCase()
+  const pinyinQuery = normalizePinyin(oQ)
   const sQ = skillQuery.value.trim().toLowerCase()
 
   const result: Array<{ op: RiicOperatorItem; skills: RiicSkillItem[] }> = []
@@ -417,8 +420,8 @@ const filteredList = computed(() => {
     // Operator Name / Pinyin / Appellation Search
     if (oQ) {
       const matchName = op.name.toLowerCase().includes(oQ)
-      const matchPinyin = op.pinyin && op.pinyin.includes(oQ)
-      const matchInitial = op.pinyinInitial && (op.pinyinInitial === oQ || op.pinyinInitial.startsWith(oQ))
+      const matchPinyin = pinyinQuery && op.pinyin && normalizePinyin(op.pinyin).includes(pinyinQuery)
+      const matchInitial = pinyinQuery && op.pinyinInitial && normalizePinyin(op.pinyinInitial).startsWith(pinyinQuery)
       const matchEn = op.appellation && op.appellation.toLowerCase().split(/\s+/).some(w => w.startsWith(oQ))
       if (!matchName && !matchPinyin && !matchInitial && !matchEn) {
         continue

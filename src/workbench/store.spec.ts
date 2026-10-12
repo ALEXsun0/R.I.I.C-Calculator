@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useRosterWorkbenchStore } from './store'
 import { createDefaultWorkspace } from './defaults'
-import type { MowerOccupant, MowerSlot, RosterWorkspace } from './model'
+import type { MowerOccupant, MowerSlot, RosterWorkspace } from '../domain/roster'
 
 describe('RosterWorkbenchStore', () => {
   beforeEach(() => {

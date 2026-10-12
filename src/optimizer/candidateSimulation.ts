@@ -1,5 +1,5 @@
 import { runScheduleSimulationBridge } from '../workbench/scheduleSimulationBridge'
-import { scoreSimulationProduction } from './productionObjective'
+import { scoreSimulationProduction } from '../simulator/productionScore'
 import { hasConsumptionSkill } from './fixedDuty'
 import type { SpecialOperatorSimData } from './smartRoster'
 import { summarizeIncome, type IncomeCase } from './incomeComparison'

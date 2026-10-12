@@ -5,6 +5,30 @@ import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import SimulationLogView from './SimulationLogView.vue'
 import type { ScheduleSimulationReport } from '../../simulator/scheduleSimulation'
+import type { ProductionReport } from '../../simulator/productionTimeline'
+import { createLedger } from '../../simulator/resourceLedger'
+import { createDroneState } from '../../simulator/droneTimeline'
+
+function createProductionReport(): ProductionReport {
+  return {
+    success: false,
+    ledger: createLedger({}),
+    sample: {
+      completed: { exp: 0, gold: 0, orderLmd: 0 },
+      opening: {}, inflows: {}, outflows: {}, net: {}, closing: {},
+    },
+    materialsConsumed: {},
+    drones: createDroneState(0),
+    manufacturing: [],
+    trading: [],
+    events: [],
+    assumptions: {
+      outputMode: 'settled', inventoryMode: 'unlimited', seed: 1,
+      runOrderMode: 'ideal', droneTarget: 'none', droneReserve: 0,
+      collectionIntervalHours: 0.25, orderSnapshotPolicy: 'acquisition-start-v1',
+    },
+  }
+}
 
 function createSampleReport(): ScheduleSimulationReport {
   return {
@@ -117,16 +141,44 @@ describe('SimulationLogView.vue', () => {
 
   it('shows sampled manufacturing completions rather than lifetime totals', () => {
     const report = createSampleReport()
-    report.production = {
-      success: false,
-      sample: { opening: {}, inflows: {}, outflows: {}, net: {}, closing: {} },
-      manufacturing: [{ roomId: 'room_1_1', completedItems: 999, sampleCompletedItems: 7 }],
-    } as ScheduleSimulationReport['production']
+    report.production = createProductionReport()
+    report.production.manufacturing = [{
+      roomId: 'room_1_1', product: 'gold', completedItems: 999, sampleCompletedItems: 7,
+      pendingItems: 0, remainingBaseMinutes: 60, blockedHours: 0, blockedMaterialHours: 0,
+    }]
     const wrapper = mount(SimulationLogView, { props: { report } })
     const facilityTable = wrapper.findAll('.log-section').find(section => section.text().includes('设施平均效率统计'))
     expect(facilityTable?.text()).toContain('采样完成件数')
     expect(facilityTable?.text()).toContain('7')
     expect(facilityTable?.text()).not.toContain('999')
+  })
+
+  it('shows sampled recycle conversions separately from warmup completions and random material value', () => {
+    const report = createSampleReport()
+    report.rooms.push({ roomId: 'recycle', roomType: 'recycle', averageEfficiencyPercent: 120, efficiencyPercentHours: 5760, occupiedHours: 0, teams: [] })
+    report.production = createProductionReport()
+    report.production.recycle = {
+      roomId: 'recycle', capacity: 10, completedItems: 999, sampleCompletedItems: 3,
+      collectedItems: 3, pendingItems: 0, remainingBaseHours: 24, blockedHours: 0,
+    }
+    const wrapper = mount(SimulationLogView, { props: { report } })
+    const table = wrapper.findAll('.log-section').find(section => section.text().includes('设施平均效率统计'))!
+    const row = table.findAll('tbody tr').find(item => item.text().includes('回收站'))!
+    expect(row.findAll('td')[1]!.text()).toBe('120%')
+    expect(row.findAll('td')[3]!.text()).toBe('3')
+    expect(table.text()).not.toContain('999')
+    expect(row.text()).not.toContain('龙门币')
+    wrapper.unmount()
+  })
+
+  it('does not report zero conversions when a recycle timer report is unavailable', () => {
+    const report = createSampleReport()
+    report.rooms.push({ roomId: 'recycle', roomType: 'recycle', averageEfficiencyPercent: 120, efficiencyPercentHours: 5760, occupiedHours: 0, teams: [] })
+    const wrapper = mount(SimulationLogView, { props: { report } })
+    const table = wrapper.findAll('.log-section').find(section => section.text().includes('设施平均效率统计'))!
+    const row = table.findAll('tbody tr').find(item => item.text().includes('回收站'))!
+    expect(row.findAll('td')[3]!.text()).toBe('—')
+    wrapper.unmount()
   })
 
   it('triggers lightweight summary export and full debug export on button clicks', async () => {

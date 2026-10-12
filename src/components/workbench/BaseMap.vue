@@ -61,7 +61,7 @@
             </div>
           </div>
 
-          <!-- Right: meeting, factory, contact, train (4 rooms) -->
+          <!-- Right: meeting, factory, contact, train, recycle -->
           <div class="right_box">
             <div class="right_contain" v-for="id in rightFacilities" :key="id">
               <FacilityCard
@@ -90,7 +90,7 @@ import { useRosterWorkbenchStore } from '../../workbench/store'
 import {
   type MowerOutputRoomId,
   type MowerRoomId,
-} from '../../workbench/model'
+} from '../../domain/roster'
 import FacilityCard from './FacilityCard.vue'
 import '../../workbench/styles.css'
 
@@ -152,7 +152,7 @@ onBeforeUnmount(() => {
   }
 })
 
-const rightFacilities: readonly MowerRoomId[] = ['meeting', 'factory', 'contact', 'train']
+const rightFacilities: readonly MowerRoomId[] = ['meeting', 'factory', 'contact', 'train', 'recycle']
 
 function handleSelect(roomId: MowerRoomId) {
   store.selectRoom(roomId)

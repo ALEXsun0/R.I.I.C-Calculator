@@ -597,7 +597,7 @@ import {
   type MowerBackupPlan,
 } from '../../workbench/backupPlanHelpers'
 import { getOperatorAvatarUrl, getOperatorName } from '../../workbench/operatorHelpers'
-import { MOWER_ROOM_IDS } from '../../workbench/model'
+import { MOWER_ROOM_IDS } from '../../domain/roster'
 
 const store = useRosterWorkbenchStore()
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { importMowerJson, resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { importMowerJson } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { compileRosterSchedule } from './compileRosterSchedule'
 import { compiledScheduleToRuntimeConfig, createRosterRuntime } from './rosterRuntime'
 import { createBackupPlanController, evaluateBackupExpression } from './backupPlans'

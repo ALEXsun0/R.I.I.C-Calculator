@@ -2,19 +2,20 @@ import { inventoryOperatorRecords } from '../domain/operatorContext'
 import type { OperatorInventory } from '../domain/operatorInventory'
 import type { AppConfig } from '../domain/types'
 import { currentMoraleRates } from '../engine/morale'
+import { evaluateRecycleEfficiency } from '../engine/supportFacilitySkills'
 import { isOrdinaryReplacementCandidate } from '../scheduler/scheduleAdapter'
-import { resolveOperatorCharId as resolveId } from '../workbench/compat/mowerJson'
-import { type MowerRoomId, type MowerSlot, type RosterWorkspace } from '../workbench/model'
+import { resolveOperatorCharId as resolveId } from '../domain/operatorIdentifiers'
+import { type MowerRoomId, type MowerSlot, type RosterWorkspace } from '../domain/roster'
 import { projectControlOutput } from './controlImpact'
 import { projectRosterConfig } from './rosterProjection'
 import { isProductionSingletonCandidate, productionColleagueBonus, productionRoomId, singletonTheory } from './productionSingletons'
 
 export interface StaffingPosition { roomId: MowerRoomId; slotIndex: number }
-type Quality = { output: number; power: number; consumption: number }
+type Quality = { output: number; power: number; consumption: number; recycle: number }
 type StaffingContext = { config: AppConfig; insertionIndex: number }
 const facilitySkills: Record<string, string> = {
   manufacture: 'MANUFACTURE', trading: 'TRADING', power: 'POWER', central: 'CONTROL',
-  contact: 'HIRE', meeting: 'MEETING', factory: 'WORKSHOP', train: 'TRAINING',
+  contact: 'HIRE', meeting: 'MEETING', factory: 'WORKSHOP', train: 'TRAINING', recycle: 'RECYCLE',
 }
 const key = (roomId: string, index: number, slot: MowerSlot) => slot.groupId?.trim() || `${roomId}:${index}`
 const ordinaryBackup = (slot: MowerSlot, roomType: string) => slot.replacements.map(resolveId).find(id => isOrdinaryReplacementCandidate(id, roomType))
@@ -84,8 +85,8 @@ function insertOperator(config: AppConfig, workspace: RosterWorkspace, position:
     return
   }
   if (type === 'central') { config.controlOperatorIds.splice(insertionIndex, 0, id); return }
-  const auxiliary = { contact: 'office', meeting: 'reception', factory: 'workshop', train: 'training' } as const
-  if (type in auxiliary) config.facilityOperatorIds[auxiliary[type as keyof typeof auxiliary]].splice(insertionIndex, 0, id)
+  const auxiliary = { contact: 'office', meeting: 'reception', factory: 'workshop', train: 'training', recycle: 'recycle' } as const
+  if (type in auxiliary) (config.facilityOperatorIds[auxiliary[type as keyof typeof auxiliary]] ??= []).splice(insertionIndex, 0, id)
   if (type === 'train') config.efficiencyResources.trainingOperatorIds = [...config.facilityOperatorIds.training]
 }
 
@@ -100,8 +101,8 @@ function removeOperator(config: AppConfig, workspace: RosterWorkspace, position:
     return
   }
   if (type === 'central') { config.controlOperatorIds.splice(insertionIndex, 1); return }
-  const auxiliary = { contact: 'office', meeting: 'reception', factory: 'workshop', train: 'training' } as const
-  if (type in auxiliary) config.facilityOperatorIds[auxiliary[type as keyof typeof auxiliary]].splice(insertionIndex, 1)
+  const auxiliary = { contact: 'office', meeting: 'reception', factory: 'workshop', train: 'training', recycle: 'recycle' } as const
+  if (type in auxiliary) config.facilityOperatorIds[auxiliary[type as keyof typeof auxiliary]]?.splice(insertionIndex, 1)
   if (type === 'train') config.efficiencyResources.trainingOperatorIds = [...config.facilityOperatorIds.training]
 }
 
@@ -124,7 +125,8 @@ function quality(config: AppConfig): Quality {
   const present = [...config.controlOperatorIds, ...config.rooms.flatMap(r => r.operatorIds)]
   const projection = projectControlOutput(config, { timeContext: { workHoursByOperator: new Map(present.map(id => [id, 0])) } })
   const consumption = Object.values(currentMoraleRates(config).rates).reduce((sum, rate) => sum + rate, 0)
-  const result: Quality = { output: projection.daily.score, power: projection.powerBonusPercent, consumption }
+  const result: Quality = { output: projection.daily.score, power: projection.powerBonusPercent, consumption,
+    recycle: evaluateRecycleEfficiency(config).efficiencyPercent }
   qualityCache.set(key, result)
   return result
 }
@@ -182,12 +184,14 @@ export function rankStaffingCandidates(
       insertOperator(contextCfg, workspace, position, insertionIndex, id)
       const value = quality(contextCfg), baseline = baselines[index]!
       removeOperator(contextCfg, workspace, position, insertionIndex, prevPower)
-      return { output: value.output - baseline.output, power: value.power - baseline.power, consumption: value.consumption - baseline.consumption }
+      return { output: value.output - baseline.output, power: value.power - baseline.power, consumption: value.consumption - baseline.consumption,
+        recycle: type === 'recycle' ? value.recycle - baseline.recycle : 0 }
     })
     return { id, worst: Math.min(...deltas.map(d => d.output)), mean: deltas.reduce((n, d) => n + d.output, 0) / deltas.length,
-      power: deltas.reduce((n, d) => n + d.power, 0) / deltas.length, consumption: deltas.reduce((n, d) => n + d.consumption, 0) / deltas.length }
+      power: deltas.reduce((n, d) => n + d.power, 0) / deltas.length, consumption: deltas.reduce((n, d) => n + d.consumption, 0) / deltas.length,
+      recycle: deltas.reduce((n, d) => n + d.recycle, 0) / deltas.length }
   })
   // Avoid gains that rely on another group always being on duty. Morale is a tie-break, not a made-up duty ratio.
-  ranked.sort((a, b) => b.worst - a.worst || b.mean - a.mean || b.power - a.power || a.consumption - b.consumption)
+  ranked.sort((a, b) => b.worst - a.worst || b.mean - a.mean || b.power - a.power || b.recycle - a.recycle || a.consumption - b.consumption)
   return ranked.map(r => r.id)
 }

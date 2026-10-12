@@ -1,5 +1,7 @@
 import {assertRunOrderMode} from '../simulator/productionTimeline'
-import {scoreSimulationProduction,type ProductionScore,type IncomeObjective} from './productionObjective'
+import { scoreSimulationProduction } from '../simulator/productionScore'
+import { type ProductionScore } from '../domain/productionScore'
+import { type IncomeObjective } from './productionObjective'
 import type {ScheduleSimulationReport} from '../simulator/scheduleSimulation'
 import type {ResourceAmounts,ResourceKind} from '../simulator/resourceLedger'
 export const INCOME_RESOURCES:ResourceKind[]=['lmd','exp','gold','fragment','orundum','drone','orirock','device']

@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest'
 import {createDefaultWorkspace} from '../workbench/defaults'
 import {runScheduleSimulationBridge} from '../workbench/scheduleSimulationBridge'
 import {summarizeIncome,compareIncome,type IncomeCase} from './incomeComparison'
-import {scoreSimulationProduction} from './productionObjective'
+import { scoreSimulationProduction } from '../simulator/productionScore'
 const report=()=>runScheduleSimulationBridge(createDefaultWorkspace(),{sampleHours:1,warmupHours:0,production:{seed:1,droneTarget:'none'}},{idleOperators:[]}).report!
 const cases=():IncomeCase[]=>[1,2].flatMap(seed=>[.25,.125].map(step=>{const c=summarizeIncome(report());return {...c,seed,step,key:`${seed}:${step}`}}))
 const improved=()=>{const c=cases();c.forEach(x=>{x.daily.lmd+=100;x.closing.lmd+=100});return c}

@@ -9,7 +9,7 @@ import { evaluateDormitoryRecovery } from '../engine/dormitoryRecovery'
 import { buildRiicGlobalContext } from '../engine/globalContext'
 import { createDefaultWorkspace } from '../workbench/defaults'
 import { compileRosterSchedule } from '../scheduler/compileRosterSchedule'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { simulateSchedule } from './scheduleSimulation'
 
 function config(entries: OwnedOperatorInput[]) {

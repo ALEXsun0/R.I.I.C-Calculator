@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest'
 import {OPERATORS} from '../domain/operators'
 import type {OwnedOperatorInput} from '../domain/operatorInventory'
 import {createDefaultWorkspace} from '../workbench/defaults'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import {generateBackupNeighbors} from './backupNeighborhood'
 const owned=(names:string[]):OwnedOperatorInput[]=>names.map(operator=>{const o=OPERATORS.find(o=>o.name===operator)!;return {operator,elitePhase:o.rarity<3?0:o.rarity===3?1:2,level:o.rarity<3?30:o.rarity===3?55:o.rarity===4?70:o.rarity===5?80:90}})
 const allOwned=owned(OPERATORS.map(o=>o.name))

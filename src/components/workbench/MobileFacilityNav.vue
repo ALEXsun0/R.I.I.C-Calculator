@@ -57,7 +57,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRosterWorkbenchStore } from '../../workbench/store'
-import type { MowerRoomId, MowerFacility } from '../../workbench/model'
+import type { MowerRoomId, MowerFacility } from '../../domain/roster'
 
 const store = useRosterWorkbenchStore()
 
@@ -70,7 +70,7 @@ const activeCategory = ref<'output' | 'central_dorm' | 'support'>('output')
 const categories = [
   { key: 'output' as const, label: '产出 (B101~B303)' },
   { key: 'central_dorm' as const, label: '中枢与宿舍' },
-  { key: 'support' as const, label: '副设施 (4间)' },
+  { key: 'support' as const, label: '副设施 (5间)' },
 ]
 
 interface FacilityChipData {
@@ -176,12 +176,14 @@ function getFacilityInfo(roomId: MowerRoomId, fac?: MowerFacility): FacilityChip
     factory: '加工站',
     contact: '办公室',
     train: '训练室',
+    recycle: '回收站',
   }
   const rightCodes: Record<string, string> = {
     meeting: '会客',
     factory: '加工',
     contact: '公招',
     train: '训练',
+    recycle: '回收',
   }
 
   return {
@@ -217,7 +219,7 @@ const centralDormFacilities = computed(() => {
 })
 
 const supportFacilities = computed(() => {
-  const ids: MowerRoomId[] = ['meeting', 'factory', 'contact', 'train']
+  const ids: MowerRoomId[] = ['meeting', 'factory', 'contact', 'train', 'recycle']
   return ids.map(id => getFacilityInfo(id, store.workspace.mainPlan.facilities[id]))
 })
 

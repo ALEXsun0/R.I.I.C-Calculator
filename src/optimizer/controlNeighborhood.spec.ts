@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest'
 import {OPERATORS,OPERATOR_MAP} from '../domain/operators'
 import {compileOperatorInventory,type OwnedOperatorInput} from '../domain/operatorInventory'
 import {createDefaultWorkspace} from '../workbench/defaults'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import {validatePhysicalRoster} from './rosterDraft'
 import {generateControlMainNeighbors} from './controlNeighborhood'
 

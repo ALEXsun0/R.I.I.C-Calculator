@@ -1,6 +1,6 @@
 import {OPERATOR_MAP} from '../domain/operators'
-import {resolveOperatorCharId as id} from '../workbench/compat/mowerJson'
-import {MOWER_OUTPUT_ROOM_IDS,type RosterWorkspace} from '../workbench/model'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
+import {MOWER_OUTPUT_ROOM_IDS,type RosterWorkspace} from '../domain/roster'
 import {projectRosterOutput} from './rosterProjection'
 import {buildBackupSnapshot} from './backupSnapshot'
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { createDefaultWorkspace } from './defaults'
 import { validateRosterWorkspace } from './validate'
-import { resolveOperatorCharId } from './compat/mowerJson'
+import { resolveOperatorCharId } from '../domain/operatorIdentifiers'
 
 describe('validateRosterWorkspace', () => {
   it.each(['但书','龙舌兰','可露希尔','佩佩','U-Official'])('allows an ideal trading candidate already stationed elsewhere (%s)', name => {

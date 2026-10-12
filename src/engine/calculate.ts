@@ -13,7 +13,7 @@ import { simulateMorale } from './morale'
 import { buildRiicGlobalContext, type RiicGlobalContext } from './globalContext'
 import { virtualGoldEquivalent } from '../rules/orderValue'
 import { getOrderDistribution } from '../rules/orderRules'
-import { scoreProduction } from '../optimizer/productionObjective'
+import { scoreProduction } from '../domain/productionScore'
 
 const OUTPUT_POWER_USE = { 1: 10, 2: 30, 3: 60 } as const
 const POWER_GENERATION = { 1: 60, 2: 130, 3: 270 } as const

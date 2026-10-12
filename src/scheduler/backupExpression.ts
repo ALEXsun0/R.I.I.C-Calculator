@@ -1,7 +1,7 @@
 // Mower logic_expression.py serializes (left operator right) before evaluation.
 // This interpreter preserves that syntax without evaluating imported Python/JS.
 import { OPERATOR_MAP } from '../domain/operators'
-import { resolveOperatorCharId } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId } from '../domain/operatorIdentifiers'
 import type { RuntimeState } from './rosterRuntime'
 import type {MowerDateTimeValue} from './mowerSchedulingData'
 import {toMowerMicros} from './mowerTaskQueue'

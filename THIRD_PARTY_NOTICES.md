@@ -1,6 +1,6 @@
 # Third-Party Notices & Attribution
 
-This project incorporates visual layout structures, color palettes, facility theming, 16-QR layout constants, and interoperability protocols adapted from **Arknights Mower**:
+This project incorporates visual layout structures, color palettes, facility theming, current 14-QR and legacy 16-QR layout constants, and interoperability protocols adapted from **Arknights Mower**:
 
 - **Project:** Arknights Mower (arknights-mower)
 - **Author:** Nano & Contributors
@@ -44,22 +44,22 @@ SOFTWARE.
 
 ### 1. Core Main-Roster Scope (`plan1` / Active Default Plan)
 The compatibility layer focuses strictly on the **main roster workbench** (`plan1` and the active default plan) and its global configuration (`conf`).
-- **Facilities Model:** Covers the 18 facility cards:
+- **Facilities Model:** Covers the 19 facility cards:
   - **9 Output Rooms:** 3×3 grid of production facilities (`room_1_1` through `room_3_3`), supporting Manufacture (`manufacture`), Trading (`trading`), and Power (`power`).
   - **1 Central Control Room:** `central` (up to 5 operator slots).
   - **4 Dormitories:** `dormitory_1` to `dormitory_4` (up to 5 operator slots each, Lv.1–5).
-  - **4 Functional Facilities:** Meeting Room (`meeting`), Workshop (`factory`), Office (`contact`), Training Room (`train`).
+  - **5 Functional Facilities:** Meeting Room (`meeting`), Workshop (`factory`), Office (`contact`), Training Room (`train`), optional Recycling Station (`recycle`, one slot at Lv.1 and two at Lv.2–3; no power consumption).
   - **3 Activity Rooms:** Reserved entries (`gaming_1` to `gaming_3`).
 - **Visual Fidelity:** Reproduces Mower's 980px fixed-width canvas layout, facility card dark/light theming, facility category left-border accents, product watermarks (gold, exp3, orirock, lmd, orundum), 45px operator portraits, and drag-and-drop room swapping.
 
-### 2. JSON & 16-QR JPG Import / Export Interchange
+### 2. JSON & 14/16-QR JPG Interchange
 - **Lossless JSON Codec (`mowerJson.ts`):**
   - Reads and emits Mower's native top-level JSON structure (`default`, `plan1`, `conf`, `backup_plans`, etc.).
   - Unrecognized fields, secondary plans (`otherPlans`), and metadata are preserved losslessly inside `MowerCompatibilityEnvelope` without corruption across import/export cycles.
   - Normalizes and translates Mower product keys (`gold`, `exp3`, `orirock`, `lmd`, `orundum`).
-- **16-QR JPG Codec (`mowerQrCodec.ts`, `base45.ts`, `mowerQrConstants.ts`):**
-  - Strictly follows `arknights_mower/utils/qrcode.py` layout specifications: zlib level 9 compression, RFC 9285 Base45 encoding, and 16 equal data chunks without custom headers.
-  - Places 16 QR codes at exact geometric coordinates: Top row (7 chunks, `y=40`), Bottom-left row (7 chunks, `y=995`), Bottom-right pair (2 chunks, `x=2520, 2751`, `y=995`).
+- **QR JPG Codec (`mowerQrCodec.ts`, `base45.ts`, `mowerQrConstants.ts`):**
+  - Follows `arknights_mower/utils/qrcode.py`: zlib level 9 compression, RFC 9285 Base45 encoding, and floor-split data chunks without custom headers. Current product export uses 14 chunks; import accepts complete 14- or 16-chunk images.
+  - Current layout places seven QR codes above and seven below the output-room grid. Legacy 16-QR imports also include the lower-right pair; current exports preserve that space for the fifth support facility.
   - Decodes images via iterative `jsQR` with canvas masking and geometric coordinate sorting (Top-to-Bottom, Left-to-Right), with **zero OCR** dependency.
 
 ### 3. Intelligent 2/3-Power-Plant Facility Level Inference
@@ -79,7 +79,7 @@ Mower plan files do not store facility levels directly; levels are deduced based
     $$\text{level} = \max(1, \min(3, \text{staffedCount} \parallel 1))$$
 
 ### 4. Pure AppConfig Adapter & Calculation Bridge
-- **Untouched Calculation Engine:** The production yield engines (`src/engine/calculate.ts`, `src/engine/morale.ts`, `src/engine/operatorRules.ts`) are completely untouched and guarded by SHA-256 hash checks and deterministic equivalence baselines.
+- **Calculation Boundaries:** New support effects are implemented in independent `src/engine/supportFacilities/` modules. Morale, global context and existing conditional rules are extended only where the new mechanism affects them. Fixed-roster before/after baselines and numerical regression tests verify existing behavior; static projections do not prove dynamic Mower scheduling or game execution.
 - **Pure Adapter (`compileMainPlanToAppConfig`):**
   - Compiles the Schema-v8 `RosterWorkspace` and `MowerMainPlan` into the Schema-v7 `AppConfig` format expected by `calculate()`.
   - Maps primary operator slots, converts the first replacement into `operatorBackups`, and aggregates grouped operators into `operatorGroups`.

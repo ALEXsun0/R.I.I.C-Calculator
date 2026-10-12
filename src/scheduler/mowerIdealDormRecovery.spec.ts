@@ -3,7 +3,7 @@ import { advanceRoster, createRosterRuntime, nextRosterActionHours, settleRoster
 import { getMowerSourceRuntime } from './mowerSourceRuntime'
 import { MowerTask, MOWER_TASK_TYPES as T } from './mowerTaskQueue'
 import { mowerConfirmedRecoveryTarget } from './mowerDormRecovery'
-import { resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 
 const rates = { workRate: () => 1, recoveryRate: () => 4 }
 const room = 'dormitory_1'

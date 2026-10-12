@@ -5,13 +5,14 @@ import {
   type MowerProduct,
   type MowerRoomId,
   type RosterWorkspace,
-} from './model'
+} from '../domain/roster'
 import {
   getOperatorName,
   getRoomDisplayName,
   isFiammetta,
 } from './operatorHelpers'
 import { isTradeRunOrderOperator } from '../domain/shiftRunPolicy'
+import { facilityCapacity } from '../domain/facilities'
 
 export type ValidationSeverity = 'critical' | 'warning' | 'info'
 
@@ -60,26 +61,7 @@ const VALID_MANUFACTURE_PRODUCTS: readonly MowerProduct[] = ['gold', 'exp', 'fra
 const VALID_TRADING_PRODUCTS: readonly MowerProduct[] = ['money', 'orundum']
 
 function getFacilityCapacity(type: MowerFacilityType, level: number): number {
-  if (level === 0) return 0
-  switch (type) {
-    case 'manufacture':
-    case 'trading':
-      return Math.max(1, Math.min(3, level))
-    case 'power':
-    case 'contact':
-    case 'factory':
-      return 1
-    case 'central':
-    case 'dormitory':
-      return 5
-    case 'meeting':
-    case 'train':
-      return 2
-    case 'gaming':
-      return 1
-    default:
-      return 0
-  }
+  return facilityCapacity(type, level)
 }
 
 export function validateRosterWorkspace(workspace: RosterWorkspace): ValidationResult {
@@ -225,7 +207,7 @@ export function validateRosterWorkspace(workspace: RosterWorkspace): ValidationR
           message: `宿舍 ${roomId} 等级必须为 1~5 级，当前等级 ${facility.level}，类型 ${facility.type}。`,
         })
       }
-    } else if (roomId === 'meeting' || roomId === 'factory' || roomId === 'contact' || roomId === 'train') {
+    } else if (roomId === 'meeting' || roomId === 'factory' || roomId === 'contact' || roomId === 'train' || roomId === 'recycle') {
       if (facility.level < 1 || facility.level > 3) {
         criticalErrors.push({
           code: 'INVALID_CONFIG',

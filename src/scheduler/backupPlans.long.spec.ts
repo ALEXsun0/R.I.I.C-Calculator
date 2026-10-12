@@ -4,6 +4,7 @@ import jpeg from 'jpeg-js'
 import { decode16QrFromRgba } from '../workbench/compat/mowerQrCodec'
 import { importMowerJson } from '../workbench/compat/mowerJson'
 import { runScheduleSimulationBridge } from '../workbench/scheduleSimulationBridge'
+import { testEvidenceFile } from '../test/evidence'
 
 const directory = new URL('../../validation/mower-backup-2026-09-22/', import.meta.url)
 it('decodes the supplied image byte-for-data without losing any backup settings', () => {
@@ -18,7 +19,7 @@ it.each([24,168])('completes the unchanged original roster with the default mode
   const workspace=importMowerJson(readFileSync(new URL('roster.json',directory),'utf8'))
   const backups=JSON.stringify(workspace.compatibility.backupPlans)
   const result=runScheduleSimulationBridge(workspace,{sampleHours:hours,warmupHours:0,recordSegments:true,production:{outputMode:'potential',runOrderMode:'ideal',droneTarget:'none',seed:42}})
-  writeFileSync(new URL(`production-${hours}h.json`,directory),JSON.stringify(result,null,2))
+  writeFileSync(testEvidenceFile(`production-${hours}h.json`),JSON.stringify(result,null,2))
   expect(result.error).toBeUndefined()
   expect(result.report?.success,JSON.stringify(result.report?.diagnostics)).toBe(true)
   expect(result.report?.production?.success).toBe(true)

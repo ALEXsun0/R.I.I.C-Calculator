@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import sourceRoster from '../../validation/mower-output-2026-09-27/roster.json'
-import { importMowerJson, resolveOperatorCharId as id } from '../workbench/compat/mowerJson'
+import { importMowerJson } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { runScheduleSimulationBridge } from '../workbench/scheduleSimulationBridge'
 import { compileRosterSchedule } from '../scheduler/compileRosterSchedule'
 import { compiledScheduleToRuntimeConfig } from '../scheduler/scheduleAdapter'

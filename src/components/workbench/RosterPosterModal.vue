@@ -327,7 +327,7 @@
 import { computed, ref } from 'vue'
 import { NButton, NModal } from 'naive-ui'
 import { toPng, toBlob } from 'html-to-image'
-import type { RosterWorkspace, MowerFacility, MowerSlot } from '../../workbench/model'
+import type { RosterWorkspace, MowerFacility, MowerSlot } from '../../domain/roster'
 import type { CalculationReport } from '../../domain/types'
 import { getOperatorAvatarUrl, getOperatorName, getRoomDisplayName } from '../../workbench/operatorHelpers'
 
@@ -380,7 +380,10 @@ const centralFacility = computed(() => {
 })
 
 const supportFacilities = computed(() => {
-  return facilities.value.filter(f => ['meeting', 'contact', 'train', 'factory'].includes(f.roomId))
+  return facilities.value.filter(f =>
+    ['meeting', 'contact', 'train', 'factory', 'recycle'].includes(f.roomId) &&
+    (f.roomId !== 'recycle' || f.level > 0),
+  )
 })
 
 const layoutModeBadge = computed(() => {

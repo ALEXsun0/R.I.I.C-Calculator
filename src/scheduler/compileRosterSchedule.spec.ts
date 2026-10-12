@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { createDefaultWorkspace } from '../workbench/defaults'
-import { importMowerJson, resolveOperatorCharId } from '../workbench/compat/mowerJson'
+import { importMowerJson } from '../workbench/compat/mowerJson'
+import { resolveOperatorCharId } from '../domain/operatorIdentifiers'
 import { compileRosterSchedule } from './compileRosterSchedule'
 
 describe('lossless roster compiler', () => {

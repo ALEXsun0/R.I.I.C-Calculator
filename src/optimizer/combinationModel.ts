@@ -1,8 +1,10 @@
 import type { OperatorInventory } from '../domain/operatorInventory'
-import type { MowerFacility, MowerRoomId, MowerSlot, RosterWorkspace } from '../workbench/model'
-import { resolveOperatorCharId as resolveId } from '../workbench/compat/mowerJson'
+import type { MowerFacility, MowerRoomId, MowerSlot, RosterWorkspace } from '../domain/roster'
+import { resolveOperatorCharId as resolveId } from '../domain/operatorIdentifiers'
 import type { AtomicMember, AtomicUnit, AtomicUnitConfPolicy } from './riicAtomicUnits'
 import { isOrdinaryReplacementCandidate } from '../scheduler/scheduleAdapter'
+import { facilityCapacity } from '../domain/facilities'
+export { facilityCapacity } from '../domain/facilities'
 
 export type RosterRole = 'main' | 'backup'
 export interface CombinationPlacement { roomId: MowerRoomId; slotIndex: number; operatorId: string; role: RosterRole }
@@ -30,14 +32,6 @@ export interface CombinationAudit { valid: boolean; violations: string[]; diagno
 /** Dormitory lists are refresh references; trade runners also are not physical relief. */
 export function physicalBackupOperatorIds(room: Pick<MowerFacility, 'type'>, slot: Pick<MowerSlot, 'replacements'>): string[] {
   return room.type === 'dormitory' ? [] : slot.replacements.filter(ref => isOrdinaryReplacementCandidate(ref, room.type)).map(resolveId)
-}
-
-export function facilityCapacity(type: string, level: number): number {
-  if (level <= 0) return 0
-  if (type === 'manufacture' || type === 'trading') return level
-  if (type === 'central' || type === 'dormitory') return 5
-  if (type === 'meeting' || type === 'train') return 2
-  return ['power', 'contact', 'factory'].includes(type) ? 1 : 0
 }
 
 /** Membership depends on ownership, never a maximum-stage snapshot or an optional headcount. */
