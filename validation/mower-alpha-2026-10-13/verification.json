@@ -501,5 +501,35 @@
       "sha256": "e7a35a257065bc26b64953497d257a605cb8497e9f683ebd081ea4357f73d37d"
     },
     "privacy": "User image, decoded input, diagnostic traces and temporary runner remain ignored local artifacts."
+  },
+  "restoredStandbyPromotion": {
+    "baseline": "1660f6484fa81e21e0045a8aff07fd17123bb568",
+    "nativeReference": "ab0a4e5bec23f6f8d7c37b0648f05dda28f31866: Operators.is_group_shift_anchor/update_standby_low_priority and BaseSchedulerSolver.resting",
+    "behavior": "Below personal rescue threshold: dorm tier 2 until observed primary-post return; standby identity and bound group shift exclusions are unchanged.",
+    "tests": {
+      "files": 17,
+      "passed": 235,
+      "preFixFailureCount": 9
+    },
+    "typecheck": "passed",
+    "build": "passed; existing chunk-size warning",
+    "structure": "passed",
+    "privateReplay": {
+      "initialMorale": 24,
+      "warmupHours": 72,
+      "sampleHours": 168,
+      "success": true,
+      "wallSeconds": 49.943,
+      "integrationIntervals": 18958,
+      "sameInputAndCoreResultsAsPrevious": true,
+      "hour19Loop": false,
+      "gladiiaIdleSeconds": 50.5,
+      "deferrals": 56,
+      "unresolvedRedpineDeferralsAtEnd": 1
+    },
+    "backup": {
+      "path": "artifacts/mower-alpha-20261014-restore-standby-priority/source-before.tar",
+      "sha256": "f359d41d18d95259957a3f275ad38db85db810c2a876c168fe70eafa641af2ca"
+    }
   }
 }

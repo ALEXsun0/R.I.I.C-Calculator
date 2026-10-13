@@ -16,7 +16,7 @@ export function alphaRestingTier(data:MowerSchedulingData,name:string,referenced
  const replacement=data.priorityReplacement.includes(name)?3:5
  if(op){
   if(op.room==='train'&&op.index===0||op.currentRoom==='train'&&op.currentIndex===0)return replacement
-  if(op.isHigh())return {high:1,low:2,standby:4}[op.restingPriority]
+  if(op.isHigh())return op.restingPriority==='standby'&&op.standbyLowPriority?2:{high:1,low:2,standby:4}[op.restingPriority]
   if(op.restingFromTrain)return replacement
  }
  return (referencedReplacements?.has(name)??Object.values(data.operators).some(owner=>owner.nativeName!=='菲亚梅塔'&&owner.replacement.includes(name)))?replacement:6

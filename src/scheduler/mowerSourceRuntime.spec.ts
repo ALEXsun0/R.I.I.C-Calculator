@@ -1,6 +1,8 @@
 import {describe,it,expect} from 'vitest'
 import {createRosterRuntime,settleRoster,advanceRoster,nextRosterActionHours,type RuntimeConfig} from './rosterRuntime'
-import {getMowerSourceRuntime} from './mowerSourceRuntime'
+import {getMowerSourceRuntime,makeMowerSchedulingData} from './mowerSourceRuntime'
+import {mowerUpdateDetail} from './mowerObservations'
+import {alphaRestingTier} from './mowerAlphaDorm'
 import {MowerTask,MOWER_TASK_TYPES as T} from './mowerTaskQueue'
 import {evaluateBackupExpression} from './backupPlans'
 const rates={workRate:()=>1,recoveryRate:()=>4}
@@ -9,6 +11,23 @@ function fixture():RuntimeConfig {
  return {positions:[{id:'room_1_1_0',roomId:'room_1_1',primary:'A',candidates:['R'],lowerLimit:0,upperLimit:24,shiftOffThreshold:15},...keepers.map((name,i)=>({id:'dormitory_1_'+i,roomId:'dormitory_1',primary:name,candidates:[],permanent:true,dormitory:true}))],beds:[{id:'dormitory_1_4',roomId:'dormitory_1',vip:true}],initialMorale:{A:16,R:24},idleOperators:[],mowerPolicy:{restingThreshold:.65,powerPlantCount:2,opeRestingPriority:[]},mowerSourcePlan:{room_1_1:[{agent:'A',group:'',replacement:['R']}],dormitory_1:[...keepers.map(name=>({agent:name,group:'',replacement:[]})),{agent:'Free',group:'',replacement:[]}]},mowerSourceRules:{workaholic:[],exhaustRequire:[],restInFull:[],lowPriority:[],refreshDrained:[],lingMode:0}}
 }
 describe('integrated Mower source scheduler',()=>{
+ it('retains temporary standby promotion and identity when rebuilding scheduling data',()=>{
+  const config=fixture();config.mowerAlpha=true;config.mowerSourceRules!.standby=['A']
+  config.mowerSourcePlan!.room_1_1![0]!.group='g'
+  const state=createRosterRuntime(config),source=getMowerSourceRuntime(state)
+  mowerUpdateDetail(source.data,'A',0,'dormitory_1',4,true)
+  mowerUpdateDetail(source.data,'A',24,'dormitory_1',4,true)
+  const rebuilt=makeMowerSchedulingData(state,source),op=rebuilt.operators.A!
+  expect(op).not.toBe(source.data.operators.A)
+  expect(op.mood).toBe(24)
+  expect(op.standbyLowPriority).toBe(true)
+  expect(alphaRestingTier(rebuilt,'A')).toBe(2)
+  expect(rebuilt.canStandby(op)).toBe(true)
+  expect(rebuilt.isGroupShiftAnchor(op)).toBe(false)
+  mowerUpdateDetail(rebuilt,'A',24,'room_1_1',0,true)
+  expect(op.standbyLowPriority).toBe(false)
+  expect(alphaRestingTier(rebuilt,'A')).toBe(4)
+ })
  it('wakes from retained tasks rather than ordinary morale threshold crossings',()=>{
   const s=createRosterRuntime(fixture());settleRoster(s,rates)
   expect(s.occupants.room_1_1_0).toBe('A');expect(s.bedOccupants.dormitory_1_4).toBe('R')

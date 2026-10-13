@@ -60,7 +60,7 @@ describe('ordinary Mower metadata preparation', () => {
     expect(queue.tasks[0]!.plan).toEqual(original.plan)
   })
 
-  it('keeps standby priority unchanged through alpha metadata preparation', () => {
+  it('promotes low-morale standby through alpha metadata preparation', () => {
     const { data, queue, operators } = fixture(true)
     data.standbyNames = ['A']
     operators.A.restingPriority = 'standby'
@@ -73,8 +73,10 @@ describe('ordinary Mower metadata preparation', () => {
     })
     planMowerOrdinary(data, queue)
     expect(build).toHaveBeenCalledTimes(2)
-    expect(observed).toEqual([4, 4])
-    expect(alphaRestingTier(data, 'A')).toBe(4)
+    expect(observed).toEqual([4, 2])
+    expect(alphaRestingTier(data, 'A')).toBe(2)
+    expect(operators.A.standbyLowPriority).toBe(true)
+    expect(data.canStandby(operators.A)).toBe(true)
   })
 
   it('keeps the actual metadata guard and queue identity during a protected arrangement', () => {

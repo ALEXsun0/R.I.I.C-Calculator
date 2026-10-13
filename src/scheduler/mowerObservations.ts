@@ -20,6 +20,7 @@ export function mowerUpdateDetail(data:MowerSchedulingData,name:string,mood:numb
  const op=data.operators[name]!
  if(data.alpha&&(updateTime||op.currentRoom!==room||op.currentIndex!==index))data.dormMoodEstimates.delete(name)
  const previousBed=data.getDormByName(name)?.[1],retained=data.alpha&&previousBed?.name===name&&previousBed.position[0]===room&&previousBed.position[1]===index?previousBed.timeMicros:undefined
+ const returned=data.alpha&&(op.currentRoom!==op.room||op.currentIndex!==op.index)&&room===op.room&&index===op.index
  const working=!!op.currentRoom&&!op.isResting()
  if(updateTime){
   // Integration round-off below the simulator morale tolerance is not an observed decline.
@@ -38,6 +39,7 @@ export function mowerUpdateDetail(data:MowerSchedulingData,name:string,mood:numb
  if(data.alpha){
   if(updateTime){if(room===op.dormMoodFallback&&mood>=0&&mood<=24)for(const [name,stamp] of Object.entries(op.dormMoodPeers)){const peer=data.operators[name];if(peer&&!peer.currentRoom&&peer.timeStampMicros===stamp&&mood>=peer.upperLimit)peer.idleRestCheck=[peer.upperLimit,peer.mood,peer.timeStampMicros]}op.dormMoodPeers={}}
   if(updateTime&&mood>=0&&mood<op.upperLimit)op.dormMoodFallback=''
+  data.updateStandbyLowPriority(op,returned)
  }
  if(room==='train'&&index===0)op.restingFromTrain=true
  else if(room&&!room.startsWith('dorm')||mood>=24)op.restingFromTrain=false
