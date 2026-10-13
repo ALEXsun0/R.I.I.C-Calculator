@@ -354,5 +354,58 @@
       "Final unresolved deferrals remain for the automation and abyssal groups",
       "User strategy is unchanged; idle is not required to be zero"
     ]
+  },
+  "zeroMoraleAbyssalGrant": {
+    "date": "2026-10-14",
+    "rule": "Zero-morale manufacturing hunters remain physical recipients of active Gladiia grants; their own staffing and own skills remain inactive.",
+    "tests": {
+      "files": 8,
+      "passed": 157,
+      "newRuleCases": 10,
+      "newSimulationCases": 2
+    },
+    "redEvidence": {
+      "ruleFailures": 7,
+      "simulationExpected": 180,
+      "simulationBefore": 100
+    },
+    "typecheck": "passed",
+    "build": "passed; existing large chunk warning",
+    "backup": {
+      "path": "artifacts/mower-alpha-20261014-zero-mood/source-before.tar",
+      "sha256": "cbb4767d8d851087483478a7402d4fcb4ad39b7fd36e7d9d367d9a0c85fbe330"
+    },
+    "sourceOfRequestedSemantics": "Explicit user clarification, with existing game-data skill scope and formula unchanged",
+    "liveDeviceVerified": false,
+    "structure": "passed",
+    "privateStrategyVariant": {
+      "change": "Only append Ulpianus, Skadi, Specter and Andreana to main conf.workaholic; preserve original nine backups",
+      "success": true,
+      "warmupHours": 72,
+      "sampleHours": 168,
+      "elapsedHours": 240,
+      "wallSeconds": 112.859,
+      "integrationIntervals": 18548,
+      "gladiiaSample": {
+        "workHours": 136.92859,
+        "restHours": 31.05543,
+        "idleHours": 0.015972,
+        "idleSeconds": 57.5,
+        "longIdleEpisodes": 0
+      },
+      "manufacturingHunters": {
+        "sampleMorale": 0,
+        "exhaustedOnPostHoursApprox": 136.934,
+        "restHours": 0,
+        "remainGroupFollowers": true
+      },
+      "shiftDeferrals": {
+        "total": 68,
+        "resolved": 68,
+        "unresolved": 0
+      },
+      "originalInputModified": false,
+      "caveat": "Comparison with previous baseline changes both efficiency rules and roster policy; no attribution of production changes to policy alone."
+    }
   }
 }

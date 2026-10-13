@@ -84,6 +84,23 @@ describe('time-dependent Mower schedule simulation',()=>{
   expect(r.rooms.find(x=>x.roomId==='room_1_1')!.averageEfficiencyPercent).toBeCloseTo(100,8)
   expect(r.operators.find(x=>x.operatorId===id('砾'))!.exhaustedHours).toBe(2)
  })
+ it.each([0,.1])('keeps Gladiia manufacturing grants across zero morale, starting at %s',initialMorale=>{
+  const ws=createDefaultWorkspace(),gladiia=id('歌蕾蒂娅'),hunters=['乌尔比安','斯卡蒂','幽灵鲨','安哲拉'].map(id)
+  for(const room of Object.values(ws.mainPlan.facilities))room.slots=[]
+  const slots=(names:string[])=>names.map(operatorId=>({occupant:{kind:'operator' as const,operatorId},groupId:null,replacements:[]}))
+  ws.mainPlan.facilities.central.slots=slots([gladiia])
+  ws.mainPlan.facilities.room_1_1.slots=slots(hunters.slice(0,2))
+  ws.mainPlan.facilities.room_1_2.slots=slots(hunters.slice(2))
+  ws.mainPlan.conf.workaholic=[gladiia,...hunters]
+  const schedule=compileRosterSchedule(ws,{operatorMorale:Object.fromEntries(hunters.map(name=>[name,initialMorale]))})
+  const report=simulateSchedule(schedule,{sampleHours:1,consumptionOverrides:{[gladiia]:0,...Object.fromEntries(hunters.map(name=>[name,1]))}})
+  expect(report.success).toBe(true)
+  for(const roomId of ['room_1_1','room_1_2'])expect(report.rooms.find(room=>room.roomId===roomId)!.averageEfficiencyPercent).toBeCloseTo(180+2*initialMorale,8)
+  for(const name of hunters){
+   const op=report.operators.find(op=>op.operatorId===name)!
+   expect(op.exhaustedHours).toBeCloseTo(1-initialMorale,8);expect(op.finalMorale).toBe(0);expect(op.restHours).toBe(0)
+  }
+ })
  it('projects real bed occupancy and never uses empty Free placeholders as residents',()=>{
   const s=scenario('砾','斑点'), state=createRosterRuntime(compiledScheduleToRuntimeConfig(s))
   expect(projectScheduleState(s,state).dormitoryOccupantCount).toBe(0)

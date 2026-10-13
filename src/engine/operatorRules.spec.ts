@@ -7,6 +7,108 @@ import { buildRiicGlobalContext } from './globalContext'
 import { importMowerJson } from '../workbench/compat/mowerJson'
 import { compileMainPlanToAppConfig } from '../workbench/adapter'
 
+describe('Gladiia grants to exhausted manufacturing residents', () => {
+  const glady = 'char_474_glady', skadi = 'char_263_skadi', ulpia = 'char_4145_ulpia'
+  function setup() {
+    const config = createDefaultConfig()
+    config.rooms.forEach(room => { room.operatorIds = [] })
+    config.controlOperatorIds = [glady]
+    config.rooms[0]!.operatorIds = [skadi, ulpia]
+    config.rooms[1]!.operatorIds = ['char_218_cuttle', 'char_143_ghost']
+    return config
+  }
+  function conserved(result: ReturnType<typeof evaluateOperators>) {
+    for (const contribution of result.operatorContributions) {
+      expect(contribution.items.reduce((sum, item) => sum + item.value, 0)).toBe(contribution.totalBonus)
+      expect(contribution.staffBonus + contribution.skillBonus).toBe(contribution.totalBonus)
+    }
+    expect(result.operatorContributions.reduce((sum, item) => sum + item.totalBonus, 0)
+      + result.roomContributions.reduce((sum, item) => sum + item.value, 0)).toBe(result.efficiencyPercent - 100)
+  }
+  it.each(['static', 'activeIds'] as const)('retains the external grant but loses the exhausted resident staffing point: %s', mode => {
+    const config = setup(), room = config.rooms[0]!
+    const before = evaluateOperators(room, config)
+    if (mode === 'static') config.zeroMoraleOperatorIds = [skadi]
+    const active = mode === 'activeIds' ? new Set([glady, ulpia, ...config.rooms[1]!.operatorIds]) : undefined
+    const result = evaluateOperators(room, config, active)
+    expect(result.efficiencyPercent).toBe(before.efficiencyPercent - 1)
+    expect(result.skillBonus).toBe(80)
+    const exhausted = result.operatorContributions.find(item => item.operatorId === skadi)!
+    expect(exhausted.staffBonus).toBe(0)
+    expect(exhausted.skillBonus).toBe(40)
+    expect(exhausted.items.filter(item => item.value !== 0)).toEqual([expect.objectContaining({ name: '歌蕾蒂娅·集群狩猎', value: 40 })])
+    conserved(result)
+  })
+  it('keeps both exhausted beneficiaries and all four physical hunters in the count', () => {
+    const config = setup(), room = config.rooms[0]!
+    config.zeroMoraleOperatorIds = config.rooms.flatMap(item => item.operatorIds)
+    const result = evaluateOperators(room, config)
+    expect(result.efficiencyPercent).toBe(180)
+    expect(result.staffBonus).toBe(0)
+    expect(result.operatorContributions.map(item => item.skillBonus)).toEqual([40, 40])
+    conserved(result)
+  })
+  it('applies the room cap and distributes it across exhausted beneficiaries', () => {
+    const config = setup(), room = config.rooms[0]!
+    room.operatorIds.push(config.rooms[1]!.operatorIds.shift()!)
+    config.zeroMoraleOperatorIds = [...room.operatorIds]
+    const result = evaluateOperators(room, config)
+    expect(result.efficiencyPercent).toBe(190)
+    expect(result.operatorContributions.map(item => item.skillBonus)).toEqual([30, 30, 30])
+    conserved(result)
+  })
+  it('keeps the lower-stage grant at five percent per hunter', () => {
+    const config = setup(), room = config.rooms[0]!
+    const provider = OPERATORS.find(item => item.charId === glady)!
+    const skill = provider.skills.find(item => item.buffId === 'control_mp_aegir2[010]')!
+    config.operatorRecords = { [glady]: { ...provider, skills: [{ ...skill, buffId: 'control_mp_aegir2[000]' }] } }
+    config.zeroMoraleOperatorIds = [...room.operatorIds]
+    const result = evaluateOperators(room, config)
+    expect(result.efficiencyPercent).toBe(140)
+    conserved(result)
+  })
+  it.each(['static', 'activeIds'] as const)('requires the control-room provider to remain active: %s', mode => {
+    const config = setup(), room = config.rooms[0]!
+    if (mode === 'static') config.zeroMoraleOperatorIds = [glady]
+    const result = evaluateOperators(room, config, mode === 'activeIds' ? new Set(config.rooms.flatMap(item => item.operatorIds)) : undefined)
+    expect(result.efficiencyPercent).toBe(102)
+    conserved(result)
+  })
+  it('keeps active automation overriding the grant to exhausted hunters', () => {
+    const config = setup(), room = config.rooms[0]!
+    room.operatorIds.push('char_400_weedy')
+    config.zeroMoraleOperatorIds = [skadi, ulpia]
+    const result = evaluateOperators(room, config)
+    config.controlOperatorIds = []
+    expect(result.efficiencyPercent).toBe(evaluateOperators(room, config).efficiencyPercent)
+    expect(result.operatorContributions.find(item => item.operatorId === skadi)!.totalBonus).toBe(0)
+    conserved(result)
+  })
+  it('does not let Waai Fu copy the grant to exhausted hunters', () => {
+    const config = setup(), room = config.rooms[0]!
+    room.operatorIds.push('char_243_waaifu')
+    config.zeroMoraleOperatorIds = [skadi, ulpia]
+    const result = evaluateOperators(room, config)
+    config.controlOperatorIds = []
+    const without = evaluateOperators(room, config)
+    expect(result.efficiencyPercent - without.efficiencyPercent).toBe(80)
+    expect(result.operatorContributions.find(item => item.operatorId === 'char_243_waaifu'))
+      .toEqual(without.operatorContributions.find(item => item.operatorId === 'char_243_waaifu'))
+    conserved(result)
+  })
+  it('does not restore other exhausted operators skills or targeted control grants', () => {
+    const config = setup(), room = config.rooms[0]!
+    room.product = 'exp'
+    room.operatorIds = [skadi, 'char_159_peacok', 'char_106_franka']
+    config.controlOperatorIds.push('char_1034_jesca2')
+    config.zeroMoraleOperatorIds = [...room.operatorIds]
+    const result = evaluateOperators(room, config)
+    expect(result.efficiencyPercent).toBe(130)
+    expect(result.operatorContributions.filter(item => item.operatorId !== skadi).map(item => item.totalBonus)).toEqual([0, 0])
+    conserved(result)
+  })
+})
+
 describe('operator combination rules', () => {
   it('derives perception information from a 252 roster with level-one dormitories', () => {
     const config = createDefaultConfig()
@@ -757,7 +859,7 @@ describe('operator combination rules', () => {
       expect(lancet.staffBonus).toBe(0)
       expect(lancet.skillBonus).toBe(0)
       expect(lancet.totalBonus).toBe(0)
-      expect(lancet.items).toEqual([{ name: '0 心情失效', value: 0 }])
+      expect(lancet.items).toEqual([{ name: '0 心情：进驻基础及自身技能失效', value: 0 }])
     })
 
     it('derives centralManufactureBonus into RiicGlobalContext snapshot and reuses it in evaluateOperators', () => {
