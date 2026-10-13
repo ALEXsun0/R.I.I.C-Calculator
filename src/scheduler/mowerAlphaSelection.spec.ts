@@ -1,5 +1,6 @@
 import {describe,it,expect} from 'vitest'
 import oracle from './fixtures/mower-alpha-metadata.json'
+import selectionOracle from './fixtures/mower-alpha-selection-20261013.json'
 import {MowerOperatorState} from './mowerOperatorState'
 import {MowerSchedulingData,MowerDormState} from './mowerSchedulingData'
 import {prepareMowerDormSelection} from './mowerSelection'
@@ -11,13 +12,18 @@ function setup(free:boolean){
  return new MowerSchedulingData({alpha:true,operators:{N:n},plan:{dormitory_1:['K1','K2','Free','Free','Free']},dorms:[new MowerDormState(['dormitory_1',3],'N',toMowerMicros(1))],nowMicros:0,freeRoom:free})
 }
 describe('alpha execution boundary native decisions',()=>{
- for(const [i,fixture] of oracle.selection.entries())it('selection '+i,()=>{
-  const data=setup(fixture.freeRoom),op=data.operators.N!;op.mood=24
-  if(fixture.fallback)op.dormMoodFallback='dormitory_1'
-  if(fixture.excluded)data.freeRoomExclusions=['N']
-  const selected=['K1','K2','Current','N','Current']
+ for(const fixture of selectionOracle.cases)it('pinned alpha admission: '+fixture.name,()=>{
+  const input=fixture.input,data=setup(true),op=data.operators.N!
+  op.room='central';op.index=0;op.currentRoom='';op.currentIndex=-1;op.operatorType='high';op.restingPriority='high'
+  op.mood=input.mood;op.depletionRate=input.depletionRate;op.upperLimit=input.limit??24;op.restMoodLimit=input.limit!==null
+  op.workaholic=input.excluded==='workaholic';data.freeBlacklist=input.excluded==='blacklist'?['N']:[]
+  data.restingPriorityNames=input.priority?['N']:[];data.nowMicros=toMowerMicros(input.elapsedHours)
+  expect(op.currentMood(data.nowMicros)).toBeCloseTo(fixture.predictedBefore,10)
+  const selected=['Current','Current','Current','N','Current']
   prepareMowerDormSelection(data,selected,'dormitory_1')
   expect(selected).toEqual(fixture.output)
+  expect(op.depletionRate).toBe(fixture.depletionRateAfter)
+  expect(op.currentMood(data.nowMicros)).toBeCloseTo(fixture.predictionAfter,10)
  })
  for(const [i,fixture] of oracle.release.entries())it('identity and recovery deadline '+i,()=>{
   const data=setup(true);data.dorms[0]!.timeMicros=toMowerMicros(fixture.due)

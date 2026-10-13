@@ -279,5 +279,80 @@
       "path": "artifacts/mower-alpha-20261014-plan8/fix/source-before.tar",
       "sha256": "560e198c8a3613f866c8aaaef7ba49175d948ebd932f28629769eb715d8a06ff"
     }
+  },
+  "namedDormAndRecoveryGapFollowup": {
+    "date": "2026-10-14",
+    "tests": {
+      "files": 19,
+      "passed": 200
+    },
+    "typecheck": "passed",
+    "build": "passed; existing large chunk warning",
+    "structure": "passed",
+    "backup": {
+      "path": "artifacts/mower-alpha-20261014-plan10/fix/source-before.tar",
+      "sha256": "4d9bbeb77954fc0cc322903eada42524a0b3e20a36fee09d993fc647538c8587"
+    },
+    "privateRoster": {
+      "tracked": false,
+      "warmupHours": 72,
+      "sampleHours": 168,
+      "initialMorale": "all 24",
+      "masteryPlanPresent": false,
+      "droneRoom": "room_2_2",
+      "droneCapacity": 250,
+      "success": true,
+      "elapsedHours": 240,
+      "wallSeconds": 86.075943,
+      "integrationIntervals": 21861,
+      "gladiiaBefore": {
+        "operatorId": "char_474_glady",
+        "operatorName": "歌蕾蒂娅",
+        "mainWorkHours": 131.0618914607273,
+        "substituteWorkHours": 0,
+        "workHours": 131.0618914607273,
+        "exhaustedHours": 0,
+        "restHours": 24.08433417521476,
+        "idleHours": 12.853774349835382,
+        "permanentPrimaryOccupancyHours": 0,
+        "workFraction": 0.7801303063799262,
+        "workRestRatio": 5.441790107513264,
+        "initialMorale": 24,
+        "finalMorale": 23.950054800055458
+      },
+      "gladiiaAfter": {
+        "operatorId": "char_474_glady",
+        "operatorName": "歌蕾蒂娅",
+        "mainWorkHours": 132.6307095251679,
+        "substituteWorkHours": 0,
+        "workHours": 132.6307095251679,
+        "exhaustedHours": 0,
+        "restHours": 26.260125120450425,
+        "idleHours": 9.109165340211145,
+        "permanentPrimaryOccupancyHours": 0,
+        "workFraction": 0.7894685091449295,
+        "workRestRatio": 5.050650326943034,
+        "initialMorale": 24,
+        "finalMorale": 14.862488686369268
+      },
+      "sampleLongIdleHours": [
+        1.585788820849018,
+        3.244855416166189,
+        4.132830826811102
+      ],
+      "shiftDeferrals": {
+        "total": 63,
+        "resolved": 61,
+        "unresolved": 2
+      }
+    },
+    "intermediateAdmissionOnlyRun": "Stopped after reproducing rapid group returns caused by the stale order-dependent recovery-gap check; not a completed acceptance run.",
+    "remainingIdleCause": "All captured remaining long episodes start after RELEASE_DORM at actual and cached mood 24. The force-work backup is already active and does not retrigger; three episodes wait for Ulpianus, one ends via Fiammetta.",
+    "limitations": [
+      "No complete native scheduler/device equivalence claim",
+      "New persistent normal-return window and complete anchor filtering are outside this focused patch",
+      "Final unresolved deferrals remain for the automation and abyssal groups",
+      "User strategy is unchanged; idle is not required to be zero"
+    ]
   }
 }

@@ -1,4 +1,4 @@
-// Mower b2d9ac8 scheduler_task.plan_metadata (MIT, Copyright 2021 Nano).
+// Mower b2d9ac8 scheduler_task.plan_metadata; recovery gap updated to ab0a4e5 (MIT, Copyright 2021 Nano).
 import {hasRestingMood} from './mowerOperatorState'
 import {projectMowerArrangements} from './mowerObservations'
 import {alphaPosition,alphaRebalanceClosingDorms} from './mowerAlphaDorm'
@@ -32,8 +32,12 @@ export function planMowerAlphaMetadata(actual:MowerSchedulingData,queue:MowerTas
   const priority=beds.filter(b=>!data.operators[b.name]!.multiGroup&&data.operators[b.name]!.isHigh()&&data.operators[b.name]!.restingPriority==='high'),ordinary=beds.filter(b=>!data.operators[b.name]!.multiGroup&&data.operators[b.name]!.isHigh()&&data.operators[b.name]!.restingPriority!=='standby')
   const high=priority.length?priority:ordinary.length?ordinary:beds.filter(b=>!data.operators[b.name]!.multiGroup&&data.operators[b.name]!.isHigh()),full=high.filter(b=>data.operators[b.name]!.restInFull)
   if(high.length&&group){
-   let maximum:number|undefined,moodGap=false;const base=high[0]!.timeMicros,early=!data.operators[high[0]!.name]!.exhaustRequire
-   if(data.groupRestInFullOnMoodGap&&base!==undefined&&!full.length)for(const b of high.slice(1))if(b.timeMicros!==undefined&&base-b.timeMicros>toMowerMicros(data.groupMoodGapThresholdMinutes/60)){maximum=base;moodGap=true}
+   let maximum:number|undefined,moodGap=false;const early=!data.operators[high[0]!.name]!.exhaustRequire
+   const recoveryTimes=high.flatMap(b=>b.timeMicros===undefined?[]:[b.timeMicros])
+   if(data.groupRestInFullOnMoodGap&&recoveryTimes.length>1&&!full.length){
+    const latest=Math.max(...recoveryTimes),earliest=Math.min(...recoveryTimes)
+    if(latest-earliest>toMowerMicros(data.groupMoodGapThresholdMinutes/60)){maximum=latest;moodGap=true}
+   }
    if(full.length){const times=full.flatMap(b=>b.timeMicros===undefined?[]:[b.timeMicros]);maximum=times.length?Math.max(...times):undefined}
    const nearest=high.filter(b=>b.timeMicros!==undefined).sort((a,b)=>a.timeMicros!-b.timeMicros!)[0]
    let time:number

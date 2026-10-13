@@ -38,7 +38,7 @@
 
 ## 纳入范围
 
-共 609 个索引文件，其中应用 TypeScript/Vue/CSS 文件 222 个，业务测试文件 249 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
+共 610 个索引文件，其中应用 TypeScript/Vue/CSS 文件 222 个，业务测试文件 249 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
 
 ### 根目录管理入口
 
@@ -407,6 +407,7 @@ src/
 │   │   ├── mower-alpha-planning-entry.json
 │   │   ├── mower-alpha-resting-boundaries.json
 │   │   ├── mower-alpha-retry-lock.json
+│   │   ├── mower-alpha-selection-20261013.json
 │   │   ├── mower-alpha-shift-primitives.json
 │   │   ├── mower-alpha-task-protection.json
 │   │   ├── mower-current-room-duplicate-cache-alpha.json

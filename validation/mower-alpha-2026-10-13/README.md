@@ -10,6 +10,7 @@ The Python generators extract unmodified function AST nodes from the pinned Git 
 python3 validation/mower-alpha-2026-10-13/generate-shared-group-oracle.py /path/to/arknights-mower
 python3 validation/mower-alpha-2026-10-13/generate-dorm-isolation-oracle.py /path/to/arknights-mower
 python3 validation/mower-alpha-2026-10-13/generate-decision-oracle.py /path/to/arknights-mower
+python3 validation/mower-alpha-2026-10-13/generate-selection-oracle.py /path/to/arknights-mower
 ```
 
 These cover overlapping shared bindings and Free beds, isolation costs and same-tier rearrangement, high/low bed ordering, and replacement availability when a cover already occupies the target. Corresponding Vitest files are `mowerSharedGroups`, `mowerDormIsolation` and `mowerAlphaDecisions` under `src/scheduler`.
@@ -43,3 +44,11 @@ A third private roster exposed repeated fixed-dorm correction when one shared bi
 Default drone capacity is 250 as confirmed by the user. The existing Greyy skill formula now yields 25% by default; stock generation, overflow, reserve validation and whole-drone debits use the same capacity. Explicit configured efficiency-resource overrides and existing policy trigger thresholds remain intact.
 
 The final all-24-morale run completes 72 warmup plus 168 sample hours in about 40.31 seconds (20,005 integration intervals), without the repeated fixed-dorm correction. Two of 18 recorded shift deferrals remain unresolved at the end, so finite completion is not a claim that all roster blocking is resolved. 21 focused files, 299 tests, typecheck, production build and structure validation pass. Private inputs and traces remain local.
+
+## Named recovery admission and group recovery gap (October 14)
+
+A fourth private roster exposed an alpha selection path still using the default model's ordinary full-morale cancellation. A cached reading of 24 could cancel an explicit dorm target even after morale had depleted to about 23.21, and clearing the depletion rate made the prediction jump back to 24. Pinned alpha cancels only excluded or personally capped dynamic recovery targets. The new selection oracle executes the pinned cancellation, resting-tier and mood AST methods with synthetic inputs; the default selection fixtures retain their historical behavior.
+
+Restoring admission exposed a second stale rule: the group recovery-gap check compared the first bed against later beds. If the first operator recovered sooner, the gap was missed and this roster repeatedly returned the group prematurely. Alpha now compares the latest and earliest recovery times, independent of bed order, while retaining the configured threshold and extra-wait limit. This is a focused fix; alpha's newer persistent normal-return window and full anchor filtering have not been ported in this follow-up, and complete native scheduler equivalence is not claimed.
+
+The private image, decoded roster, before/after traces and temporary runner remain local ignored artifacts. The report and verification JSON record complete-run results separately from the intermediate admission-only run that was stopped after reproducing repeated group shifts.
