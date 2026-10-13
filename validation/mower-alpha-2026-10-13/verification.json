@@ -78,6 +78,51 @@
       "group-blocked"
     ],
     "longRun": "72-hour warmup plus 168-hour sample is unvalidated; identical prefix exhausts budget.",
-    "privacy": "Original image, decoded roster and detailed traces remain local ignored artifacts."
+    "privacy": "Original image, decoded roster and detailed traces remain local ignored artifacts.",
+    "initialMood": 24,
+    "fiammettaInitial12": {
+      "initialMood": {
+        "fiammetta": 12,
+        "otherOperators": 24
+      },
+      "changedInputs": "Only the explicitly requested Fiammetta initial morale; original four targets, backup plans, policy and gold drone room unchanged.",
+      "dayRun": {
+        "requestedHours": 24,
+        "warmupHours": 0,
+        "eventBudget": 200000,
+        "success": true,
+        "elapsedHours": 24,
+        "integrationIntervals": 1428,
+        "fiammettaCharges": 11,
+        "backupTransitions": 10,
+        "productSwitches": 4,
+        "firstChargeHours": 6
+      },
+      "longRun": {
+        "requestedSampleHours": 168,
+        "warmupHours": 72,
+        "eventBudget": 200000,
+        "recordSegments": false,
+        "success": false,
+        "elapsedHours": 90.63184635059717,
+        "completedSampleHours": 18.63184635059717,
+        "integrationIntervals": 200000,
+        "wallSeconds": 369.717,
+        "warmupFiammettaCharges": 9564,
+        "sampleFiammettaCharges": 18142,
+        "totalFiammettaCharges": 27706,
+        "warmupProductSwitches": 22,
+        "sampleProductSwitches": 8,
+        "sampleBackupTransitions": 12,
+        "firstSubTwoSecondChargeHours": 63.416756536385314,
+        "finalChargeGapSeconds": 1.500003,
+        "finalTargetMoodDeficitRange": [
+          0.000625,
+          0.0006875
+        ],
+        "termination": "SIMULATION_EVENT_LIMIT",
+        "conclusion": "Initial 12 delays dense near-full charging in the continuous-morale and ideal-I/O model; neither long-term completion nor failure of the real four-target roster is established."
+      }
+    }
   }
 }
