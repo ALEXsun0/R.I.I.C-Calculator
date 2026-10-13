@@ -16,21 +16,21 @@ export function shouldMowerReadMood(data:MowerSchedulingData,name:string,room:st
  return op.needToRefresh(data.nowMicros,2,room)||firstTask?.type===T.SHIFT_ON||indexes.includes(index)
 }
 /** The native SQLite decorator discards the inner return when update_time is false. */
-export function mowerUpdateDetail(data:MowerSchedulingData,name:string,mood:number,room:string,index:number,updateTime=false,trueExhaustRooms=new Set<string>(),onRoomChanged?:(op:MowerOperatorState,startedWorking:boolean)=>void,preserveDepletionRate=false):number|undefined {
+export function mowerUpdateDetail(data:MowerSchedulingData,name:string,mood:number,room:string,index:number,updateTime=false,trueExhaustRooms=new Set<string>(),onRoomChanged?:(op:MowerOperatorState,startedWorking:boolean)=>void):number|undefined {
  const op=data.operators[name]!
  if(data.alpha&&(updateTime||op.currentRoom!==room||op.currentIndex!==index))data.dormMoodEstimates.delete(name)
  const previousBed=data.getDormByName(name)?.[1],retained=data.alpha&&previousBed?.name===name&&previousBed.position[0]===room&&previousBed.position[1]===index?previousBed.timeMicros:undefined
  const working=!!op.currentRoom&&!op.isResting()
  if(updateTime){
   // Integration round-off below the simulator morale tolerance is not an observed decline.
-  if(!preserveDepletionRate&&op.timeStampMicros!==undefined&&op.mood-mood>1e-8){
+  if(op.timeStampMicros!==undefined&&op.mood-mood>1e-8){
    const elapsed=data.nowMicros-op.timeStampMicros
    if(elapsed>toMowerMicros(29/60))op.depletionRate=(op.mood-mood)/fromMowerMicros(elapsed)
   }
   op.timeStampMicros=data.nowMicros
   if(data.alpha){op.moodIsPrediction=false;op.idleRestCheck=undefined}
  }
- if(!preserveDepletionRate&&op.isResting()&&!room.startsWith('dorm'))op.depletionRate=0
+ if(op.isResting()&&!room.startsWith('dorm'))op.depletionRate=0
  if(op.isResting()){const previous=data.getDormByName(name)?.[1];if(previous?.name===name)previous.reset()}
  if(!trueExhaustRooms.has(room))op.exhaustTimeMicros=undefined
  if(op.currentRoom!==room){op.currentRoom=room;onRoomChanged?.(op,!working&&!!room&&!room.startsWith('dorm'))}

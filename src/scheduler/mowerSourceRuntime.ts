@@ -168,8 +168,7 @@ function observeRoom(s:RuntimeState,rates:RuntimeRates,room:string,task?:MowerTa
   const read=shouldMowerReadMood(data,name,room,index,readTimes,task,queue.find({ignoreRunOrders:data.adjustForRunOrders===false}))
   const previousPosition:[string,number]=[op.currentRoom,op.currentIndex]
   const displayedMood=read?s.morale[name]!:op.currentMood(data.nowMicros)
-  const chargeTransition=data.alpha&&task?.type===T.FIAMMETTA&&Object.keys(task.plan).length>0&&(room.startsWith('dorm')||op.currentRoom.startsWith('dorm'))
-  const missing=mowerUpdateDetail(data,name,read?s.morale[name]!:op.mood,room,index,read,trueExhaustRooms,(changed,started)=>currentRoomChanged(s,changed,started),chargeTransition)
+  const missing=mowerUpdateDetail(data,name,read?s.morale[name]!:op.mood,room,index,read,trueExhaustRooms,(changed,started)=>currentRoomChanged(s,changed,started))
   if(data.alpha&&task)recordMowerDormAdmissions(data,task,new Map([[name,previousPosition]]))
   if(data.alpha&&read&&task?.idleDormSearchNames[room]?.includes(name)){task.idleDormSearchNames[room]=task.idleDormSearchNames[room]!.filter(n=>n!==name);if(s.morale[name]!>=op.upperLimit)data.stopIdleDormSearch()}
   if(missing!==undefined&&!readTimes.includes(missing))readTimes.push(missing)
@@ -294,7 +293,7 @@ function* arrangeRoom(s:RuntimeState,rates:RuntimeRates,room:string,names:string
  let recoveryOrdered=ensureRecovery()
  const afterRecovery=cached()
  if(resolved.length===afterRecovery.length&&resolved.every((name,index)=>name===afterRecovery[index])){
-  if(data.alpha&&room.startsWith('dorm')&&(fiaArrangement||getTime))observeRoom(s,rates,room,task,fiaArrangement?mowerArrangementReadIndexes(data,room,resolved,getTime,task):refreshDormIndexes())
+  if(data.alpha&&room.startsWith('dorm')&&!fiaArrangement&&getTime)observeRoom(s,rates,room,task,refreshDormIndexes())
   return restoration
  }
  if(task.type===T.FIAMMETTA&&fia&&resolved.length===2&&resolved.includes(fia)){
@@ -391,10 +390,10 @@ function scheduleFiaAndExhaust(s:RuntimeState,rates:RuntimeRates):void {
    // Source Mower can repeatedly select a full worker when fool protection is
    // disabled. Dorm selection releases that worker and charges an idle Free
    // card instead. Recheck later when the observed roster or morale can differ.
-   const threshold=(fia.fool??true)?.9:(fia.threshold??21.6)/24
+   const threshold=(fia.threshold??21.6)/24
    const planned=selectMowerFiaTarget(data,fia.orderedTargets,fia.fool??true,threshold)
    const target=planned?data.operators[planned]:undefined
-   const released=!data.alpha&&!!target&&target.mood===target.upperLimit&&!target.room.startsWith('dorm')&&
+   const released=!!target&&target.mood===target.upperLimit&&!target.room.startsWith('dorm')&&
     !mowerDormReplacementForSlot(data,planned!,op.room,0)
    const trainee=data.currentOperator('train',0)?.name
    const free=released?freeCandidateNames(s,data,new Set([planned!,fia.operatorId,...(s.config.freeBlacklist??[]),...(trainee?[trainee]:[])]))[0]:undefined
@@ -581,17 +580,10 @@ export function settleMowerSource(s:RuntimeState,rates:RuntimeRates,onPhase?:(ph
      queue.sort()
     }
    }else if(!running&&task.type===T.FIAMMETTA&&!Object.keys(task.plan).length){
-    const fia=s.config.fiammetta,refreshRooms=new Map<string,number[]>()
-    for(const name of data.alpha?fia?.orderedTargets??[]:[]){
-     const candidate=data.operators[name]
-     if(candidate?.currentRoom&&candidate.currentIndex>=0&&(candidate.needToRefresh(data.nowMicros,2,candidate.currentRoom)||!candidate.isResting()&&candidate.depletionRate===0))refreshRooms.set(candidate.currentRoom,[...(refreshRooms.get(candidate.currentRoom)??[]),candidate.currentIndex])
-    }
-    for(const [room,indexes] of refreshRooms)observeRoom(s,rates,room,undefined,indexes.sort((a,b)=>a-b))
-    const threshold=fia?(fia.fool??true)?.9:(fia.threshold??21.6)/24:.9
-    const target=fia?selectMowerFiaTarget(data,fia.orderedTargets,fia.fool??true,threshold):undefined
+    const fia=s.config.fiammetta,target=fia?selectMowerFiaTarget(data,fia.orderedTargets,fia.fool??true,(fia.threshold??21.6)/24):undefined
     if(target&&fia){
      queue.tasks.push(new MowerTask({time:task.time,type:T.FIAMMETTA,plan:{[data.operators[fia.operatorId]!.room]:[target,fia.operatorId]},metadata:target}));for(const old of queue.tasks)if(old.type===T.SHIFT_ON&&Object.values(old.plan).flat().includes(target)){old.time=task.time+1/3600;queue.sort();break}
-    }else if(fia)queue.tasks.push(new MowerTask({time:task.time+24*(1-threshold)/2,type:T.FIAMMETTA}))
+    }else if(fia)queue.tasks.push(new MowerTask({time:task.time+(24-(fia.threshold??21.6))/2,type:T.FIAMMETTA}))
     queue.consume(task)
    }else if(!running&&task.type===T.EXHAUST_OFF&&!Object.keys(task.plan).length){
     const first=data.operators[task.metadata.split(',')[0]!],members=first?.group?data.shiftGroupMembers(first.group):first?[first.name]:[],plan:MowerTaskPlan={}

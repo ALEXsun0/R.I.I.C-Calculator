@@ -30,7 +30,7 @@ export const POLICY_LIST_FIELDS: readonly PolicyListFieldMeta[] = [
   {key:'ope_resting_priority',label:'宿舍高优先级干员',help:'高优干员 → 普通主班 → 低优主班 → 高优替班 → 候补 → 普通替班 → 空闲。同级距心情上限更远者优先。只影响分床和单回，不改变下班顺序。',placeholder:''},
   {key:'resting_priority',label:'宿舍低优先级干员',help:'低于普通主班，高于高优替班；同级距心情上限更远者优先。需有床才能下班，不改变下班顺序。',placeholder:''},
   {key:'resting_priority_replacement',label:'宿舍高优先级替班',help:'仅替班生效，低于低优主班、高于候补；同级距心情上限更远者优先，可接管候补床位。',placeholder:''},
-  {key:'resting_standby',label:'宿舍休息候补干员',help:'有床休息，无床或被更高优接管后待命；需有正常优先级主班在休息。绑组随组回班，未绑组随下一批回班。低心情仍保持候补优先级。待命不恢复心情；用尽、回满、固定宿舍和零心情工作干员不适用。',placeholder:''},
+  {key:'resting_standby',label:'宿舍休息候补干员',help:'有床休息，无床或被更高优接管后待命；需有正常优先级主班在休息。绑组候补不参与整组上下班的心情判断，随组休息和回班；未绑组随下一批回班。低心情仍保持候补优先级。待命不恢复心情；用尽、回满、固定宿舍和零心情工作干员不适用。',placeholder:''},
   {key:'workaholic',label:'0心情工作的干员',help:'心情涣散状态仍能触发技能的干员。',placeholder:''},
   {key:'free_blacklist',label:'宿舍黑名单',help:'不参与动态分床和补床，固定宿舍岗位不受影响。',placeholder:''},
   {key:'free_room_exclusions',label:'宿舍保留干员',help:'名单内干员保留 Free 宿舍床位，不因满心情而离宿，仍按正常回班及个人心情上限规则离宿。',placeholder:''},

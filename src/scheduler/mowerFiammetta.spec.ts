@@ -18,8 +18,8 @@ it('uses ordered candidates below the threshold and the lowest mood only when fo
  expect(selectMowerFiaTarget(data,['A','B'],true,.4)).toBeUndefined()
 })
 
- it('does not let a shared working follower veto its fixed group anchor charging target',()=>{
+ it('retains baseline group mood comparison for a shared working follower',()=>{
   const a=new MowerOperatorState({name:'A',group:'g',mood:10,timeStampMicros:0}),f=new MowerOperatorState({name:'F',room:'room_1_1',group:'g',mood:1,timeStampMicros:0,groupBindings:[{group:'g',replacement:['X']},{group:'h',replacement:['X']}]})
   const data=new MowerSchedulingData({plan:{},operators:{A:a,F:f},dorms:[],nowMicros:0})
-  expect(selectMowerFiaTarget(data,['A'],true)).toBe('A')
+  expect(selectMowerFiaTarget(data,['A'],true)).toBeUndefined()
  })

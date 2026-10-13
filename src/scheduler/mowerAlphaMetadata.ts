@@ -18,7 +18,7 @@ export function planMowerAlphaMetadata(actual:MowerSchedulingData,queue:MowerTas
  const pending=queue.tasks.filter(t=>[T.SELF_CORRECTION,T.RE_ORDER].includes(t.type)&&!t.productShiftLocked&&Object.keys(t.plan).length).sort((a,b)=>a.timeMicros-b.timeMicros)
  const data=projectMowerArrangements(actual,pending.map(t=>t.plan)),now=data.nowMicros
  let minimum=Infinity
- for(const op of Object.values(data.operators))if(op.isHigh()&&!op.room.startsWith('dorm')&&!op.isResting()&&!data.isStandby(op.name))minimum=Math.min(minimum,Math.max(op.predictExhaust(now),now+toMowerMicros(.5)))
+ for(const op of Object.values(data.operators))if(op.isHigh()&&!op.room.startsWith('dorm')&&!op.isResting()&&!(op.group&&data.canStandby(op))&&!data.isStandby(op.name))minimum=Math.min(minimum,Math.max(op.predictExhaust(now),now+toMowerMicros(.5)))
  const grouped=new Map<string,MowerDormState[]>(),free:MowerDormState[]=[]
  for(const bed of data.allDorms()){
   const op=data.operators[bed.name]
@@ -30,7 +30,7 @@ export function planMowerAlphaMetadata(actual:MowerSchedulingData,queue:MowerTas
  const add=(time:number,beds:MowerDormState[],full:boolean)=>{const previous=batches.get(time);if(previous){previous.dorms.push(...beds);previous.restInFull=!!(previous.restInFull||full)}else batches.set(time,{timeMicros:time,dorms:[...beds],restInFull:full})}
  for(const [group,beds] of grouped){
   const priority=beds.filter(b=>!data.operators[b.name]!.multiGroup&&data.operators[b.name]!.isHigh()&&data.operators[b.name]!.restingPriority==='high'),ordinary=beds.filter(b=>!data.operators[b.name]!.multiGroup&&data.operators[b.name]!.isHigh()&&data.operators[b.name]!.restingPriority!=='standby')
-  const high=priority.length?priority:ordinary.length?ordinary:beds.filter(b=>!data.operators[b.name]!.multiGroup&&data.operators[b.name]!.isHigh()),full=high.filter(b=>data.operators[b.name]!.restInFull)
+  const high=priority.length?priority:ordinary.length?ordinary:beds.filter(b=>!data.operators[b.name]!.multiGroup&&data.operators[b.name]!.isHigh()&&!(group&&data.canStandby(data.operators[b.name]!))),full=high.filter(b=>data.operators[b.name]!.restInFull)
   if(high.length&&group){
    let maximum:number|undefined,moodGap=false;const early=!data.operators[high[0]!.name]!.exhaustRequire
    const recoveryTimes=high.flatMap(b=>b.timeMicros===undefined?[]:[b.timeMicros])
@@ -52,10 +52,10 @@ export function planMowerAlphaMetadata(actual:MowerSchedulingData,queue:MowerTas
  const generated=generateMowerDormTasks([...batches.values(),...releases.values()],data,existing,pending);queue.tasks.push(...generated)
  const returning=new Set(generated.flatMap(t=>Object.values(t.plan).flat()))
  for(const op of Object.values(data.operators)){
-  if(!op.isHigh()||op.multiGroup||op.room.startsWith('dorm')||op.currentRoom||!data.restMoodComplete(op.name))continue
+  if(!op.isHigh()||op.multiGroup||op.room.startsWith('dorm')||op.currentRoom||op.group&&data.canStandby(op)||!data.restMoodComplete(op.name))continue
   const members=op.group?data.group(op.group):[op.name]
   if(groups.has(op.group)||members.some(n=>returning.has(n)||names.has(n)||data.busyRestingNames.has(n)))continue
-  const workers=members.map(n=>data.operators[n]!).filter(o=>!o.room.startsWith('dorm')&&!o.workaholic)
+  const workers=members.map(n=>data.operators[n]!).filter(o=>!o.room.startsWith('dorm')&&!o.workaholic&&!(o.group&&data.canStandby(o)))
   if(!workers.every(o=>!o.currentRoom&&(data.canStandby(o)||hasRestingMood(o,now)&&o.currentMood(now)>=o.upperLimit)))continue
   const plan:MowerTaskPlan={}
   for(const name of members){const member=data.operators[name]!;if(member.room&&data.plan[member.room]){const row=plan[member.room]??=Array(data.plan[member.room]!.length).fill('Current');if(['Current',name].includes(row[member.index]!))row[member.index]=name}}

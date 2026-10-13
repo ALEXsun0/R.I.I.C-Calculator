@@ -7,6 +7,7 @@ import {MowerTaskQueue} from './mowerTaskQueue'
 import {alphaRestingTier,alphaSlotTakable} from './mowerAlphaDorm'
 import {mowerUpdateDetail,projectMowerArrangements} from './mowerObservations'
 import {planMowerMetadata} from './mowerMetadata'
+import {mowerAverageMood} from './mowerDormAssignment'
 
 describe('alpha resting boundaries with permanent standby priority',()=>{
  for(const c of oracle.cases)it(c.kind,()=>{
@@ -63,4 +64,73 @@ describe('standby priority does not depend on observed morale',()=>{
   expect(alphaRestingTier(data,'S')).toBe(0)
   expect(alphaSlotTakable(data,data.dorms[0]!,'L')).toBe(false)
  })
+})
+
+describe('group standby morale does not drive shifts',()=>{
+ function fixture(alpha=true){
+  const operators={
+   H:new MowerOperatorState({name:'H',room:'room_1_1',index:0,currentRoom:'room_1_1',currentIndex:0,group:'g',replacement:['R1'],operatorType:'high',mood:24,timeStampMicros:0}),
+   S:new MowerOperatorState({name:'S',room:'room_1_1',index:1,currentRoom:'room_1_1',currentIndex:1,group:'g',replacement:['R2'],operatorType:'high',restingPriority:'standby',mood:0,timeStampMicros:0}),
+   R1:new MowerOperatorState({name:'R1',mood:24,timeStampMicros:0}),
+   R2:new MowerOperatorState({name:'R2',mood:24,timeStampMicros:0}),
+  }
+  const data=new MowerSchedulingData({alpha,operators,plan:{room_1_1:['H','S'],dormitory_1:['Free','Free','Free','Free','Free']},dorms:[new MowerDormState(['dormitory_1',2]),new MowerDormState(['dormitory_1',3])],nowMicros:0,standbyNames:['S'],policy:{restingThreshold:.65}})
+  return {data,operators}
+ }
+ it.each([false,true])('ignores a working low/zero-morale standby as a downshift trigger, alpha=%s',alpha=>{
+  for(const mood of [14,0]){
+   const {data,operators}=fixture(alpha);operators.S.mood=mood
+   const queue=new MowerTaskQueue()
+   expect(mowerResting(data,queue)).toEqual({})
+   expect(queue.tasks.some(t=>t.type.key==='SHIFT_OFF')).toBe(false)
+   expect(mowerAverageMood(data)).toBe(1)
+  }
+ })
+ it.each([false,true])('still takes standby followers off duty with their low-morale anchor, alpha=%s',alpha=>{
+  const {data,operators}=fixture(alpha);operators.H.mood=10
+  const queue=new MowerTaskQueue(),plan=mowerResting(data,queue)
+  expect(plan.room_1_1).toEqual(['R1','R2'])
+  expect(data.dorms.some(b=>b.name==='H')).toBe(true)
+  expect(queue.tasks.some(t=>t.type.key==='SHIFT_OFF')).toBe(true)
+ })
+ it.each([false,true])('does not let an exhausted working standby advance another group return, alpha=%s',alpha=>{
+  const {data,operators}=fixture(alpha)
+  operators.S.group='other';operators.H.currentRoom='dormitory_1';operators.H.currentIndex=2;operators.H.mood=12
+  operators.R1.currentRoom='room_1_1';operators.R1.currentIndex=0
+  data.dorms[0]!.name='H';data.dorms[0]!.timeMicros=4*3_600_000_000
+  const queue=new MowerTaskQueue();planMowerMetadata(data,queue)
+  expect(queue.tasks.find(t=>t.type.key==='SHIFT_ON')!.time).toBeCloseTo(4-8/60,8)
+ })
+ it.each([false,true])('waits only for the anchor recovery, not the standby recovery, alpha=%s',alpha=>{
+  const {data}=fixture(alpha)
+  for(const [index,name] of ['H','S'].entries()){
+   const op=data.operators[name]!;op.currentRoom='dormitory_1';op.currentIndex=2+index
+   data.dorms[index]!.name=name;data.dorms[index]!.timeMicros=(index?12:2)*3_600_000_000
+  }
+  const queue=new MowerTaskQueue();planMowerMetadata(data,queue)
+  const task=queue.tasks.find(t=>t.type.key==='SHIFT_ON')!
+  expect(task.time).toBeCloseTo(2-8/60,8)
+  expect(task.plan.room_1_1).toEqual(['H','S'])
+ })
+ it.each([false,true])('returns a capped idle anchor with its still-recovering standby, alpha=%s',alpha=>{
+  const {data,operators}=fixture(alpha)
+  operators.H.currentRoom='';operators.H.currentIndex=-1;operators.H.restMoodLimit=true;operators.H.upperLimit=20;operators.H.mood=20
+  operators.S.currentRoom='dormitory_1';operators.S.currentIndex=3
+  operators.R1.currentRoom='room_1_1';operators.R1.currentIndex=0
+  operators.R2.currentRoom='room_1_1';operators.R2.currentIndex=1
+  data.dorms[1]!.name='S';data.dorms[1]!.timeMicros=12*3_600_000_000
+  const queue=new MowerTaskQueue();planMowerMetadata(data,queue)
+  expect(queue.tasks.find(t=>t.type.key==='SHIFT_ON')?.plan.room_1_1).toEqual(['H','S'])
+ })
+ it('does not extend a recent default group return to recover standby morale',()=>{
+  const {data}=fixture(false)
+  for(const [index,name] of ['H','S'].entries()){
+   const op=data.operators[name]!;op.currentRoom='dormitory_1';op.currentIndex=2+index
+   data.dorms[index]!.name=name;data.dorms[index]!.timeMicros=(index?12:2)*3_600_000_000
+  }
+  data.recentShiftOnByRestUnit.set('group:g',0)
+  const queue=new MowerTaskQueue();planMowerMetadata(data,queue)
+  expect(queue.tasks.find(t=>t.type.key==='SHIFT_ON')!.time).toBeCloseTo(2-8/60,8)
+ })
+
 })

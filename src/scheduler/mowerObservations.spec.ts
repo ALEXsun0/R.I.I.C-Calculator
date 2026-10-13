@@ -53,11 +53,11 @@ it('runs the native room setter callback before current_index and mood assignmen
   expect(op.depletionRate).toBe(1)
  })
 
- it('preserves the working depletion rate through alpha Fiammetta entry and restoration',()=>{
+ it('uses ordinary observation and depletion reset for a charge-room round trip',()=>{
   const op=new MowerOperatorState({name:'A',currentRoom:'room_1_1',currentIndex:0,mood:18,timeStampMicros:0,depletionRate:.7})
   const data=new MowerSchedulingData({alpha:true,operators:{A:op},plan:{room_1_1:['A'],dormitory_1:['Free']},dorms:[],nowMicros:toMowerMicros(1)})
-  mowerUpdateDetail(data,'A',12,'dormitory_1',0,true,new Set(),undefined,true)
-  expect(op.depletionRate).toBe(.7);expect(op.mood).toBe(12)
-  mowerUpdateDetail(data,'A',24,'room_1_1',0,true,new Set(),undefined,true)
-  expect(op.depletionRate).toBe(.7);expect(op.mood).toBe(24)
+  mowerUpdateDetail(data,'A',12,'dormitory_1',0,true)
+  expect(op.depletionRate).toBe(6);expect(op.mood).toBe(12)
+  mowerUpdateDetail(data,'A',24,'room_1_1',0,true)
+  expect(op.depletionRate).toBe(0);expect(op.mood).toBe(24)
  })

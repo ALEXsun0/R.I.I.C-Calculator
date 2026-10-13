@@ -450,5 +450,56 @@
       "unresolvedDeferrals": 0,
       "privacy": "Private input and temporary runner remain ignored local artifacts."
     }
+  },
+  "boundStandbyAndFiammettaRollback": {
+    "baseline": "8bc6b662bcb33955e3a13a9afa4fb1c87423dfbb",
+    "semantics": "Eligible bound standby members follow group shifts without driving automatic morale decisions; unbound behavior and explicit backup predicates remain unchanged.",
+    "fiammettaRollback": "Fiammetta-specific scheduling additions restored to 70f6436 behavior; retain fixed 2/hour recovery, default all-24 initial morale, generic dorm timers, floating-point tolerance and import/UI compatibility.",
+    "tests": {
+      "uniqueFiles": 20,
+      "uniquePassed": 261,
+      "initialRunPassed": 258,
+      "finalMetadataRunFiles": 4,
+      "finalMetadataRunPassed": 51,
+      "newCases": 11,
+      "observedBehavioralFailuresBeforeFix": 6,
+      "note": "Overlapping focused runs are not summed."
+    },
+    "typecheck": "passed",
+    "build": "passed; existing chunk-size warning",
+    "structure": "passed",
+    "privateReplay": {
+      "sameImageAsPreviousFilenameButNewContents": true,
+      "originalPlanModified": false,
+      "warmupHours": 72,
+      "sampleHours": 168,
+      "initialMorale": 24,
+      "operatorMoraleOverrides": {},
+      "masteryPlanPresent": false,
+      "droneRoom": "room_2_2",
+      "success": true,
+      "wallSeconds": 60.676,
+      "intervals": 18958,
+      "gladiiaIdleSeconds": 50.5,
+      "abyssalHuntersExhaustedHours": 0,
+      "deferrals": 56,
+      "unresolvedAtWindowEnd": {
+        "group": "红松",
+        "count": 1
+      },
+      "firstRunWallSeconds": 83.107515791,
+      "finalResultsEqualFirstRun": true
+    },
+    "before": {
+      "elapsedHours": 19.579549524917454,
+      "wallSeconds": 121.215330375,
+      "integrationIntervals": 6611,
+      "termination": "Private diagnostic wall-clock protection; recurring roughly 9-second deep-sea shifts, not increasing Fiammetta charges."
+    },
+    "backup": {
+      "path": "artifacts/mower-alpha-20261014-standby-group/source-before.tar",
+      "sha256": "e7a35a257065bc26b64953497d257a605cb8497e9f683ebd081ea4357f73d37d"
+    },
+    "privacy": "User image, decoded input, diagnostic traces and temporary runner remain ignored local artifacts."
   }
 }

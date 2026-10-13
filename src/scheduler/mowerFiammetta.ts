@@ -8,7 +8,7 @@ export function selectMowerFiaTarget(data:MowerSchedulingData,targets:string[],f
   if(op.group&&data.group(op.group).some(member=>{
    if(member===name)return false
    const peer=data.operators[member]!
-   if(peer.multiGroup||peer.room.startsWith('dorm')||peer.workaholic&&!targets.includes(member))return false
+   if(peer.room.startsWith('dorm')||peer.workaholic&&!targets.includes(member))return false
    return peer.currentMood(data.nowMicros)-peer.lowerLimit<mood-op.lowerLimit
   }))continue
   return name
