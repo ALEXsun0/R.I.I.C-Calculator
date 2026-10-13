@@ -122,10 +122,15 @@ describe('operator combination rules', () => {
     const config = createDefaultConfig()
     const room = config.rooms.find((item) => item.type === 'power')!
     room.operatorIds = ['char_1027_greyy2']
+    expect(config.efficiencyResources.droneCapacity).toBe(250)
+    expect(evaluateOperators(room, config).skillBonus).toBe(25)
+    expect(evaluateOperators(room, config).efficiencyPercent).toBe(130)
+
+    config.efficiencyResources.droneCapacity = 235
     expect(evaluateOperators(room, config).skillBonus).toBe(23)
     expect(evaluateOperators(room, config).efficiencyPercent).toBe(128)
 
-    config.efficiencyResources.droneCapacity = 250
+    config.efficiencyResources.droneCapacity = 260
     expect(evaluateOperators(room, config).skillBonus).toBe(25)
     expect(evaluateOperators(room, config).efficiencyPercent).toBe(130)
   })

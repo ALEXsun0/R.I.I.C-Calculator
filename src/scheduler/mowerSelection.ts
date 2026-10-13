@@ -18,7 +18,7 @@ export function prepareMowerDormSelection(data:MowerSchedulingData,names:string[
   else if(!['','Free','Current'].includes(name))names[index]='Free'
   const op=data.operators[names[index]!]
   if(!room.startsWith('dorm')||!op)continue
-  const dynamic=data.plan[room]?.[index]==='Free'||data.alpha&&data.dorms.some(b=>b.position[0]===room&&b.position[1]===index&&b.autoFree)&&data.plan[room]?.[index]!==op.name
+  const dynamic=data.alpha?data.dynamicDormPosition(room,index,op.name):data.plan[room]?.[index]==='Free'
   const limited=!moodProbe&&data.restMoodComplete(op.name)&&dynamic
   const full=!preserve&&op.mood===op.upperLimit&&!op.room.startsWith('dorm')&&!mowerDormReplacementForSlot(data,op.name,room,index)&&(!data.alpha||data.freeRoom&&hasRestingMood(op,data.nowMicros)&&!(op.isResting()&&data.skipIdleDormRelease(op.name)||op.dormMoodFallback===room))
   if(limited||full){names[index]='Free';op.depletionRate=0}

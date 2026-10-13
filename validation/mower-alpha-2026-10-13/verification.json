@@ -240,5 +240,44 @@
     "productionBuild": "passed; existing large-chunk warning",
     "structure": "passed",
     "browser": "Checkbox rendered with fixed-state explanation; checked/unchecked interaction verified."
+  },
+  "sharedDormAndDroneFollowup": {
+    "date": "2026-10-14",
+    "tests": {
+      "files": 21,
+      "passed": 299,
+      "mainFiles": 14,
+      "mainPassed": 243,
+      "droneFiles": 7,
+      "dronePassed": 56
+    },
+    "typecheck": "passed",
+    "build": "passed; existing large chunk warning",
+    "structure": "passed",
+    "droneCapacity": 250,
+    "greyyDefaultSkillBonusPercent": 25,
+    "privateImage": {
+      "tracked": false,
+      "source": "third user-provided 14 QR roster",
+      "warmupHours": 72,
+      "sampleHours": 168,
+      "initialMorale": "all 24",
+      "masteryPlanPresent": false,
+      "droneRoom": "room_2_2",
+      "elapsedHours": 240,
+      "wallSeconds": 40.310435416,
+      "integrationIntervals": 20005,
+      "success": true,
+      "repeatedFixedDormCorrection": false,
+      "shiftDeferrals": {
+        "total": 18,
+        "resolved": 16,
+        "unresolved": 2
+      }
+    },
+    "backup": {
+      "path": "artifacts/mower-alpha-20261014-plan8/fix/source-before.tar",
+      "sha256": "560e198c8a3613f866c8aaaef7ba49175d948ebd932f28629769eb715d8a06ff"
+    }
   }
 }

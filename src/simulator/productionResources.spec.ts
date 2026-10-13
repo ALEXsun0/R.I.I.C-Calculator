@@ -94,11 +94,11 @@ describe('production resource contracts on the native Mower event clock',()=>{
  })
  it('has one shared drone recharge baseline for three empty power stations and records overflow',()=>{
   const s=compileRosterSchedule(createDefaultWorkspace());s.rooms=s.rooms.filter(r=>r.type==='power')
-  const r=simulateSchedule(s,{sampleHours:2,production:{...noDrones,initialResources:{drone:230}}})
+  const r=simulateSchedule(s,{sampleHours:2,production:{...noDrones,initialResources:{drone:249}}})
   conserved(r)
   expect(r.production!.drones.generated).toBeCloseTo(20,8)
-  expect(r.production!.drones.stock).toBe(235)
-  expect(r.production!.drones.overflow).toBeCloseTo(15,8)
+  expect(r.production!.drones.stock).toBe(250)
+  expect(r.production!.drones.overflow).toBeCloseTo(19,8)
   expect(r.production!.drones.consumed).toBe(0)
  })
  it('collects completed trade orders through native Mower tasks after they finish',()=>{

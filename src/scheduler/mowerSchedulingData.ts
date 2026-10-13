@@ -56,8 +56,23 @@ export class MowerSchedulingData {
   this.unregisteredIdleNames=o.unregisteredIdleNames??[];this.dormMoodEstimates=new Map(o.dormMoodEstimates);this.idleDormSearchExhausted=o.idleDormSearchExhausted??false;this.idleDormSearchStoppedAtMicros=o.idleDormSearchStoppedAtMicros
   this.reservedProductReplacements=o.reservedProductReplacements??new Set();this.reservedProductBeds=o.reservedProductBeds??new Map();this.emergencyDormAgents=o.emergencyDormAgents??new Set()
  }
- dynamicDormPosition(room:string,index:number):boolean{return this.plan[room]?.[index]==='Free'||!!(this.alpha||this.policy.experimentalDormLogic)&&this.dorms.some(b=>b.position[0]===room&&b.position[1]===index&&b.autoFree)}
- dormReplacementForSlot(name:string,room:string,index:number):boolean {const owner=this.operators[this.plan[room]?.[index]??''];return room.startsWith('dorm')&&!!owner?.group&&owner.nativeName!=='菲亚梅塔'&&!(this.alpha&&this.dorms.some(b=>b.position[0]===room&&b.position[1]===index&&b.autoFree))&&owner.replacement.includes(name)}
+ /** ab0a4e5 execution semantics; stored autoFree beds enumerate potential capacity. */
+ autoFreeDormSlot(room:string,index:number):boolean {
+  const owner=this.operators[this.plan[room]?.[index]??'']
+  if(!room.startsWith('dorm')||!owner?.group||!owner.room.startsWith('dorm')||owner.nativeName==='菲亚梅塔')return false
+  const replacements=owner.multiGroup?mowerSharedReplacements(owner,mowerRestingBindingGroups(this,owner,this.pendingGroupTransitions)):owner.replacement
+  return replacements.includes('Free')
+ }
+ dynamicDormPosition(room:string,index:number,name?:string):boolean {
+  const resident=this.plan[room]?.[index]
+  if(resident==='Free')return true
+  if(this.alpha)return this.autoFreeDormSlot(room,index)&&(name===undefined||name!==resident&&name!=='Current')
+  return !!this.policy.experimentalDormLogic&&this.dorms.some(b=>b.position[0]===room&&b.position[1]===index&&b.autoFree)
+ }
+ dormReplacementForSlot(name:string,room:string,index:number):boolean {
+  const owner=this.operators[this.plan[room]?.[index]??'']
+  return room.startsWith('dorm')&&!!owner?.group&&owner.nativeName!=='菲亚梅塔'&&!(this.alpha&&this.autoFreeDormSlot(room,index))&&(owner.replacement.includes(name)||this.alpha&&owner.groupBindings.some(binding=>binding.replacement.includes(name)))
+ }
  group(name:string):string[]{return Object.values(this.operators).filter(op=>op.group===name).map(op=>op.name)}
  currentOperator(room:string,index:number):MowerOperatorState|undefined{return Object.values(this.operators).find(op=>op.currentRoom===room&&op.currentIndex===index)}
  /** Native get_current_room uses a last-write map; get_current_operator remains first-match. */

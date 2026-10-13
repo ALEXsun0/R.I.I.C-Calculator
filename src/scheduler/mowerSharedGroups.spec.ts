@@ -11,6 +11,7 @@ import {planMowerAlphaMetadata} from './mowerAlphaMetadata'
 import {MowerTaskQueue,toMowerMicros,type MowerTaskPlan} from './mowerTaskQueue'
 import {createRosterRuntime,settleRoster,advanceRoster,nextRosterActionHours,type RuntimeConfig} from './rosterRuntime'
 import {getMowerSourceRuntime} from './mowerSourceRuntime'
+import {prepareMowerDormSelection} from './mowerSelection'
 
 function fixture(dorm=false){
  const plan={room_1_1:['A'],room_1_2:['B'],room_1_3:dorm?[]:['F'],dormitory_1:dorm?['F','Free','Free','Free','Free']:['Free','Free','Free','Free','Free']}
@@ -24,6 +25,69 @@ function fixture(dorm=false){
 }
 function apply(data:MowerSchedulingData,plan:MowerTaskPlan){expect(normalizeMowerSharedArrangement(data,plan)).toBe(true);return projectMowerArrangements(data,[plan])}
 describe('October 13 shared group bindings and fixed-primary swaps',()=>{
+ it('keeps a full fixed dorm cover when only its concrete shared binding is resting',()=>{
+  const data=fixture(true);data.freeRoom=true
+  data.operators.F!.groupBindings[1]!.replacement=['C']
+  commitMowerGroupShifts(data,{a:false,b:true})
+  const selected=['C','Current','Current','Current','Current']
+  prepareMowerDormSelection(data,selected,'dormitory_1')
+  expect(selected[0]).toBe('C')
+  expect(data.dynamicDormPosition('dormitory_1',0)).toBe(false)
+  expect(data.dormReplacementForSlot('C','dormitory_1',0)).toBe(true)
+  expect(data.dorms[0]!.autoFree).toBe(true)
+ })
+ it('switches shared dorm execution between Free and concrete replacement without changing its bed pool',()=>{
+  const data=fixture(true),bed=data.dorms[0]!
+  data.operators.F!.groupBindings[1]!.replacement=['C']
+  commitMowerGroupShifts(data,{a:true,b:false})
+  expect(data.dynamicDormPosition('dormitory_1',0)).toBe(true)
+  expect(data.dormReplacementForSlot('C','dormitory_1',0)).toBe(false)
+  commitMowerGroupShifts(data,{a:false,b:true})
+  expect(data.dynamicDormPosition('dormitory_1',0)).toBe(false)
+  expect(data.dormReplacementForSlot('C','dormitory_1',0)).toBe(true)
+  commitMowerGroupShifts(data,{a:true,b:false})
+  expect(data.dynamicDormPosition('dormitory_1',0)).toBe(true)
+  expect(data.dormReplacementForSlot('C','dormitory_1',0)).toBe(false)
+  expect(data.dorms[0]).toBe(bed);expect(bed.autoFree).toBe(true)
+ })
+ it('uses pending shared group transitions at the dorm execution boundary',()=>{
+  const data=fixture(true);data.freeRoom=true
+  data.operators.F!.groupBindings[1]!.replacement=['C']
+  commitMowerGroupShifts(data,{a:true,b:false})
+  data.pendingGroupTransitions={a:false,b:true}
+  const selected=['C','Current','Current','Current','Current']
+  prepareMowerDormSelection(data,selected,'dormitory_1')
+  expect(selected[0]).toBe('C')
+  expect(data.dormReplacementForSlot('C','dormitory_1',0)).toBe(true)
+  expect(data.groupShiftState).toEqual({a:true,b:false})
+ })
+ it('protects concrete candidates from every binding while the shared dorm is fixed',()=>{
+  const data=fixture(true);data.freeRoom=true
+  data.operators.F!.groupBindings=[{group:'a',replacement:['C']},{group:'b',replacement:['D']}]
+  commitMowerGroupShifts(data,{a:false,b:true})
+  expect(data.operators.F!.replacement).toEqual(['D'])
+  expect(data.dormReplacementForSlot('C','dormitory_1',0)).toBe(true)
+  expect(data.dormReplacementForSlot('D','dormitory_1',0)).toBe(true)
+  expect(data.dormReplacementForSlot('E','dormitory_1',0)).toBe(false)
+ })
+ it('does not release a completed custom recovery target from its fixed replacement post',()=>{
+  const data=fixture(true);data.freeRoom=true
+  data.operators.F!.groupBindings[1]!.replacement=['C']
+  commitMowerGroupShifts(data,{a:false,b:true})
+  data.operators.C!.restMoodLimit=true
+  expect(data.restMoodComplete('C')).toBe(true)
+  const selected=['C','Current','Current','Current','Current']
+  prepareMowerDormSelection(data,selected,'dormitory_1')
+  expect(selected[0]).toBe('C')
+ })
+ it('keeps the shared dorm primary and Current outside dynamic occupant recovery',()=>{
+  const data=fixture(true)
+  commitMowerGroupShifts(data,{a:true,b:false})
+  expect(data.dynamicDormPosition('dormitory_1',0)).toBe(true)
+  expect(data.dynamicDormPosition('dormitory_1',0,'C')).toBe(true)
+  expect(data.dynamicDormPosition('dormitory_1',0,'F')).toBe(false)
+  expect(data.dynamicDormPosition('dormitory_1',0,'Current')).toBe(false)
+ })
  for(const sample of nativeOracle.freeSlots)it('native effective shared Free bed: '+sample.name,()=>{
   const data=fixture(true);data.groupShiftState=Object.fromEntries(Object.entries(sample.state).filter((entry):entry is [string,boolean]=>typeof entry[1]==='boolean'));data.dorms[0]!.name=sample.reserved
   expect(data.effectiveFreeSlot(data.dorms[0]!,new Set(sample.inactive),new Set(sample.active))).toBe(sample.effective)

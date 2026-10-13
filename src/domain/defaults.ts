@@ -1,6 +1,8 @@
 import type { AppConfig, OutputRoom, RoomType } from './types'
 import { EDITION } from './edition'
 
+export const DRONE_CAPACITY = 250
+
 export const ROOM_LABELS: Record<RoomType, string> = {
   manufacture: '制造站',
   trading: '贸易站',
@@ -81,7 +83,7 @@ export function createDefaultConfig(): AppConfig {
       monsterCuisine: 0,
       worldlyFireworks: 0,
       suiFacilities: 0,
-      droneCapacity: 235,
+      droneCapacity: DRONE_CAPACITY,
       extraWorkplaceOperatorIds: [],
       trainingOperatorIds: [],
     },

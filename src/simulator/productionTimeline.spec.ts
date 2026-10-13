@@ -19,13 +19,24 @@ describe('joint production event clock',()=>{
  })
  it('carries native drone work across manufacturing batches with one real debit',()=>{
   const s=emptyBase();s.rooms=s.rooms.filter(r=>r.roomId==='room_1_1')
-  const r=simulateSchedule(s,{sampleHours:.03,production:{droneTarget:'gold',initialResources:{drone:235}}})
+  const r=simulateSchedule(s,{sampleHours:.03,production:{droneTarget:'gold',initialResources:{drone:250}}})
   expect(r.success).toBe(true)
-  expect(r.production!.manufacturing[0]!.completedItems).toBe(9)
-  expect(r.production!.manufacturing[0]!.remainingBaseMinutes).toBeCloseTo(13.2,7)
-  expect(r.production!.drones.consumed).toBe(235)
-  expect(r.production!.ledger.outflows.drone).toBe(235)
+  expect(r.production!.manufacturing[0]!.completedItems).toBe(10)
+  // 250 drones supply 750 base minutes; 1.8 elapsed minutes leave 40.2 in the eleventh 72-minute batch.
+  expect(r.production!.manufacturing[0]!.remainingBaseMinutes).toBeCloseTo(40.2,7)
+  expect(r.production!.drones.consumed).toBe(250)
+  expect(r.production!.ledger.outflows.drone).toBe(250)
   expect(r.production!.events.filter(e=>e.type==='native-manufacture-drone'&&e.amount!==undefined)).toHaveLength(1)
+ })
+ it('accepts a reserve below 250 but rejects a full-capacity reserve or an over-capacity initial stock',()=>{
+  const s=emptyBase();s.rooms=s.rooms.filter(r=>r.roomId==='room_1_1')
+  const production={droneTarget:'none' as const,droneReserve:249,initialResources:{drone:250}}
+  const r=simulateSchedule(s,{sampleHours:.03,production})
+  expect(r.success).toBe(true)
+  expect(r.production!.drones.stock).toBe(250)
+  expect(r.production!.assumptions.droneReserve).toBe(249)
+  expect(()=>simulateSchedule(s,{sampleHours:.03,production:{...production,droneReserve:250}})).toThrow('Invalid production timing/reserve')
+  expect(()=>simulateSchedule(s,{sampleHours:.03,production:{...production,initialResources:{drone:251}}})).toThrow('Invalid drone state')
  })
  it('crosses coincident roster and fractional manufacturing endpoints in the real 252 fixture',()=>{
   const ws=importMowerJson(readFileSync('src/workbench/compat/fixtures/mower-252-2gold.json','utf8'))

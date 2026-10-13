@@ -35,3 +35,11 @@ The follow-up requested by the user changes only Fiammetta’s initial morale to
 A second private 14-QR roster exposed omitted-main-plan training slots, `group_min_mood` and `facility_has_mastery_plan` predicates, and stale dorm timers after ordinary arrangements. Synthetic regressions cover the fixes; the calculation dialog supplies an explicit fixed training-plan state. No training progression or real-device plan is inferred.
 
 With Fiammetta initially at 12, others at 24, no unfinished training plan and gold drones in `room_2_2`, this roster completes 72 hours of warmup plus 168 sample hours. All 50 shift deferrals resolve. Both training-state branches also complete 24 hours. The first four-target roster still passes its 24-hour check; its earlier long-run failures belong to the initial delivery, and that long window has not been rerun after the dorm-timer follow-up. See the update report and `verification.json` for aggregate results and model limits.
+
+## Shared dorm and drone capacity follow-up (October 14)
+
+A third private roster exposed repeated fixed-dorm correction when one shared binding permits Free and another requires a named cover. The port now resolves current and pending binding states at the selection boundary instead of using the bed pool's potential autoFree flag. Six synthetic regressions cover the transition and selection behavior.
+
+Default drone capacity is 250 as confirmed by the user. The existing Greyy skill formula now yields 25% by default; stock generation, overflow, reserve validation and whole-drone debits use the same capacity. Explicit configured efficiency-resource overrides and existing policy trigger thresholds remain intact.
+
+The final all-24-morale run completes 72 warmup plus 168 sample hours in about 40.31 seconds (20,005 integration intervals), without the repeated fixed-dorm correction. Two of 18 recorded shift deferrals remain unresolved at the end, so finite completion is not a claim that all roster blocking is resolved. 21 focused files, 299 tests, typecheck, production build and structure validation pass. Private inputs and traces remain local.
