@@ -40,6 +40,7 @@ export function compileRosterSchedule(workspace: RosterWorkspace, options: Parti
     if (!Array.isArray(assumptions.dormIsolation) || assumptions.dormIsolation.some(group => !Array.isArray(group) || group.some(name => typeof name !== 'string' || !isKnown(resolveOperatorCharId(name))))) invalid('assumptions.dormIsolation', '宿舍隔离必须为已知干员名单的分组列表')
     else assumptions.dormIsolation = assumptions.dormIsolation.map(group => [...new Set(group.map(resolveOperatorCharId))])
   }
+  if(assumptions.masteryPlanPresent!==undefined&&typeof assumptions.masteryPlanPresent!=='boolean')invalid('assumptions.masteryPlanPresent','训练计划状态必须为布尔值')
   if(assumptions.majorMaintenanceStartHours!==undefined&&(!Number.isFinite(assumptions.majorMaintenanceStartHours)||assumptions.majorMaintenanceStartHours<0))invalid('assumptions.majorMaintenanceStartHours','Maintenance start must be a nonnegative finite hour offset')
   if(assumptions.runOrderSimulationMode!==undefined&&assumptions.runOrderSimulationMode!=='ideal')invalid('assumptions.runOrderSimulationMode','Invalid simulation run-order mode')
   for (const key of ['enableMastery','enableParty','leifengMode'] as const) if (typeof assumptions[key] !== 'boolean') invalid('assumptions.'+key, 'Native scheduling switch must be boolean')

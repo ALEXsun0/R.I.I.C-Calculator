@@ -54,7 +54,8 @@
       "src/workbench/validate.spec.ts": 29
     },
     "command": "node node_modules/vitest/vitest.mjs run <casesByFile paths> --maxWorkers=2",
-    "note": "Three optimizer files were rerun after classifying the new continuous-mood diagnostic as an assumption; all 24 passed. WorkbenchShell was run separately (34 passed)."
+    "note": "Three optimizer files were rerun after classifying the new continuous-mood diagnostic as an assumption; all 24 passed. WorkbenchShell was run separately (34 passed).",
+    "evidenceRevision": "1e70f5550446a094dec2f47f1a214ebe06ff56ed"
   },
   "typecheck": "node node_modules/vue-tsc/bin/vue-tsc.js -b: passed",
   "build": "vite build: passed; existing large-chunk warning remains",
@@ -123,6 +124,121 @@
         "termination": "SIMULATION_EVENT_LIMIT",
         "conclusion": "Initial 12 delays dense near-full charging in the continuous-morale and ideal-I/O model; neither long-term completion nor failure of the real four-target roster is established."
       }
+    },
+    "evidenceRevision": "1e70f5550446a094dec2f47f1a214ebe06ff56ed",
+    "postDormTimerFix": {
+      "initialFiammettaMood": 12,
+      "dayRunPassed": true,
+      "integrationIntervals": 1428,
+      "fiammettaCharges": 11,
+      "longRun": "Not rerun after this follow-up; earlier failures retain their original revision provenance."
     }
+  },
+  "secondUserRoster": {
+    "status": "completed",
+    "elapsedHours": 240,
+    "warmupHours": 72,
+    "sampleHours": 168,
+    "wallSeconds": 35.786212584,
+    "masteryPlanPresent": false,
+    "operatorMorale": {
+      "char_300_phenxi": 12
+    },
+    "droneRoomId": "room_2_2",
+    "runtimeEventCounts": {
+      "warmup": {
+        "backup-plan": 116,
+        "shift-on": 70,
+        "shift-off": 55,
+        "fiammetta": 22
+      },
+      "sample": {
+        "backup-plan": 261,
+        "shift-off": 133,
+        "shift-on": 171,
+        "fiammetta": 44
+      }
+    },
+    "completedProductionOver168Hours": {
+      "exp": 392000,
+      "gold": 705,
+      "orderLmd": 440000
+    },
+    "completedProductionPerDay": {
+      "exp": 56000.0,
+      "gold": 100.71428571428571,
+      "orderLmd": 62857.142857142855
+    },
+    "limitations": [
+      "Ideal run orders",
+      "Potential output: raw-material shortages do not block production",
+      "Mastery plan state remains false throughout; no training progress model",
+      "No maintenance window",
+      "Continuous morale observation; no pixel recognition errors; most UI click durations are zero",
+      "Configured original schedule and Fiammetta target preserved; no cooldown or strategy additions"
+    ],
+    "qrCount": 14,
+    "roundTrip": "structurally equal",
+    "validationErrors": 0,
+    "validationWarnings": 0,
+    "resolvedShiftDeferrals": 50,
+    "unresolvedShiftDeferrals": 0,
+    "dayRuns": {
+      "final24NoMastery": {
+        "success": true,
+        "elapsedHours": 24,
+        "masteryPlanPresent": false,
+        "eventCounts": {
+          "backup-plan": 42,
+          "shift-on": 21,
+          "shift-off": 15,
+          "fiammetta": 6
+        },
+        "segments": 1601
+      },
+      "final24MasteryPresent": {
+        "success": true,
+        "elapsedHours": 24,
+        "masteryPlanPresent": true,
+        "eventCounts": {
+          "backup-plan": 43,
+          "shift-off": 15,
+          "shift-on": 20,
+          "fiammetta": 6
+        },
+        "segments": 1573
+      }
+    },
+    "privacy": "Image, original roster and full traces remain ignored local artifacts."
+  },
+  "followupTests": {
+    "date": "2026-10-14",
+    "files": 18,
+    "passed": 254,
+    "casesByFile": {
+      "src/components/workbench/CalculationConfigModal.spec.ts": 5,
+      "src/scheduler/compileRosterSchedule.spec.ts": 7,
+      "src/components/workbench/WorkbenchShell.spec.ts": 34,
+      "src/scheduler/mowerAlphaFullPreview.spec.ts": 15,
+      "src/scheduler/mowerPreviewRecovery.spec.ts": 6,
+      "src/scheduler/mowerDormRecovery.spec.ts": 11,
+      "src/scheduler/mowerAlphaDormOrder.spec.ts": 3,
+      "src/scheduler/mowerBackupFacilities.spec.ts": 19,
+      "src/scheduler/mowerBackupConfig.spec.ts": 22,
+      "src/scheduler/backupPlans.spec.ts": 20,
+      "src/workbench/validate.spec.ts": 29,
+      "src/scheduler/mowerPhaseRelease.spec.ts": 5,
+      "src/scheduler/mowerSourceRuntime.spec.ts": 17,
+      "src/scheduler/backupSourceCompatibility.spec.ts": 18,
+      "src/scheduler/mowerNativeExpressionParity.spec.ts": 8,
+      "src/scheduler/mowerAlphaBackupExpression.spec.ts": 14,
+      "src/scheduler/mowerObservations.spec.ts": 13,
+      "src/scheduler/mowerAlphaSelection.spec.ts": 8
+    },
+    "scope": "Focused training option, expression, backup-room and dorm-timer regression; not added arithmetically to initial delivery totals.",
+    "typecheck": "passed",
+    "productionBuild": "passed; existing large-chunk warning",
+    "structure": "passed",
+    "browser": "Checkbox rendered with fixed-state explanation; checked/unchecked interaction verified."
   }
 }

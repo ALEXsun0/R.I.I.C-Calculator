@@ -150,7 +150,7 @@ describe('WorkbenchShell.vue and App primary entry integration', () => {
     const productionWeights = { ...DEFAULT_PRODUCTION_WEIGHTS, exp: 2 }
     wrapper.vm.handleConfirmCalculation({
       droneTarget: 'none', droneTradingRoomId: '',
-      useOperatorInventory: false, productionWeights,
+      useOperatorInventory: false, productionWeights, masteryPlanPresent: true,
     })
     await flushPromises()
     expect(wrapper.vm.isCalculating).toBe(true)
@@ -158,7 +158,7 @@ describe('WorkbenchShell.vue and App primary entry integration', () => {
     const request = pending[0]!.postMessage.mock.calls[0]![0]
     expect(request.workspace.productionWeights).toEqual(productionWeights)
     expect(request.options.simulationOptions.productionWeights).toEqual(productionWeights)
-    expect(request.options.simulationAssumptions).toMatchObject({ fiammettaFool: false, restingThreshold: .7, rescueThreshold: .25, freeRoom: true })
+    expect(request.options.simulationAssumptions).toMatchObject({ fiammettaFool: false, restingThreshold: .7, rescueThreshold: .25, freeRoom: true, masteryPlanPresent: true })
     wrapper.vm.simSettings.productionWeights!.gold = 0
     await flushPromises()
     expect(wrapper.vm.isCalculating).toBe(false)

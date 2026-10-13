@@ -1,4 +1,5 @@
 import {validateMowerRosterRules} from '../domain/mowerRosterRules'
+import {assertMowerBackupRoomOwners, assertMowerBackupTaskRooms, mowerBackupRoomCapacity, prepareMowerBackupRoom} from '../domain/mowerBackupFacilities'
 import {MowerShiftPreviewError} from './mowerNativeErrors'
 import {preserveMowerBackupReplacements} from './mowerBackupReplacements'
 import { effectiveMowerDormOrder } from '../domain/mowerDormOrder'
@@ -40,9 +41,11 @@ export function evaluateBackupExpression(source: unknown, state: RuntimeState) {
 }
 export interface BackupDiagnostic { code: string; message: string }
 interface BackupPlan {
+  rooms: Partial<Record<MowerRoomId, number>>
   conf:Record<string,unknown>
   usesCurrentMood:boolean
   usesMajorMaintenance:boolean
+  usesMasteryPlan:boolean
   name: string; timing: BackupTiming; exitTiming: BackupTiming; condition: Expression
   slots: { room: MowerRoomId; index: number; agent: string; group: string | null; replacements: string[]; groupBindings?: MowerGroupBinding[] }[]
   products: Partial<Record<MowerRoomId, {product: MowerProduct; rawProduct: unknown}>>
@@ -58,16 +61,18 @@ function parsePlans(workspace: RosterWorkspace, participants: Set<string>, diagn
       const condition = compiledCondition.evaluate
       const usesCurrentMood = compiledCondition.usesCurrentMood
       const usesMajorMaintenance = compiledCondition.usesMajorMaintenance
+      const usesMasteryPlan = compiledCondition.usesMasteryPlan
       if (compiledCondition.skipped) {
         diagnostics.push({ code: 'BACKUP_EXTERNAL_CONDITION_SKIPPED', message: `副表 ${name}（#${index + 1}）：跳过依赖 ${compiledCondition.skipped} 的整张副表；未执行其岗位、策略与任务` })
-        return { name, timing: 'AFTER_PLANNING' as const, exitTiming: 'AFTER_PLANNING' as const, condition, usesCurrentMood, usesMajorMaintenance, slots: [], products: {}, task: {},conf:{} }
+        return { name, timing: 'AFTER_PLANNING' as const, exitTiming: 'AFTER_PLANNING' as const, condition, usesCurrentMood, usesMajorMaintenance, usesMasteryPlan, rooms: {}, slots: [], products: {}, task: {},conf:{} }
       }
       const timing = typeof raw.trigger_timing === 'string' ? raw.trigger_timing.toUpperCase() : ''
-      const slots: BackupPlan['slots'] = [], task: BackupPlan['task'] = {}, products: BackupPlan['products'] = {}
+      const slots: BackupPlan['slots'] = [], task: BackupPlan['task'] = {}, products: BackupPlan['products'] = {}, rooms: BackupPlan['rooms'] = {}
       if (raw.plan !== undefined && !record(raw.plan) || raw.task !== undefined && !record(raw.task) || raw.conf !== undefined && !record(raw.conf)) fail('plan/task/conf 格式错误')
       for (const [room, data] of mowerPlanEntries(record(raw.plan) ? raw.plan : {})) {
         const facility = workspace.mainPlan.facilities[room as MowerRoomId]
-        if (!facility || !record(data) || !Array.isArray(data.plans) || data.plans.length > facility.slots.length) fail(`计划房间/槽位错误 ${room}`)
+        if (!facility || !record(data) || !Array.isArray(data.plans) || data.plans.length > mowerBackupRoomCapacity(workspace, room)) fail(`计划房间/槽位错误 ${room}`)
+        rooms[room as MowerRoomId] = (data as {plans: unknown[]}).plans.length
         const rawProduct = (data as Record<string, unknown>).product
         if (rawProduct) {
           const product = parseProduct(rawProduct)
@@ -90,13 +95,13 @@ function parsePlans(workspace: RosterWorkspace, participants: Set<string>, diagn
       readMowerRemovedOperators((raw.conf as Record<string, unknown> | undefined)?.removed_operators, known)
       for (const [room, values] of mowerPlanEntries(record(raw.task) ? raw.task : {})) {
         const facility = workspace.mainPlan.facilities[room as MowerRoomId]
-        if (!facility || !Array.isArray(values) || values.length > facility.slots.length) fail(`任务房间/槽位错误 ${room}`)
+        if (!facility || !Array.isArray(values) || values.length > mowerBackupRoomCapacity(workspace, room)) fail(`任务房间/槽位错误 ${room}`)
         task[room] = (values as unknown[]).map(value => value === 'Current' || value === 'Free' ? value : known(value))
         if (facility.type !== 'dormitory' && task[room]!.includes('Free')) fail(`任务 Free 只能用于宿舍 ${room}`)
       }
       const entry = timing in BACKUP_TIMINGS ? timing as BackupTiming : 'AFTER_PLANNING'
       const exit = typeof raw.exit_trigger_timing === 'string' && raw.exit_trigger_timing ? raw.exit_trigger_timing.toUpperCase() : undefined
-      return { name, timing: entry, exitTiming: exit ? exit in BACKUP_TIMINGS ? exit as BackupTiming : 'AFTER_PLANNING' : entry, condition, usesCurrentMood, usesMajorMaintenance, slots, products, task,conf:record(raw.conf)?raw.conf:{} }
+      return { name, timing: entry, exitTiming: exit ? exit in BACKUP_TIMINGS ? exit as BackupTiming : 'AFTER_PLANNING' : entry, condition, usesCurrentMood, usesMajorMaintenance, usesMasteryPlan, rooms, slots, products, task,conf:record(raw.conf)?raw.conf:{} }
     } catch (error) { return fail(`${name}：${error instanceof Error ? error.message : String(error)}`) }
   })
 }
@@ -111,6 +116,7 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
   const diagnostics: BackupDiagnostic[] = []
   const participants = new Set<string>(), plans = parsePlans(base.sourceWorkspace, participants, diagnostics)
   if(plans.some(plan=>plan.usesMajorMaintenance)&&base.assumptions.majorMaintenanceStartHours===undefined)diagnostics.push({code:'MOWER_MAINTENANCE_ASSUMPTION',message:'未提供维护时间，本次模拟没有停服窗口'})
+  if(plans.some(plan=>plan.usesMasteryPlan)&&state.config.mowerMasteryPlanPresent!==undefined)diagnostics.push({code:'MOWER_MASTERY_PLAN_ASSUMPTION',message:`本次模拟固定为${state.config.mowerMasteryPlanPresent?'有':'无'}未完成的训练计划（包含失败但未清除的计划），不模拟训练进度或计划完成时刻`})
   const active = plans.map(() => false)
   for (const id of participants) state.morale[id] ??= base.assumptions.operatorMorale[id] ?? base.assumptions.initialMorale
   const displaced = new Set<string>()
@@ -126,6 +132,7 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
     conditions.forEach((enabled,i)=>{
       if(!enabled)return
       const p=plans[i]!
+      for(const [room,count] of Object.entries(p.rooms))prepareMowerBackupRoom(workspace,room,count)
       for(const slot of p.slots)workspace.mainPlan.facilities[slot.room].slots[slot.index]={occupant:slot.agent==='Free'?{kind:'free'}:{kind:'operator',operatorId:slot.agent},groupId:slot.group,replacements:[...slot.replacements],groupBindings:structuredClone(slot.groupBindings)}
       for(const [room,{product,rawProduct}] of Object.entries(p.products)){
         workspace.mainPlan.facilities[room as MowerRoomId].product=product
@@ -135,6 +142,7 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
       mergeMowerBackupConfig(workspace.mainPlan.conf, p.conf)
       if(typeof workspace.mainPlan.conf.dorm_order==='string')dormOrder=workspace.mainPlan.conf.dorm_order
     })
+    assertMowerBackupRoomOwners(base.sourceWorkspace,workspace)
     const roomOrder=effectiveMowerDormOrder(dormOrder.split(','))
     const ruleErrors=validateMowerRosterRules(workspace);if(ruleErrors.length)fail(ruleErrors.map(error=>error.message).join('；'))
     const compiled=compileRosterSchedule(workspace,{...base.assumptions,dormOrder:''});compiled.assumptions.defaultsApplied=[...base.assumptions.defaultsApplied]
@@ -171,7 +179,13 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
         ;(transition[room]??=Array(names.length).fill('Current'))[index]=name
       })
       plans.forEach((p,i)=>{if(!original[i]||conditions[i])return;for(const [room,names] of Object.entries(p.task))names.forEach((name,index)=>{if(name!=='Current'&&next.plan[room]?.[index]!==undefined&&!replacementPositions.some(([r,i])=>r===room&&i===index))(transition[room]??=Array(next.plan[room]!.length).fill('Current'))[index]=next.plan[room]![index]!})})
-      plans.forEach((p,i)=>{if(original[i]||!conditions[i])return;mergeMowerPlanOverlay(transition,p.task,next);for(const [room,names] of Object.entries(p.task))names.forEach((name,index)=>{if(name!=='Current')groupPositions.delete(alphaPosition(room,index))})})
+      plans.forEach((p,i)=>{
+        if(original[i]||!conditions[i])return
+        // Explicit tasks run on activation; completed tasks do not constrain later overlays.
+        assertMowerBackupTaskRooms(alphaConfiguration(conditions).compiled.sourceWorkspace,p.task)
+        mergeMowerPlanOverlay(transition,p.task,next)
+        for(const [room,names] of Object.entries(p.task))names.forEach((name,index)=>{if(name!=='Current')groupPositions.delete(alphaPosition(room,index))})
+      })
       if(groupPositions.size)alphaCorrectGroupDorms(next,transition,groupPositions)
       if(!preserveMowerBackupReplacements(next,transition,replacementPositions,recovery.dorms))throw new MowerShiftPreviewError('副表替班与主班均不可用，暂缓切表')
       const signature=(data:MowerSchedulingData)=>JSON.stringify([data.dormOrder,data.dorms.map(b=>[b.position,data.plan[b.position[0]]?.[b.position[1]],data.operators[data.plan[b.position[0]]?.[b.position[1]]??'']?.group,data.effectiveFreeSlot(b),b.name])])
@@ -234,6 +248,7 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
     next.forEach((enabled, i) => {
       if (!enabled) return
       const plan = plans[i]!
+      for (const [room, count] of Object.entries(plan.rooms)) prepareMowerBackupRoom(workspace, room, count)
       for (const slot of plan.slots) workspace.mainPlan.facilities[slot.room].slots[slot.index] = {
         occupant: slot.agent === 'Free' ? { kind: 'free' } : { kind: 'operator', operatorId: slot.agent },
         groupId: slot.group, replacements: [...slot.replacements], groupBindings: structuredClone(slot.groupBindings),
@@ -245,6 +260,8 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
       }
       mergeMowerBackupConfig(workspace.mainPlan.conf, plan.conf)
     })
+    assertMowerBackupRoomOwners(base.sourceWorkspace, workspace)
+    next.forEach((enabled, i) => { if (enabled && !active[i]) assertMowerBackupTaskRooms(workspace, plans[i]!.task) })
     const compiled = compileRosterSchedule(workspace, base.assumptions)
     // A backup changes the roster; resolved values keep their original input provenance.
     compiled.assumptions.defaultsApplied = [...base.assumptions.defaultsApplied]

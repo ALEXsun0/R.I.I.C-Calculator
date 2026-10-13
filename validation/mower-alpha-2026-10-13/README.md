@@ -29,3 +29,9 @@ The supplied 3012 × 1236 image is tested locally: all 14 QR payloads are decode
 The user authorized an arbitrary gold manufacturing drone target; the test fixes `room_1_2`. Product changes, effective backup transitions, recovery occupancy and finite simulation completion are checked separately. The update report records completed runs and limitations.
 
 The follow-up requested by the user changes only Fiammetta’s initial morale to 12 (everyone else remains at 24), preserving all four targets and the original policies. This completes 24 hours with 1,428 integration intervals and 11 charges. The separate 72-hour warmup plus 168-hour sample run develops dense charging again around hour 63 and exhausts the default 200,000-interval budget at 90.6318464 hours (only 18.6318464 sample hours completed). Initial morale changes the transient timeline; the short run does not establish long-term completion. The exact final results are recorded in `verification.json`.
+
+## Second roster follow-up (October 14)
+
+A second private 14-QR roster exposed omitted-main-plan training slots, `group_min_mood` and `facility_has_mastery_plan` predicates, and stale dorm timers after ordinary arrangements. Synthetic regressions cover the fixes; the calculation dialog supplies an explicit fixed training-plan state. No training progression or real-device plan is inferred.
+
+With Fiammetta initially at 12, others at 24, no unfinished training plan and gold drones in `room_2_2`, this roster completes 72 hours of warmup plus 168 sample hours. All 50 shift deferrals resolve. Both training-state branches also complete 24 hours. The first four-target roster still passes its 24-hour check; its earlier long-run failures belong to the initial delivery, and that long window has not been rerun after the dorm-timer follow-up. See the update report and `verification.json` for aggregate results and model limits.

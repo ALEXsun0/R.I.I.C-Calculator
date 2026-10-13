@@ -4,6 +4,8 @@ import { createDefaultWorkspace } from '../workbench/defaults'
 import { importMowerJson } from '../workbench/compat/mowerJson'
 import { resolveOperatorCharId } from '../domain/operatorIdentifiers'
 import { compileRosterSchedule } from './compileRosterSchedule'
+import { compiledScheduleToRuntimeConfig } from './scheduleAdapter'
+import { exportMowerJson } from '../workbench/compat/mowerJson'
 
 describe('lossless roster compiler', () => {
   it('retains real 252 slots, ordered candidates, groups and source without mutation', () => {
@@ -85,4 +87,18 @@ describe('lossless roster compiler', () => {
     expect(result.assumptions.schemaVersion).toBe(1)
     expect(result.assumptions.defaultsApplied).toContain('dormAtmosphere')
   })
+})
+
+it('keeps explicit training-plan state through compilation without changing export', () => {
+  const workspace = createDefaultWorkspace()
+  const before = exportMowerJson(workspace)
+  for (const masteryPlanPresent of [false, true]) {
+    const compiled = compileRosterSchedule(workspace, { masteryPlanPresent })
+    expect(compiled.assumptions.masteryPlanPresent).toBe(masteryPlanPresent)
+    expect(compiledScheduleToRuntimeConfig(compiled).mowerMasteryPlanPresent).toBe(masteryPlanPresent)
+    expect(exportMowerJson(compiled.sourceWorkspace)).toBe(before)
+  }
+  expect(compiledScheduleToRuntimeConfig(compileRosterSchedule(workspace)).mowerMasteryPlanPresent).toBeUndefined()
+  const invalid = compileRosterSchedule(workspace, { masteryPlanPresent: 'false' as unknown as boolean })
+  expect(invalid.diagnostics).toContainEqual(expect.objectContaining({code: 'INVALID_ASSUMPTION', path: 'assumptions.masteryPlanPresent'}))
 })

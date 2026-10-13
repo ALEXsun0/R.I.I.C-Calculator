@@ -279,6 +279,13 @@ function* arrangeRoom(s:RuntimeState,rates:RuntimeRates,room:string,names:string
   restoration={[room]:[...current],[target.room]:data.currentRoom(target.room,true)!}
   Object.assign(sharedRestoration,restoration)
  }
+ // Native final dorm confirmation invalidates every timer because co-residents change recovery rates.
+ const fiaArrangement=task.type===T.FIAMMETTA&&!!fia&&resolved.includes(fia)
+ const refreshDormIndexes=()=>{
+  const beds=data.allDorms().filter(bed=>bed.position[0]===room)
+  for(const bed of beds)bed.timeMicros=undefined
+  return beds.filter(bed=>{const name=resolved[bed.position[1]];return !!name&&data.recoveryDorm(bed,name)}).map(bed=>bed.position[1])
+ }
  // Native recovery ordering runs even when the requested final roster is an exact no-op.
  const resumingRecovery=task.dormRecoveryRestore.includes(room)
  const ensureRecovery=()=>ensureMowerDormRecovery(data,getMowerSourceRuntime(s).queue,task,room,resolved,{
@@ -286,7 +293,10 @@ function* arrangeRoom(s:RuntimeState,rates:RuntimeRates,room:string,names:string
  })
  let recoveryOrdered=ensureRecovery()
  const afterRecovery=cached()
- if(resolved.length===afterRecovery.length&&resolved.every((name,index)=>name===afterRecovery[index]))return restoration
+ if(resolved.length===afterRecovery.length&&resolved.every((name,index)=>name===afterRecovery[index])){
+  if(data.alpha&&room.startsWith('dorm')&&(fiaArrangement||getTime))observeRoom(s,rates,room,task,fiaArrangement?mowerArrangementReadIndexes(data,room,resolved,getTime,task):refreshDormIndexes())
+  return restoration
+ }
  if(task.type===T.FIAMMETTA&&fia&&resolved.length===2&&resolved.includes(fia)){
   fiammettaCharge=true
   restoration=sharedRestoration
@@ -344,7 +354,7 @@ function* arrangeRoom(s:RuntimeState,rates:RuntimeRates,room:string,names:string
  }
  confirmPhysicalRoom(s,room,resolved)
 
- observeRoom(s,rates,room,task,readTimes)
+ observeRoom(s,rates,room,task,data.alpha&&room.startsWith('dorm')&&!fiaArrangement?refreshDormIndexes():readTimes)
  return restoration
 }
 /** Actual agent_arrange_room: four attempts, three back(0.5) retry boundaries. */

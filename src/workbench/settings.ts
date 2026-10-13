@@ -10,6 +10,7 @@ export interface SimulationSettings {
   droneRoomId?: string
   useOperatorInventory?: boolean
   jayeElite0?: boolean
+  masteryPlanPresent?: boolean
   fiammettaFool?: boolean
   fiammettaThreshold?: number
   restingThreshold?: number
@@ -25,6 +26,7 @@ export interface CalculationConfig {
   droneRoomId?: string
   useOperatorInventory?: boolean
   jayeElite0?: boolean
+  masteryPlanPresent?: boolean
 }
 
 export interface SmartRosterConfig {
@@ -50,6 +52,7 @@ export function createDefaultSimulationSettings(): SimulationSettings {
     droneTarget: 'gold',
     droneTradingRoomId: '',
     jayeElite0: false,
+    masteryPlanPresent: false,
     fiammettaFool: true,
     fiammettaThreshold: .9,
     restingThreshold: .65,
