@@ -27,6 +27,7 @@ describe('smartDormitoryPolicy', () => {
     const report = applySmartDormitoryPolicy(ws)
 
     expect(report.applied).toBe(true)
+    expect(validateRosterWorkspace(ws).criticalErrors).toEqual([])
     for (let i = 1; i <= 4; i++) {
       const dormKey = `dormitory_${i}` as 'dormitory_1' | 'dormitory_2' | 'dormitory_3' | 'dormitory_4'
       const dorm = ws.mainPlan.facilities[dormKey]
@@ -37,6 +38,15 @@ describe('smartDormitoryPolicy', () => {
       expect(dorm?.slots[0]?.occupant.kind).toBe('operator')
       expect(dorm?.slots[1]?.occupant.kind).toBe('operator')
     }
+  })
+
+  it('keeps automatic Durin presence support outside shift groups', () => {
+    const ws = createDefaultWorkspace()
+    ws.mainPlan.facilities.room_1_1.slots[0]!.occupant = { kind: 'operator', operatorId: id('鸿雪') }
+    const report = applySmartDormitoryPolicy(ws, { candidateOperatorIds: ['杜林', '桃金娘', '至简', '特米米'] })
+    expect(report.synergyPlaced.length).toBeGreaterThan(0)
+    expect(Object.values(ws.mainPlan.facilities).flatMap(room => room.slots).every(slot => !slot.groupId)).toBe(true)
+    expect(validateRosterWorkspace(ws).criticalErrors).toEqual([])
   })
 
   it('places Fiammetta into the slowest recovery dormitory and avoids conflict', () => {
@@ -110,13 +120,16 @@ describe('smartDormitoryPolicy', () => {
     expect(report.dormitoryKeepers.dormitory_1?.single).toBe(id('闪灵'))
   })
 
-  it('keeps presence support and a locked slot when Fiammetta chooses her dorm', () => {
+  it.each(['user-group', 'local-resident'])('keeps %s presence support and a locked slot when Fiammetta chooses her dorm', mode => {
     const ws = createDefaultWorkspace(), slot = ws.mainPlan.facilities.dormitory_4.slots[0]!
-    slot.occupant = { kind: 'operator', operatorId: id('伊芙利特') }; slot.groupId = '组合驻留_rhine_lab'
+    slot.occupant = { kind: 'operator', operatorId: id('伊芙利特') }
+    slot.groupId = mode === 'user-group' ? '用户组合' : null
+    slot.dormitoryResident = mode === 'local-resident'
     const locked = ws.mainPlan.facilities.dormitory_4.slots[2]!, before = structuredClone(locked)
     applySmartDormitoryPolicy(ws, { entries: [{ operator: '伊芙利特', elitePhase: 0, level: 1 },
       { operator: '菲亚梅塔', elitePhase: 0, level: 1 }], lockedPositions: new Set(['dormitory_4:2']) })
     expect(slot.occupant).toEqual({ kind: 'operator', operatorId: id('伊芙利特') })
+    expect(slot.groupId).toBe(mode === 'user-group' ? '用户组合' : null)
     expect(ws.mainPlan.facilities.dormitory_4.slots[1]!.occupant).toEqual({ kind: 'operator', operatorId: id('菲亚梅塔') })
     expect(locked).toEqual(before)
   })

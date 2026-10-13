@@ -51,24 +51,30 @@
           :key="getSlotKey(slot.occupant, idx)"
           class="avatar-wrapper"
         >
+          <div v-if="slot.occupant.kind === 'empty'" class="avatar-empty" aria-label="空岗位"></div>
           <img
-            v-if="!imageErrors[getSlotKey(slot.occupant, idx)]"
+            v-else-if="!imageErrors[getSlotKey(slot.occupant, idx)]"
             :src="getAvatarSrc(slot.occupant)"
             :alt="getAvatarAlt(slot.occupant)"
             width="45"
             height="45"
-            :style="{ 'border-bottom': getGroupBorder(slot.groupId) }"
+            :style="getGroupStyle(slot)"
             draggable="false"
             @error="onImageError(getSlotKey(slot.occupant, idx))"
           />
           <div
             v-else
             class="avatar-fallback"
-            :style="{ 'border-bottom': getGroupBorder(slot.groupId) }"
+            :style="getGroupStyle(slot)"
             :title="getAvatarAlt(slot.occupant)"
           >
             {{ getAvatarAlt(slot.occupant) }}
           </div>
+          <div
+            v-if="slot.occupant.kind === 'operator' && workaholicIds.includes(slot.occupant.operatorId)"
+            class="workaholic"
+            title="0 心情工作"
+          ></div>
         </div>
       </div>
     </div>
@@ -96,17 +102,20 @@ import {
   type MowerOccupant,
   type MowerOutputRoomId,
   type MowerRoomId,
+  type MowerSlot,
 } from '../../domain/roster'
 
 const props = withDefaults(
   defineProps<{
     facility: MowerFacility
     isSelected?: boolean
+    workaholicIds?: string[]
     variant?: 'output' | 'center' | 'support'
     size?: 'output' | 'center' | 'support'
   }>(),
   {
     isSelected: false,
+    workaholicIds: () => [],
   },
 )
 
@@ -187,7 +196,9 @@ const productUrl = computed(() => {
 
 const displayedSlots = computed(() => {
   if (!props.facility.slots) return []
-  return props.facility.slots.filter((slot) => slot.occupant && slot.occupant.kind !== 'empty')
+  return isOutputRoom.value
+    ? props.facility.slots.filter((slot) => slot.occupant && slot.occupant.kind !== 'empty')
+    : props.facility.slots
 })
 
 function getAvatarSrc(occupant: MowerOccupant): string {
@@ -210,15 +221,32 @@ function getAvatarAlt(occupant: MowerOccupant): string {
   return ''
 }
 
-function getGroupBorder(groupId?: string | null): string {
-  if (!groupId) return 'none'
+function groupColor(groupId: string | null): string {
+  if (!groupId) return 'transparent'
   let hash = 0
   for (let i = 0; i < groupId.length; i++) {
     hash = (hash << 5) - hash + groupId.charCodeAt(i)
     hash |= 0
   }
-  const hue = Math.abs(hash) % 360
-  return `5px solid hsl(${hue}, 80%, 45%)`
+  return `hsl(${Math.abs(hash) % 360}, 80%, 45%)`
+}
+
+function getGroupStyle(slot: MowerSlot) {
+  const bindings = [slot, ...(slot.groupBindings ?? [])]
+  if (bindings.length === 1) {
+    return { borderBottom: slot.groupId ? `5px solid ${groupColor(slot.groupId)}` : 'none' }
+  }
+  const stops = bindings.flatMap((binding, index) => [
+    `${groupColor(binding.groupId)} ${index * 100 / bindings.length}%`,
+    `${groupColor(binding.groupId)} ${(index + 1) * 100 / bindings.length}%`,
+  ])
+  return {
+    paddingBottom: '5px',
+    backgroundImage: `linear-gradient(to right, ${stops.join(', ')})`,
+    backgroundSize: '100% 5px',
+    backgroundPosition: 'left bottom',
+    backgroundRepeat: 'no-repeat',
+  }
 }
 
 function getSlotKey(occupant: MowerOccupant, idx: number): string {

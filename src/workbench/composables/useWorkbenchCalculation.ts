@@ -1,3 +1,4 @@
+import { mowerAdvancedAssumptions } from '../../scheduler/mowerAdvancedSettings'
 import { computed, onBeforeUnmount, ref, toRaw, watch, type ComputedRef } from 'vue'
 import { parseOperatorInventory, type OwnedOperatorInput } from '../../domain/operatorInventory'
 import { normalizeProductionWeights } from '../../domain/productionWeights'
@@ -110,6 +111,7 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
           restingThreshold: simSettings.value.restingThreshold ?? .65,
           rescueThreshold: simSettings.value.rescueThreshold ?? .75,
           freeRoom: simSettings.value.freeRoom ?? false,
+          ...mowerAdvancedAssumptions(store.workspace),
         },
         simulationOptions: {
           productionWeights: normalizeProductionWeights(simSettings.value.productionWeights),

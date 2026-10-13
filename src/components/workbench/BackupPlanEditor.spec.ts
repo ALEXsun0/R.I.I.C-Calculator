@@ -55,8 +55,8 @@ describe('BackupPlanEditor.vue', () => {
     expect(wrapper.text()).toContain('莱茵强制休息')
     expect(wrapper.text()).toContain('远牙动态低优')
     expect(wrapper.text()).toContain('薇薇安娜休息中')
-    expect(wrapper.text()).toContain('排班前')
-    expect(wrapper.text()).toContain('结束时')
+    expect(wrapper.find('[data-test="plan-timing-select"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('按条件收敛应用副表')
   })
 
   it('supports adding a new backup plan', async () => {

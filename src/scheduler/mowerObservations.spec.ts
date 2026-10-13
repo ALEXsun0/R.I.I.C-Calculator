@@ -41,3 +41,23 @@ it('runs the native room setter callback before current_index and mood assignmen
   expect(bed.name).toBe('A')
   expect(result).toBe(updateTime?0:undefined)
  })
+
+ it('does not infer a multi-million-year exhaustion clock from integration round-off',()=>{
+  const op=new MowerOperatorState({name:'A',operatorType:'high',room:'central',currentRoom:'central',currentIndex:0,mood:19,timeStampMicros:0})
+  const data=new MowerSchedulingData({alpha:true,operators:{A:op},plan:{central:['A']},dorms:[],nowMicros:toMowerMicros(1)})
+  mowerUpdateDetail(data,'A',19-6e-10,'central',0,true)
+  expect(op.depletionRate).toBe(0);expect(op.predictExhaust(data.nowMicros)).toBe(toMowerMicros(25))
+  data.nowMicros=toMowerMicros(2);mowerUpdateDetail(data,'A',18-6e-10,'central',0,true)
+  expect(op.depletionRate).toBe(1)
+  data.nowMicros=toMowerMicros(3);mowerUpdateDetail(data,'A',18-7e-10,'central',0,true)
+  expect(op.depletionRate).toBe(1)
+ })
+
+ it('preserves the working depletion rate through alpha Fiammetta entry and restoration',()=>{
+  const op=new MowerOperatorState({name:'A',currentRoom:'room_1_1',currentIndex:0,mood:18,timeStampMicros:0,depletionRate:.7})
+  const data=new MowerSchedulingData({alpha:true,operators:{A:op},plan:{room_1_1:['A'],dormitory_1:['Free']},dorms:[],nowMicros:toMowerMicros(1)})
+  mowerUpdateDetail(data,'A',12,'dormitory_1',0,true,new Set(),undefined,true)
+  expect(op.depletionRate).toBe(.7);expect(op.mood).toBe(12)
+  mowerUpdateDetail(data,'A',24,'room_1_1',0,true,new Set(),undefined,true)
+  expect(op.depletionRate).toBe(.7);expect(op.mood).toBe(24)
+ })

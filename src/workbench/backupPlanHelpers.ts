@@ -25,7 +25,7 @@ export interface MowerBackupPlanFacilityOverride {
 
 export interface MowerBackupPlan {
   name: string
-  trigger_timing: BackupTiming
+  trigger_timing?: BackupTiming
   trigger: MowerBackupCondition
   task?: Record<string, string[]>
   plan?: Record<string, MowerBackupPlanFacilityOverride>
@@ -64,10 +64,16 @@ export const BACKUP_TIMING_OPTIONS = [
 ]
 
 export const BACKUP_CONF_FIELDS = [
+  { key: 'resting_priority_replacement', label: '高优先级替班', placeholder: '仅提升替班身份的恢复优先级' },
+  { key: 'free_room_exclusions', label: '宿舍保留干员', placeholder: '不养闲人时保留床位至上班' },
+  { key: 'resting_standby', label: '休息候补', placeholder: '候补干员不单独触发整组轮休' },
   { key: 'exhaust_require', label: '用尽心情 (exhaust_require)', placeholder: '心情耗尽才允许去宿舍休息的干员' },
   { key: 'rest_in_full', label: '回满上班 (rest_in_full)', placeholder: '心情充满才允许从宿舍上班的干员' },
   { key: 'workaholic', label: '工作狂 (workaholic)', placeholder: '允许 0 心情持续工作的干员' },
   { key: 'resting_priority', label: '低优先休息 (resting_priority)', placeholder: '宿舍床位不足时低优先级进驻的干员' },
+  { key: 'refresh_trading', label: '跑单时间刷新干员', placeholder: '贸易站外影响贸易效率的干员' },
+  { key: 'refresh_drained', label: '用尽刷新', placeholder: '影响用尽干员心情消耗速率的干员' },
+  { key: 'ope_resting_priority', label: '宿舍高优先级干员', placeholder: '只影响分床和单回，不改变下班顺序' },
   { key: 'free_blacklist', label: 'Free 黑名单 (free_blacklist)', placeholder: '自动填入宿舍 Free 空床时排除的干员' },
 ] as const
 
@@ -161,7 +167,6 @@ export function humanizeBackupTrigger(source: unknown): string {
 export function createDefaultBackupPlan(index = 1): MowerBackupPlan {
   return {
     name: `副表 #${index}`,
-    trigger_timing: 'BEFORE_PLANNING',
     trigger: 'True',
     task: {},
     plan: {},

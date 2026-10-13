@@ -1,0 +1,21 @@
+{
+  "repository": "https://github.com/ArkMowers/arknights-mower",
+  "revision": "ab0a4e5bec23f6f8d7c37b0648f05dda28f31866",
+  "license": "MIT",
+  "sourceSha256": {
+    "arknights_mower/solvers/base_schedule.py": "5987139c8f32a09b4b678ee316b5c353ceebdaeed2469a7dcbae6229b01d1d5c",
+    "arknights_mower/solvers/base_mixin.py": "fba3227e95ada307fc60dd56f6bf1c9e3990cf3108597c8817df806379d05c4e",
+    "arknights_mower/utils/operators.py": "3cea0b585418154621f82958a47677f58cd1d30dfa2572530fff2eb647aa2982",
+    "arknights_mower/utils/backup_validation.py": "d8497b4e7e112478cfeb9dcb3138ef87684b57c42729572d965eacb2b93e9fca",
+    "arknights_mower/utils/config/plan.py": "3cbb5a4ae5d6b58ce3cd058cb0f991cd8abfb3e6a45ec211fc4524fab30bccca",
+    "arknights_mower/utils/plan.py": "724030b1f2a33a3e84229898654dee5839c7cacf0ffd73fbfb884d93c46c1191",
+    "arknights_mower/utils/qrcode.py": "bbc651da3714dda1419bcd63c29db937d5e689ce47503f65a576345e17983147",
+    "arknights_mower/utils/resting_correction.py": "ebb76cac5a842dfa48afa94cef1d73ee59294c0fef8368d251374d78c95ae021",
+    "arknights_mower/utils/scheduler_task.py": "d7ba1eeec8516c960779fc9d5a4873ed49b44d8e1770090f3708f0f89eecc385",
+    "arknights_mower/utils/manufacture_product.py": "062a183a580a521f4729ee84477c9864aa716e6e675d762e160e217322893161",
+    "ui/src/stores/plan.js": "b8202196c026bcb18a51cbdc3c4bd9ef0b446a0c600150f4eb9bd586685dde7f",
+    "ui/src/components/PlanEditor.vue": "0303491d8f62550a23a6628d920d3df527f177dd82cb6bef9b07b2aa3652f0d4",
+    "ui/src/pages/Plan.vue": "b3952d6a97a60508d5d3e095a83e04707243b2682ab1d2ce7aba3301d5b60006",
+    "ui/src/components/PlanAdvancedSettings.vue": "7c058bbb0e78c1aea8f0f12714f09cf60b0ec37f9bd76a99e3914593de2c1682"
+  }
+}

@@ -27,6 +27,7 @@ export interface MowerTaskOptions {time?:number;type?:MowerTaskType|string|null;
 export class MowerTask {
  timeMicros:number;type:MowerTaskType;plan:MowerTaskPlan;metadata:string;adjusted:boolean;strictMoodLimit:boolean;moodLimit:number|undefined
  observedOrderDueMicros?:number;wakeOnlyCompletion=false
+ groupShiftTransitions:Record<string,boolean>={}
  productShiftLocked=false
  /** A complete physical arrangement must finish before backup/return replanning. */
  backupShiftActive=false

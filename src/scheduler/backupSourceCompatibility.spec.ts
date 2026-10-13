@@ -33,6 +33,16 @@ describe('local Mower expression and backup contracts', () => {
     const {state} = setup(trigger)
     expect(evaluateBackupExpression(trigger, state)).toBe(expected)
   })
+  it('recognizes recycle as a working room and an unquoted room operand', () => {
+    const {workspace} = setup('False')
+    workspace.mainPlan.facilities.recycle.level = 1
+    workspace.mainPlan.facilities.recycle.slots = workspace.mainPlan.facilities.room_1_1.slots
+    workspace.mainPlan.facilities.room_1_1.slots = []
+    const state = createRosterRuntime(compiledScheduleToRuntimeConfig(compileRosterSchedule(workspace)))
+    expect(evaluateBackupExpression("op_data.operators['砾'].is_working()", state)).toBe(true)
+    expect(evaluateBackupExpression("op_data.operators['砾'].current_room == recycle", state)).toBe(true)
+    expect(evaluateBackupExpression("op_data.operators['砾'].is_resting()", state)).toBe(false)
+  })
   it('evaluates native party_time as None until a real timestamp is observed', () => {
     const {state} = setup('op_data.party_time')
     expect(evaluateBackupExpression('op_data.party_time', state)).toBe(null)
@@ -72,5 +82,45 @@ describe('local Mower expression and backup contracts', () => {
     expect(result.error).toMatch(/自然跑单.*禁用/)
     expect(()=>createProductionTimeline(schedule,state,options.production,0,()=>{})).toThrow(/自然跑单.*禁用/)
     expect(()=>runRosterIncomeSearch({baseline:workspace,inventory:[],options})).toThrow(/自然跑单.*禁用/)
+  })
+})
+
+describe('alpha major maintenance condition', () => {
+  it('uses an infinite remaining interval when no maintenance time was supplied', () => {
+    const {schedule, state} = setup('op_data.major_maintenance_remaining_hours() <= 0.5')
+    expect(evaluateBackupExpression('op_data.major_maintenance_remaining_hours()', state)).toBe(Infinity)
+    const controller = createBackupPlanController(schedule, state)
+    controller.evaluate('END')
+    expect(controller.active).toEqual([false])
+    expect(controller.diagnostics).toContainEqual({code: 'MOWER_MAINTENANCE_ASSUMPTION', message: '未提供维护时间，本次模拟没有停服窗口'})
+  })
+
+  it('evaluates nested conditions with an explicit remaining interval and ends the window once maintenance starts', () => {
+    const {workspace} = setup({left: {left: 'op_data.major_maintenance_remaining_hours()', operator: '<=', right: '0.5'}, operator: 'and', right: "op_data.operators['砾'].is_working()"})
+    const schedule = compileRosterSchedule(workspace, {majorMaintenanceStartHours: 1})
+    const state = createRosterRuntime(compiledScheduleToRuntimeConfig(schedule))
+    const controller = createBackupPlanController(schedule, state)
+    state.time = .49
+    controller.evaluate('END')
+    expect(controller.active).toEqual([false])
+    state.time = .5
+    controller.evaluate('END')
+    expect(controller.active).toEqual([true])
+    state.time = 2
+    expect(evaluateBackupExpression('op_data.major_maintenance_remaining_hours()', state)).toBe(Infinity)
+  })
+
+  it('wakes an alpha bridge at the maintenance threshold within its one-second observation cadence', () => {
+    const {workspace} = setup('op_data.major_maintenance_remaining_hours() <= 0.003', {conf: {workaholic: '砾'}})
+    const result = runScheduleSimulationBridge(workspace, {sampleHours: .007}, {majorMaintenanceStartHours: .005, idleOperators: []})
+    expect(result.error).toBeUndefined()
+    expect(result.report?.success).toBe(true)
+    const activation = result.report?.events.find(event => event.type === 'backup-plan' && event.active)
+    expect(activation).toBeDefined()
+    expect(activation!.time).toBeGreaterThanOrEqual(.002)
+    expect(activation!.time).toBeLessThanOrEqual(.002 + 1.01 / 3600)
+    const exit = result.report?.events.find(event => event.type === 'backup-plan' && !event.active)
+    expect(exit?.time).toBeGreaterThanOrEqual(.005)
+    expect(exit?.time).toBeLessThanOrEqual(.005 + 1.01 / 3600)
   })
 })

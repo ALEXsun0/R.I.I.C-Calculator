@@ -100,7 +100,7 @@ describe('backupPlanHelpers', () => {
     it('creates a standard backup plan structure', () => {
       const plan = createDefaultBackupPlan(3)
       expect(plan.name).toBe('副表 #3')
-      expect(plan.trigger_timing).toBe('BEFORE_PLANNING')
+      expect(plan.trigger_timing).toBeUndefined()
       expect(plan.trigger).toBe('True')
       expect(plan.task).toEqual({})
       expect(plan.conf?.ling_xi).toBe(1)

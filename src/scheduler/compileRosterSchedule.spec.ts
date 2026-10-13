@@ -63,6 +63,22 @@ describe('lossless roster compiler', () => {
     expect(result.diagnostics.map(item => item.code)).toContain('UNKNOWN_OPERATOR')
     expect(result.diagnostics.map(item => item.code)).not.toContain('CURRENT_STATE_REQUIRED')
   })
+  it('compiles every shared group column without mutating source candidates', () => {
+    const workspace = createDefaultWorkspace()
+    workspace.mainPlan.facilities.room_1_1.slots[0] = {
+      occupant: {kind: 'operator', operatorId: '芬'}, groupId: 'first', replacements: ['香草'],
+      groupBindings: [{groupId: 'second', replacements: ['翎羽', '未知干员']}],
+    }
+    const result = compileRosterSchedule(workspace)
+    const slot = result.rooms.find(room => room.roomId === 'room_1_1')!.slots[0]!
+    expect(slot.groupBindings).toEqual([
+      {group: 'first', replacement: ['香草'].map(resolveOperatorCharId)},
+      {group: 'second', replacement: ['翎羽', '未知干员'].map(resolveOperatorCharId)},
+    ])
+    expect(slot.orderedCandidates).toEqual(['香草'].map(resolveOperatorCharId))
+    expect(result.diagnostics).toContainEqual(expect.objectContaining({code: 'UNKNOWN_OPERATOR', path: 'room_1_1.slots.0.groupBindings.0.replacements.1'}))
+    expect(workspace.mainPlan.facilities.room_1_1.slots[0]!.groupBindings?.[0]?.replacements).toEqual(['翎羽', '未知干员'])
+  })
   it('validates parameter ranges rather than silently accepting invalid simulation inputs', () => {
     const result = compileRosterSchedule(createDefaultWorkspace(), { initialMorale: 25, horizonHours: NaN, initialGold: -1, operatorMorale: { '但书': -2 } })
     expect(result.diagnostics.filter(item => item.code === 'INVALID_ASSUMPTION')).toHaveLength(4)

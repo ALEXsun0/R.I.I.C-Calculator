@@ -1,3 +1,6 @@
+import {validateBackupPlans} from './validateBackupPlans'
+import {validateMowerRosterRules} from '../domain/mowerRosterRules'
+import {resolveOperatorCharId} from '../domain/operatorIdentifiers'
 import {
   MOWER_OUTPUT_ROOM_IDS,
   MOWER_ROOM_IDS,
@@ -11,7 +14,6 @@ import {
   getRoomDisplayName,
   isFiammetta,
 } from './operatorHelpers'
-import { isTradeRunOrderOperator } from '../domain/shiftRunPolicy'
 import { facilityCapacity } from '../domain/facilities'
 
 export type ValidationSeverity = 'critical' | 'warning' | 'info'
@@ -80,7 +82,7 @@ export function validateRosterWorkspace(workspace: RosterWorkspace): ValidationR
 
     facility.slots.forEach((slot, slotIndex) => {
       if (slot.occupant.kind === 'operator') {
-        const opId = slot.occupant.operatorId
+        const opId = resolveOperatorCharId(slot.occupant.operatorId)
         if (!opId || opId.toLowerCase() === 'free' || opId.toLowerCase() === 'current') {
           return
         }
@@ -99,6 +101,8 @@ export function validateRosterWorkspace(workspace: RosterWorkspace): ValidationR
       }
     })
   }
+
+  criticalErrors.push(...validateMowerRosterRules(workspace))
 
   // 2. Power calculation
   let totalGeneration = 0
@@ -246,7 +250,7 @@ export function validateRosterWorkspace(workspace: RosterWorkspace): ValidationR
       const isDorm = facility.type === 'dormitory' || roomId.startsWith('dormitory_') || roomId.startsWith('dorm_')
 
       if (slot.occupant.kind === 'operator') {
-        const opId = slot.occupant.operatorId
+        const opId = resolveOperatorCharId(slot.occupant.operatorId)
         if (!opId || opId.toLowerCase() === 'free' || opId.toLowerCase() === 'current') {
           if (!(isDorm && opId?.toLowerCase() === 'free')) {
             warnings.push({
@@ -280,41 +284,6 @@ export function validateRosterWorkspace(workspace: RosterWorkspace): ValidationR
           }
         }
 
-        // Validate replacements
-        const seenInSlot = new Set<string>()
-        for (const repId of slot.replacements) {
-          // Check duplicate replacement within same slot
-          if (seenInSlot.has(repId)) {
-            criticalErrors.push({
-              code: 'DUPLICATE_REPLACEMENT',
-              severity: 'critical',
-              roomId,
-              slotIndex,
-              message: `${getRoomDisplayName(roomId, facility.type)} 席位的替补列表中存在重复干员：${getOperatorName(repId)}。`,
-            })
-          }
-          seenInSlot.add(repId)
-
-          // If occupant is Fiammetta in dormitory:
-          // Her replacements are morale swap targets referencing primary operators.
-          // They are allowed to reference active primary operators and should not be tracked as normal shift replacements.
-          if (isFiamInDorm) {
-            continue
-          }
-
-          // Check replacement conflicting with an active primary operator
-          if (primaryOperators.has(repId) && !(facility.type === 'trading' && isTradeRunOrderOperator(repId))) {
-            criticalErrors.push({
-              code: 'CONFLICTING_REPLACEMENT',
-              severity: 'critical',
-              roomId,
-              slotIndex,
-              message: `替补干员 ${getOperatorName(repId)} 当前已作为主力在岗执勤，不可设为替补。`,
-            })
-          }
-
-          // Same backup candidate is allowed to appear across multiple facilities
-        }
       } else if (slot.occupant.kind === 'free' || slot.occupant.kind === 'current') {
         // dorm Free is a rest pool placeholder, should not be warned as an illegal empty placeholder slot.
         if (!(isDorm && slot.occupant.kind === 'free')) {
@@ -330,6 +299,7 @@ export function validateRosterWorkspace(workspace: RosterWorkspace): ValidationR
     })
   }
 
+  for (const issue of validateBackupPlans(workspace, validateRosterWorkspace)) (issue.severity === 'critical' ? criticalErrors : warnings).push(issue)
   const isValid = criticalErrors.length === 0
 
   return {

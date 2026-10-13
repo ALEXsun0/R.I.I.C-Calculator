@@ -1,4 +1,4 @@
-import {describe,it,expect} from 'vitest'
+import {describe,it,expect,vi} from 'vitest'
 import {readFileSync} from 'node:fs'
 import {importMowerJson} from '../workbench/compat/mowerJson'
 import {compileRosterSchedule} from './compileRosterSchedule'
@@ -9,6 +9,22 @@ import {prepareMowerShiftCycle} from './mowerShiftCycle'
 import {MowerOperatorState,type MowerOperatorOptions} from './mowerOperatorState'
 import {MowerSchedulingData,MowerDormState,type MowerSchedulingDataOptions} from './mowerSchedulingData'
 import {MowerTask,MowerTaskQueue,MOWER_TASK_TYPES as T,type MowerTaskPlan} from './mowerTaskQueue'
+
+// These October 3 Python fixtures retain their original source contract. Only the
+// two decisions changed by October 13 are pinned here; current decisions have
+// separate unmodified-Python oracle coverage in mowerAlphaDecisions.spec.ts.
+// This suite is historical regression evidence, not current full-preview parity.
+vi.mock('./mowerDormOrder', () => ({
+ orderMowerAlphaDormIndices: (data:MowerSchedulingData) => data.dorms.map((_, index) => index),
+}))
+vi.mock('./mowerOperatorState', async importOriginal => {
+ const actual = await importOriginal<typeof import('./mowerOperatorState')>()
+ return {...actual, mowerReplacementCandidates: (...args:Parameters<typeof actual.mowerReplacementCandidates>) =>
+  actual.mowerReplacementCandidates(...args).filter(name => {
+   const target = args[1][name]
+   return !target?.currentRoom || target.isResting()
+  })}
+})
 
 type SavedTask=Omit<Partial<MowerTask>,'type'|'productLockNames'|'productLockSlots'>&{type:{key:keyof typeof T};productLockNames:string[];productLockSlots:string[]}
 type SavedData=Omit<MowerSchedulingDataOptions,'operators'|'dorms'|'busyRestingNames'|'excludedCandidates'|'dormMoodEstimates'|'reservedProductReplacements'|'reservedProductBeds'|'emergencyDormAgents'|'recentShiftOnByRestUnit'>&{
@@ -31,7 +47,7 @@ function restoreData(raw:SavedData):MowerSchedulingData {
  return new MowerSchedulingData({...structuredClone(raw),operators,dorms:raw.dorms.map(b=>new MowerDormState([...b.position],b.name,b.timeMicros,b.autoFree)),busyRestingNames:new Set(raw.busyRestingNames),excludedCandidates:new Set(raw.excludedCandidates),dormMoodEstimates:new Map(raw.dormMoodEstimates),reservedProductReplacements:new Set(raw.reservedProductReplacements),reservedProductBeds:new Map(raw.reservedProductBeds),emergencyDormAgents:new Set(raw.emergencyDormAgents),recentShiftOnByRestUnit:new Map(raw.recentShiftOnByRestUnit)})
 }
 
-for(const oracle of oracles)describe('complete preview against frozen Mower alpha Python results',()=>{
+for(const oracle of oracles)describe('historical October 3 preview with pinned bed-order and working-cover decisions',()=>{
  const names=(plan:MowerTaskPlan)=>Object.fromEntries(Object.entries(plan).map(([room,row])=>[room,row.map(n=>oracle.names[n]??n)]))
  for(const [index,c] of oracle.cases.entries())it(`${index}: ${c.task.type.key} at ${c.data.nowMicros/3_600_000_000}h`,()=>{
   const workspace=importMowerJson(JSON.stringify(oracle.roster)),schedule=compileRosterSchedule(workspace,{restingThreshold:.65,rescueThreshold:.75,freeRoom:false,fiammettaFool:true,fiammettaThreshold:.9}),config=compiledScheduleToRuntimeConfig(schedule);config.mowerAlpha=true;config.availableIdleOperators=c.data.unregisteredIdleNames

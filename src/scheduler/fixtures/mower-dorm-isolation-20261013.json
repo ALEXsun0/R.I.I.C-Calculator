@@ -1,0 +1,225 @@
+{
+  "revision": "ab0a4e5bec23f6f8d7c37b0648f05dda28f31866",
+  "scope": "Unmodified plan_dorm_isolation, ordered_dorms and roommate methods; explicit offline occupancy/tier adapters. Not a full native scheduler or live-game oracle.",
+  "sourceSha256": {
+    "arknights_mower/utils/operators.py": "3cea0b585418154621f82958a47677f58cd1d30dfa2572530fff2eb647aa2982",
+    "arknights_mower/utils/plan.py": "724030b1f2a33a3e84229898654dee5839c7cacf0ffd73fbfb884d93c46c1191",
+    "arknights_mower/utils/scheduler_task.py": "d7ba1eeec8516c960779fc9d5a4873ed49b44d8e1770090f3708f0f89eecc385"
+  },
+  "cases": [
+    {
+      "name": "equal-tier newcomers",
+      "options": {},
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "C",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "B",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "existing resident",
+      "options": {
+        "residentB": true
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "reserved arrival slot",
+      "options": {
+        "reserved": [
+          [
+            "dormitory_1",
+            1
+          ]
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "product reservation",
+      "options": {
+        "productReserved": true
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "different recovery tiers",
+      "options": {
+        "priorityB": true
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "explicit order equal recovery key",
+      "options": {
+        "explicitOrder": true
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "C",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "B",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "explicit order different recovery key",
+      "options": {
+        "explicitOrder": true,
+        "moodC": 11
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      }
+    }
+  ]
+}

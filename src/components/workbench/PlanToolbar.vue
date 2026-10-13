@@ -436,7 +436,7 @@ async function handleFileImport(file: File): Promise<void> {
     const result = await importPlanFromFile(file, effectiveAdapters.value)
     // Atomically load into store
     store.loadWorkspace(result.workspace)
-    setStatus('success', `成功导入排班: ${file.name}`)
+    setStatus('success', [`成功导入排班: ${file.name}`, ...(result.workspace.compatibility.migrationWarnings ?? [])].join('；'))
     emit('imported', result.workspace)
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)

@@ -38,7 +38,7 @@
 
 ## 纳入范围
 
-共 574 个索引文件，其中应用 TypeScript/Vue/CSS 文件 206 个，业务测试文件 234 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
+共 606 个索引文件，其中应用 TypeScript/Vue/CSS 文件 221 个，业务测试文件 247 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
 
 ### 根目录管理入口
 
@@ -120,6 +120,7 @@ desktop/
 docs/
 ├── UPDATE_2026-09-25.md
 ├── UPDATE_2026-10-12_GAMEDATA_RECYCLE.md
+├── UPDATE_2026-10-13_MOWER_ALPHA.md
 ├── UPDATE_v1.1.0.md
 ├── UPDATE_v1.1.1.md
 ├── UPDATE_v1.1.2.md
@@ -174,16 +175,21 @@ src/
 │       ├── FacilityEditor.vue
 │       ├── GlobalReplaceModal.spec.ts
 │       ├── GlobalReplaceModal.vue
+│       ├── GroupBindingsEditor.spec.ts
+│       ├── GroupBindingsEditor.vue
 │       ├── LayoutPresetBar.spec.ts
 │       ├── LayoutPresetBar.vue
 │       ├── MobileFacilityNav.spec.ts
 │       ├── MobileFacilityNav.vue
+│       ├── MoodLimitsEditor.vue
 │       ├── OperatorImportModal.spec.ts
 │       ├── OperatorImportModal.vue
 │       ├── OperatorInventoryPanel.spec.ts
 │       ├── OperatorInventoryPanel.vue
 │       ├── OperatorSelectModal.spec.ts
 │       ├── OperatorSelectModal.vue
+│       ├── PlanAdvancedSettings.spec.ts
+│       ├── PlanAdvancedSettings.vue
 │       ├── PlanToolbar.spec.ts
 │       ├── PlanToolbar.vue
 │       ├── PolicyEditor.spec.ts
@@ -233,6 +239,9 @@ src/
 │   ├── edition.ts
 │   ├── facilities.ts
 │   ├── gamedataImport.spec.ts
+│   ├── mowerDormOrder.ts
+│   ├── mowerProducts.ts
+│   ├── mowerRosterRules.ts
 │   ├── newLogisticsData.spec.ts
 │   ├── operatorContext.ts
 │   ├── operatorIdentifiers.ts
@@ -387,6 +396,7 @@ src/
 │   │   ├── mower-accept-order-alpha.json
 │   │   ├── mower-alpha-control-fill-order.json
 │   │   ├── mower-alpha-correct-dorm.json
+│   │   ├── mower-alpha-decisions-20261013.json
 │   │   ├── mower-alpha-exhaust-support.json
 │   │   ├── mower-alpha-full-preview.json
 │   │   ├── mower-alpha-idle-search.json
@@ -401,6 +411,7 @@ src/
 │   │   ├── mower-current-room-duplicate-cache-alpha.json
 │   │   ├── mower-default-task-queue-alpha.json
 │   │   ├── mower-dorm-assignment-alpha-cases.json
+│   │   ├── mower-dorm-isolation-20261013.json
 │   │   ├── mower-dorm-recovery-alpha.json
 │   │   ├── mower-dorm-selection-alpha.json
 │   │   ├── mower-dorm-selection-preserve-alpha.json
@@ -418,6 +429,7 @@ src/
 │   │   ├── mower-return-two-groups-alpha.json
 │   │   ├── mower-run-entry-alpha.json
 │   │   ├── mower-run-order-refresh-alpha.json
+│   │   ├── mower-shared-groups-20261013.json
 │   │   ├── mower-task-scheduling-alpha.json
 │   │   └── mower-todo-task-alpha.json
 │   ├── backupExpression.ts
@@ -433,10 +445,14 @@ src/
 │   ├── moraleEndpoints.spec.ts
 │   ├── mowerAcceptOrder.spec.ts
 │   ├── mowerAcceptOrder.ts
+│   ├── mowerAdvancedSettings.spec.ts
+│   ├── mowerAdvancedSettings.ts
 │   ├── mowerAlphaCandidates.spec.ts
 │   ├── mowerAlphaCandidates.ts
 │   ├── mowerAlphaCorrectDorm.spec.ts
+│   ├── mowerAlphaDecisions.spec.ts
 │   ├── mowerAlphaDorm.ts
+│   ├── mowerAlphaDormOrder.spec.ts
 │   ├── mowerAlphaDormPlanning.ts
 │   ├── mowerAlphaExhaustSupport.spec.ts
 │   ├── mowerAlphaExhaustSupport.ts
@@ -454,7 +470,10 @@ src/
 │   ├── mowerAlphaTaskProtection.ts
 │   ├── mowerArrangementError.ts
 │   ├── mowerArrangementRetry.ts
+│   ├── mowerBackupConfig.spec.ts
+│   ├── mowerBackupConfig.ts
 │   ├── mowerBackupConvergence.spec.ts
+│   ├── mowerBackupReplacements.ts
 │   ├── mowerBatchPlanning.spec.ts
 │   ├── mowerBedPool.spec.ts
 │   ├── mowerBedTakeover.spec.ts
@@ -465,7 +484,10 @@ src/
 │   ├── mowerDepartingReplacements.spec.ts
 │   ├── mowerDormAssignment.spec.ts
 │   ├── mowerDormAssignment.ts
+│   ├── mowerDormIsolation.spec.ts
+│   ├── mowerDormIsolation.ts
 │   ├── mowerDormOrder.spec.ts
+│   ├── mowerDormOrder.ts
 │   ├── mowerDormRecovery.spec.ts
 │   ├── mowerDormRecovery.ts
 │   ├── mowerDormTasks.spec.ts
@@ -532,6 +554,8 @@ src/
 │   ├── mowerSelection.ts
 │   ├── mowerSelectionOrder.spec.ts
 │   ├── mowerServicesRuntime.spec.ts
+│   ├── mowerSharedGroups.spec.ts
+│   ├── mowerSharedGroups.ts
 │   ├── mowerShiftCycle.ts
 │   ├── mowerShiftProgress.spec.ts
 │   ├── mowerShiftProtection.spec.ts
@@ -565,12 +589,15 @@ src/
 │   ├── idealRunOrder.spec.ts
 │   ├── manufacturingTimeline.spec.ts
 │   ├── manufacturingTimeline.ts
+│   ├── mowerAlphaProductSimulation.spec.ts
 │   ├── mowerEfficiencyCache.spec.ts
 │   ├── mowerGladiiaFatigue.long.spec.ts
 │   ├── mowerManufactureIO.spec.ts
 │   ├── mowerNativeClueIO.ts
 │   ├── mowerNativeProductionIO.spec.ts
 │   ├── mowerNativeProductionIO.ts
+│   ├── mowerProductSwitching.spec.ts
+│   ├── mowerProductSwitching.ts
 │   ├── orderTimeline.spec.ts
 │   ├── orderTimeline.ts
 │   ├── potentialProduction.spec.ts
@@ -619,6 +646,8 @@ src/
 │   │   │   └── mower-342-pure-lmd.json
 │   │   ├── base45.spec.ts
 │   │   ├── base45.ts
+│   │   ├── mowerAlphaJson.spec.ts
+│   │   ├── mowerAlphaMigration.ts
 │   │   ├── mowerBackupAudit.spec.ts
 │   │   ├── mowerJson.spec.ts
 │   │   ├── mowerJson.ts
@@ -655,7 +684,9 @@ src/
 │   ├── levelInference.ts
 │   ├── migrate.spec.ts
 │   ├── migrate.ts
+│   ├── migrateAlpha.spec.ts
 │   ├── model.ts
+│   ├── mowerAlphaBridge.spec.ts
 │   ├── mowerReportMetrics.spec.ts
 │   ├── mowerReportMetrics.ts
 │   ├── operatorHelpers.spec.ts
@@ -673,6 +704,7 @@ src/
 │   ├── unbuiltFacilities.spec.ts
 │   ├── validate.spec.ts
 │   ├── validate.ts
+│   ├── validateBackupPlans.ts
 │   └── weightedReporting.spec.ts
 ├── App.vue
 ├── README.md

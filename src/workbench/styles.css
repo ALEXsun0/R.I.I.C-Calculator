@@ -20,7 +20,8 @@
   width: 100%;
   overflow-x: auto;
   display: flex;
-  justify-content: flex-start;
+  flex-direction: column;
+  align-items: flex-start;
   padding: 12px 0;
   box-sizing: border-box;
 }
@@ -32,6 +33,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  isolation: isolate;
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: rgba(255, 255, 255, 0.82);
@@ -72,19 +74,16 @@
 .mower-base-map .mid_box {
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
 .mower-base-map .mid_contain {
   display: flex;
 }
 
-/* Right Column: 4 Support Facilities */
+/* Right Column: aligned with central and the four dormitories. */
 .mower-base-map .right_box {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-top: 80px;
 }
 
 .mower-base-map .right_contain {
@@ -279,7 +278,7 @@
   gap: 6px;
   z-index: 5;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .mower-base-map .avatars img {
@@ -615,4 +614,10 @@
   .mower-facility-editor .mower-replacement-list {
     min-width: 260px !important;
   }
+}
+.mower-base-map .avatar-empty {
+  width: 45px;
+  height: 45px;
+  border-radius: 2px;
+  background: rgba(128, 128, 128, 0.25);
 }

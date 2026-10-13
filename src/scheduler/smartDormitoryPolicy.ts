@@ -232,6 +232,7 @@ function removeOperatorEverywhere(
       if (rId === excludeRoomId && sIdx === excludeSlotIndex) return
       if (slot.occupant.kind === 'operator' && resolveId(slot.occupant.operatorId) === targetId) {
         slot.occupant = rId.startsWith('dormitory') ? { kind: 'free' } : { kind: 'empty' }
+        delete slot.dormitoryResident
         if (rId.startsWith('dormitory')) {
           slot.replacements = []
         }
@@ -396,7 +397,7 @@ export function applySmartDormitoryPolicy(
       const availableDorms = [slowestRoom, ...dormIds.filter(id => id !== slowestRoom)]
       for (const dId of availableDorms) {
         const index = facilities[dId].slots.findIndex((slot, index) => !locked(dId, index) &&
-          slot.occupant.kind !== 'current' && (!slot.groupId || slot.occupant.kind === 'operator' && resolveId(slot.occupant.operatorId) === 'char_300_phenxi'))
+          slot.occupant.kind !== 'current' && (!slot.groupId && !slot.dormitoryResident || slot.occupant.kind === 'operator' && resolveId(slot.occupant.operatorId) === 'char_300_phenxi'))
         if (index >= 0) { fiammettaRoomId = dId; fiammettaSlotIndex = index; break }
       }
     }
@@ -429,10 +430,11 @@ export function applySmartDormitoryPolicy(
     for (let sIdx = 0; sIdx < fac.slots.length; sIdx++) {
       if (locked(dId, sIdx) || dId === fiammettaRoomId && sIdx === fiammettaSlotIndex) continue
       const slot = fac.slots[sIdx]
-      if (slot && (!slot.groupId || (slot.occupant.kind === 'operator' && !isOwned(resolveId(slot.occupant.operatorId))))) {
+      if (slot && (!slot.groupId && !slot.dormitoryResident || (slot.occupant.kind === 'operator' && !isOwned(resolveId(slot.occupant.operatorId))))) {
         slot.occupant = { kind: 'free' }
         slot.replacements = []
         slot.groupId = null
+        delete slot.dormitoryResident
       }
     }
   }
@@ -442,7 +444,7 @@ export function applySmartDormitoryPolicy(
   for (const [rId, fac] of Object.entries(facilities)) {
     if (rId.startsWith('dormitory')) {
       for (const [index, slot] of fac.slots.entries()) {
-        if (slot.occupant.kind === 'operator' && (slot.groupId || locked(rId, index))) {
+        if (slot.occupant.kind === 'operator' && (slot.groupId || slot.dormitoryResident || locked(rId, index))) {
           assignedWorkingIds.add(resolveId(slot.occupant.operatorId))
         }
       }
@@ -547,12 +549,13 @@ export function applySmartDormitoryPolicy(
     for (let sIdx = 0; sIdx < fac.slots.length; sIdx++) {
       if (dId === fiammettaRoomId && sIdx === fiammettaSlotIndex) continue
       const slot = fac.slots[sIdx]
-      if (slot?.occupant.kind === 'operator' && (slot.groupId || locked(dId, sIdx))) {
+      if (slot?.occupant.kind === 'operator' && (slot.groupId || slot.dormitoryResident || locked(dId, sIdx))) {
         currentPermanentCount++
       }
     }
   }
 
+  // Resident keepers and presence supporters keep user bindings; skill tags do not create shift groups.
   // 2. Assign dorm keepers while preserving required free beds for largest group
   for (const dId of dormIds) {
     const fac = facilities[dId]
@@ -584,7 +587,6 @@ export function applySmartDormitoryPolicy(
           removeOperatorEverywhere(workspace, aoeOp.charId, dId, targetIdx)
           fac.slots[targetIdx]!.occupant = { kind: 'operator', operatorId: aoeOp.charId }
           fac.slots[targetIdx]!.replacements = []
-          fac.slots[targetIdx]!.groupId = fac.slots[targetIdx]!.groupId || (hasRiicTag(aoeOp, 'durin') ? 'durin_synergy' : 'dorm_keeper')
           usedKeepers.add(aoeOp.charId)
           assignedWorkingIds.add(aoeOp.charId)
           keeperReport[dId].aoe = aoeOp.charId
@@ -624,7 +626,6 @@ export function applySmartDormitoryPolicy(
           removeOperatorEverywhere(workspace, singleOp.charId, dId, targetIdx)
           fac.slots[targetIdx]!.occupant = { kind: 'operator', operatorId: singleOp.charId }
           fac.slots[targetIdx]!.replacements = []
-          fac.slots[targetIdx]!.groupId = fac.slots[targetIdx]!.groupId || (hasRiicTag(singleOp, 'durin') ? 'durin_synergy' : 'dorm_keeper')
           usedKeepers.add(singleOp.charId)
           assignedWorkingIds.add(singleOp.charId)
           keeperReport[dId].single = singleOp.charId
@@ -683,7 +684,6 @@ export function applySmartDormitoryPolicy(
           if (slot && !locked(auxId, sIdx) && (slot.occupant.kind === 'empty' || slot.occupant.kind === 'free')) {
             removeOperatorEverywhere(workspace, op.charId, auxId, sIdx)
             slot.occupant = { kind: 'operator', operatorId: op.charId }
-            slot.groupId = slot.groupId || 'durin_synergy'
             usedKeepers.add(op.charId)
             assignedWorkingIds.add(op.charId)
             synergyReport.push({ operatorId: op.charId, roomId: auxId, slotIndex: sIdx })
@@ -705,7 +705,6 @@ export function applySmartDormitoryPolicy(
             if (slot && !locked(lowestSlot.roomId, lowestSlot.slotIndex) && (slot.occupant.kind === 'empty' || slot.occupant.kind === 'free')) {
               removeOperatorEverywhere(workspace, op.charId, lowestSlot.roomId, lowestSlot.slotIndex)
               slot.occupant = { kind: 'operator', operatorId: op.charId }
-              slot.groupId = slot.groupId || 'durin_synergy'
               usedKeepers.add(op.charId)
               assignedWorkingIds.add(op.charId)
               synergyReport.push({ operatorId: op.charId, roomId: lowestSlot.roomId, slotIndex: lowestSlot.slotIndex })

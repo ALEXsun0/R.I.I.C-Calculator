@@ -536,7 +536,7 @@ describe('Mower JSON Compatibility Layer', () => {
       const backups = exported.backup_plans as Array<{ name: string }>
       expect(backups[0]!.name).toBe('backup1')
       expect(exported.unrecognized_root_prop).toEqual({ version: 'mower-v3' })
-      expect(exported.conf.free_blacklist).toEqual(['char_102_texas', 'char_103_angel'])
+      expect(exported.conf.free_blacklist).toBe('德克萨斯,能天使')
       expect(exported.conf.custom_conf_attr).toBe('keep_me')
     })
 

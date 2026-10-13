@@ -138,3 +138,29 @@ describe('integrated Mower source scheduler',()=>{
  })
 
 })
+
+ it('refreshes a zero-depletion working Fiammetta candidate before selecting the charge target',()=>{
+  const config=fixture(),fia='char_300_phenxi';config.mowerAlpha=true
+  config.positions[1]!.primary=fia;config.mowerSourcePlan!.dormitory_1![0]!.agent=fia
+  config.initialMorale={A:24,R:24,[fia]:24};config.fiammetta={operatorId:fia,orderedTargets:['A'],fool:true,threshold:1}
+  const state=createRosterRuntime(config);settleRoster(state,rates)
+  const source=getMowerSourceRuntime(state),candidate=source.data.operators.A!
+  expect(candidate.mood).toBe(24);candidate.depletionRate=0;candidate.timeStampMicros=source.data.nowMicros
+  state.morale.A=10;source.queue.tasks=[new MowerTask({time:state.time,type:T.FIAMMETTA})]
+  settleRoster(state,rates)
+  expect(state.events.find(event=>event.type==='fiammetta')?.operators).toEqual([fia,'A'])
+  expect(state.morale.A).toBe(24);expect(state.morale[fia]).toBe(10)
+ })
+
+ it('retains learned working depletion through an alpha Fiammetta charge and restoration',()=>{
+  const config=fixture(),fia='char_300_phenxi';config.mowerAlpha=true
+  config.positions[1]!.primary=fia;config.mowerSourcePlan!.dormitory_1![0]!.agent=fia
+  config.initialMorale={A:24,R:24,[fia]:24};config.fiammetta={operatorId:fia,orderedTargets:['A'],fool:true,threshold:21.6}
+  const state=createRosterRuntime(config);settleRoster(state,rates)
+  const source=getMowerSourceRuntime(state);source.data.operators.A!.depletionRate=.7;source.data.operators.A!.mood=10;state.morale.A=10
+  source.queue.tasks=[new MowerTask({time:state.time,type:T.FIAMMETTA})]
+  settleRoster(state,rates)
+  expect(state.events.some(e=>e.type==='fiammetta')).toBe(true)
+  expect(state.occupants.room_1_1_0).toBe('A')
+  expect(source.data.operators.A!.depletionRate).toBe(.7)
+ })

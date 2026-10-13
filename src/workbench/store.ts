@@ -1,3 +1,5 @@
+import {promoteMowerAlphaWorkspace} from './migrate'
+import {resolveOperatorCharId, restoreOperatorMowerName} from '../domain/operatorIdentifiers'
 import { defineStore } from 'pinia'
 import { computed, ref, toRaw } from 'vue'
 import { createDefaultWorkspace } from './defaults'
@@ -6,6 +8,7 @@ import { normalizeMissingFacilities } from './facilityState'
 import { promotePreservedRecycleRoom } from './compat/mowerJson'
 import {
   MOWER_OUTPUT_ROOM_IDS,
+  MOWER_OPERATOR_LIST_FIELDS,
   type MowerFacility,
   type MowerMainConf,
   type MowerOccupant,
@@ -27,9 +30,11 @@ export const useRosterWorkbenchStore = defineStore('rosterWorkbench', () => {
   })
 
   function loadWorkspace(candidate: RosterWorkspace): void {
-    workspace.value = structuredClone(toRaw(candidate))
-    promotePreservedRecycleRoom(workspace.value)
-    normalizeMissingFacilities(workspace.value)
+    const loaded = structuredClone(toRaw(candidate))
+    normalizeMissingFacilities(loaded)
+    promotePreservedRecycleRoom(loaded)
+    promoteMowerAlphaWorkspace(loaded)
+    workspace.value = loaded
   }
 
   function selectRoom(roomId: MowerRoomId | null): void {
@@ -109,7 +114,14 @@ export const useRosterWorkbenchStore = defineStore('rosterWorkbench', () => {
   function updateSlotOccupant(roomId: MowerRoomId, slotIndex: number, occupant: MowerOccupant): void {
     const facility = workspace.value.mainPlan.facilities[roomId]
     if (!facility || !facility.slots[slotIndex]) return
-    facility.slots[slotIndex].occupant = structuredClone(toRaw(occupant))
+    const slot = facility.slots[slotIndex]
+    slot.occupant = structuredClone(toRaw(occupant))
+    delete slot.dormitoryResident
+    if (occupant.kind !== 'operator') {
+      slot.groupId = null
+      slot.replacements = []
+      delete slot.groupBindings
+    }
     markRoomPresent(roomId)
   }
 
@@ -173,9 +185,11 @@ export const useRosterWorkbenchStore = defineStore('rosterWorkbench', () => {
           slot.occupant.operatorId = replacementOpId
           modified = true
         }
-        if (slot.replacements.includes(targetOpId)) {
-          slot.replacements = slot.replacements.map((id) => (id === targetOpId ? replacementOpId : id))
-          modified = true
+        for (const binding of [slot, ...(slot.groupBindings ?? [])]) {
+          if (binding.replacements.includes(targetOpId)) {
+            binding.replacements = binding.replacements.map(id => id === targetOpId ? replacementOpId : id)
+            modified = true
+          }
         }
       }
       if (modified) {
@@ -183,20 +197,38 @@ export const useRosterWorkbenchStore = defineStore('rosterWorkbench', () => {
       }
     }
 
-    const conf = workspace.value.mainPlan.conf
-    const policyKeys: Array<keyof MowerMainConf> = [
-      'exhaust_require',
-      'rest_in_full',
-      'resting_priority',
-      'workaholic',
-      'refresh_trading',
-      'refresh_drained',
-      'ope_resting_priority',
-    ]
-    for (const key of policyKeys) {
-      const list = conf[key]
-      if (Array.isArray(list)) {
-        conf[key] = list.map((id: string) => (id === targetOpId ? replacementOpId : id)) as never
+    const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
+    const replace = (value: unknown): unknown => {
+      if (typeof value !== 'string') return value
+      const suffix = value.indexOf('('), name = suffix < 0 ? value : value.slice(0, suffix)
+      if (resolveOperatorCharId(name.trim()) !== resolveOperatorCharId(targetOpId)) return value
+      return (name.startsWith('char_') ? replacementOpId : restoreOperatorMowerName(replacementOpId)) + (suffix < 0 ? '' : value.slice(suffix))
+    }
+    const replaceList = (value: unknown): unknown => Array.isArray(value) ? value.map(replace) : typeof value === 'string' ? value.split(/[,，]/).map(replace).join(',') : value
+    const replaceConf = (conf: Record<string, unknown>) => {
+      for (const field of MOWER_OPERATOR_LIST_FIELDS) if (conf[field] !== undefined) conf[field] = replaceList(conf[field])
+      if (record(conf.removed_operators)) for (const field of MOWER_OPERATOR_LIST_FIELDS) if (conf.removed_operators[field] !== undefined) conf.removed_operators[field] = replaceList(conf.removed_operators[field])
+      if (record(conf.operator_mood_limits)) conf.operator_mood_limits = Object.fromEntries(Object.entries(conf.operator_mood_limits).map(([name, limits]) => [String(replace(name)), limits]))
+    }
+    replaceConf(workspace.value.mainPlan.conf)
+    const advanced = workspace.value.compatibility.unrecognizedFields.advanced_settings
+    if (record(advanced)) {
+      if (Array.isArray(advanced.dorm_isolation)) advanced.dorm_isolation = advanced.dorm_isolation.map(group => Array.isArray(group) ? group.map(replace) : group)
+      if (advanced.favorite !== undefined) advanced.favorite = replaceList(advanced.favorite)
+    }
+    for (const backup of workspace.value.compatibility.backupPlans) {
+      if (!record(backup)) continue
+      if (record(backup.conf)) replaceConf(backup.conf)
+      if (record(backup.task)) for (const room of Object.keys(backup.task)) backup.task[room] = replaceList(backup.task[room])
+      if (!record(backup.plan)) continue
+      for (const facility of Object.values(backup.plan)) {
+        if (!record(facility) || !Array.isArray(facility.plans)) continue
+        for (const slot of facility.plans) {
+          if (!record(slot)) continue
+          slot.agent = replace(slot.agent)
+          if (slot.replacement !== undefined) slot.replacement = replaceList(slot.replacement)
+          if (Array.isArray(slot.group_bindings)) for (const binding of slot.group_bindings) if (record(binding) && binding.replacement !== undefined) binding.replacement = replaceList(binding.replacement)
+        }
       }
     }
   }
@@ -221,8 +253,10 @@ export const useRosterWorkbenchStore = defineStore('rosterWorkbench', () => {
       if (!facility) continue
       for (const slot of facility.slots) {
         slot.occupant = { kind: 'empty' }
+        delete slot.dormitoryResident
         slot.groupId = null
         slot.replacements = []
+        delete slot.groupBindings
         delete slot.metadata
       }
     }
@@ -233,7 +267,6 @@ export const useRosterWorkbenchStore = defineStore('rosterWorkbench', () => {
     const plans = workspace.value.compatibility.backupPlans
     const newPlan = plan ? structuredClone(toRaw(plan)) : {
       name: `副表 #${plans.length + 1}`,
-      trigger_timing: 'BEFORE_PLANNING',
       trigger: 'True',
       task: {},
       plan: {},

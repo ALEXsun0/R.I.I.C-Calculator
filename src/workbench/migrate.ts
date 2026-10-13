@@ -1,7 +1,11 @@
+import { importMowerGroupBindings } from './compat/mowerJson'
+import { migrateMowerAlphaDocument } from './compat/mowerAlphaMigration'
+import { resolveOperatorCharId } from '../domain/operatorIdentifiers'
 import type { AppConfig, OutputRoom } from '../domain/types'
 import { createDefaultWorkspace } from './defaults'
 import {
   MOWER_OUTPUT_ROOM_IDS,
+  MOWER_OPERATOR_LIST_FIELDS,
   mowerRoomToOutputRoomId,
   type MowerProduct,
   type MowerSlot,
@@ -166,4 +170,36 @@ export function migrateAppConfigToWorkspace(config: AppConfig): RosterWorkspace 
   }
 
   return ws
+}
+
+/** Promote pre-alpha opaque fields without rebuilding user-edited facility levels. */
+export function promoteMowerAlphaWorkspace(workspace: RosterWorkspace): void {
+  const migration = migrateMowerAlphaDocument(JSON.parse(JSON.stringify({
+    conf: workspace.mainPlan.conf,
+    backup_plans: workspace.compatibility.backupPlans,
+    advanced_settings: workspace.compatibility.unrecognizedFields.advanced_settings,
+  })))
+  Object.assign(workspace.mainPlan.conf, migration.document.conf)
+  workspace.compatibility.backupPlans = migration.document.backup_plans as unknown[]
+  if (migration.document.advanced_settings !== undefined) workspace.compatibility.unrecognizedFields.advanced_settings = migration.document.advanced_settings
+  if (migration.retiredBackupPlans.length) workspace.compatibility.retiredBackupPlans = [...(workspace.compatibility.retiredBackupPlans ?? []), ...migration.retiredBackupPlans]
+  const warnings = [...(workspace.compatibility.migrationWarnings ?? []), ...migration.warnings]
+  for (const key of MOWER_OPERATOR_LIST_FIELDS) {
+    const value: unknown = workspace.mainPlan.conf[key]
+    if (typeof value === 'string') workspace.mainPlan.conf[key] = value.split(/[,，]/).map(item => item.trim()).filter(Boolean).map(resolveOperatorCharId)
+  }
+  for (const facility of Object.values(workspace.mainPlan.facilities)) {
+    if (facility.product === undefined && workspace.compatibility.facilityMetadata?.[facility.roomId]?.rawProduct === 'orirock_device') facility.product = 'fragment'
+    for (const slot of facility.slots) {
+      if (slot.groupBindings !== undefined || slot.metadata?.group_bindings === undefined) continue
+      try {
+        slot.groupBindings = importMowerGroupBindings(slot.metadata.group_bindings, facility.roomId)
+        delete slot.metadata.group_bindings
+        if (!Object.keys(slot.metadata).length) delete slot.metadata
+      } catch {
+        warnings.push(`${facility.roomId} 的旧分组数据格式无效，已保留原始内容`)
+      }
+    }
+  }
+  if (warnings.length) workspace.compatibility.migrationWarnings = [...new Set(warnings)]
 }

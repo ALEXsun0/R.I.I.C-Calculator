@@ -1,9 +1,9 @@
 <template>
   <tr class="mower-slot-row">
-    <td class="select-label">
+    <td class="select-label" :rowspan="1 + (slot.groupBindings?.length ?? 0)">
       {{ rowLabel }}
     </td>
-    <td class="table-space">
+    <td class="table-space" :rowspan="1 + (slot.groupBindings?.length ?? 0)">
       <div class="operator-cell operator-select">
         <n-select
           :value="occupantSelectValue"
@@ -28,6 +28,7 @@
       <span>组</span>
     </td>
     <td class="table-space group">
+      <div class="binding-group">
       <n-input
         :value="slot.groupId ?? ''"
         class="group-input"
@@ -36,6 +37,8 @@
         :disabled="isEmpty"
         @update:value="onGroupChange"
       />
+      <n-button size="small" title="新增绑组" aria-label="新增绑组" :disabled="isEmpty || operatorButtonText === '菲亚梅塔'" @click="bindingsEditor?.add()">+</n-button>
+      </div>
     </td>
     <td class="select-label">
       <span>替换：</span>
@@ -49,8 +52,10 @@
         :disabled="isEmpty"
         @pick="onPickReplacement"
       />
+      <n-button v-if="roomId.startsWith('dormitory_') && slot.groupId && slot.occupant.kind === 'operator' && operatorButtonText !== '菲亚梅塔' && !slot.replacements.includes('Free')" size="tiny" @click="store.addReplacement(roomId, slotIndex, 'Free')">添加 Free 替班</n-button>
     </td>
   </tr>
+  <GroupBindingsEditor v-if="slot.occupant.kind === 'operator'" ref="bindingsEditor" :room-id="roomId" :slot-index="slotIndex" :slot="slot" />
 </template>
 
 <script setup lang="ts">
@@ -63,6 +68,7 @@
 import { computed, ref, watch } from 'vue'
 import { NButton, NInput, NSelect } from 'naive-ui'
 import ReplacementList from './ReplacementList.vue'
+import GroupBindingsEditor from './GroupBindingsEditor.vue'
 import { useRosterWorkbenchStore } from '../../workbench/store'
 import { getOperatorAvatarUrl } from '../../workbench/operatorHelpers'
 import { OPERATOR_MAP } from '../../domain/operators'
@@ -75,6 +81,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const bindingsEditor = ref<InstanceType<typeof GroupBindingsEditor> | null>(null)
 const avatarFailed = ref(false)
 watch(() => props.slot.occupant, () => { avatarFailed.value = false }, { deep: true })
 
@@ -87,7 +94,7 @@ const emit = defineEmits<{
 
 const store = useRosterWorkbenchStore()
 
-const isEmpty = computed<boolean>(() => props.slot.occupant.kind === 'empty')
+const isEmpty = computed<boolean>(() => props.slot.occupant.kind !== 'operator')
 
 const rowLabel = computed<string>(() => {
   if (props.roomId === 'train') {
@@ -154,6 +161,9 @@ function onPickReplacement(): void {
 </script>
 
 <style scoped>
+.binding-group {display:flex;align-items:center;gap:4px;}
+.binding-group .n-input {min-width:90px;}
+.binding-group .n-button {flex-shrink:0;padding:0 9px;}
 .main-operator-avatar { width: 32px; height: 32px; object-fit: cover; border-radius: 4px; margin-right: 6px; }
 .operator-pick-btn:has(.main-operator-avatar) { height: 40px; }
 </style>

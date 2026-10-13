@@ -12,7 +12,7 @@ export function runScheduleSimulationBridge(
   onProgress?: (progress: ScheduleSimulationProgress) => void,
 ): { report: ScheduleSimulationReport | null; error?: string } {
   const cleanWorkspace: RosterWorkspace = JSON.parse(JSON.stringify(workspace))
-  const cleanOptions: ScheduleSimulationOptions = JSON.parse(JSON.stringify(options))
+  const cleanOptions: ScheduleSimulationOptions = { schedulingModel: 'mower-alpha', ...JSON.parse(JSON.stringify(options)) }
   const cleanAssumptions: Partial<SimulationAssumptions> = JSON.parse(JSON.stringify(assumptions))
 
   const validation = validateRosterWorkspace(cleanWorkspace)

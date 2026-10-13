@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRosterWorkbenchStore } from '../../workbench/store'
 import OperatorInventoryPanel from './OperatorInventoryPanel.vue'
 import ProductionWeightsEditor from './ProductionWeightsEditor.vue'
 import type { OwnedOperatorInput } from '../../domain/operatorInventory'
@@ -11,12 +13,34 @@ const props = defineProps<{
   settings: SimulationSettings
 }>()
 
+const store = useRosterWorkbenchStore()
+const advancedKeys = {
+  fiammettaFool: 'fia_fool', fiammettaThreshold: 'fia_threshold',
+  restingThreshold: 'resting_threshold', rescueThreshold: 'rescue_threshold', freeRoom: 'free_room',
+} as const
+const settings = computed(() => {
+  const result = { ...props.settings }
+  const advanced = store.workspace.compatibility.unrecognizedFields.advanced_settings
+  if (advanced && typeof advanced === 'object' && !Array.isArray(advanced)) {
+    for (const [key, source] of Object.entries(advancedKeys)) {
+      if (Object.prototype.hasOwnProperty.call(advanced, source)) Object.assign(result, { [key]: (advanced as Record<string, unknown>)[source] })
+    }
+  }
+  return result
+})
+
 const emit = defineEmits<{
   (e: 'update:settings', val: SimulationSettings): void
   (e: 'inventory-change', val: { enabled: boolean; valid: boolean; entries: OwnedOperatorInput[] }): void
 }>()
 
 function updateField<K extends keyof SimulationSettings>(key: K, val: SimulationSettings[K]): void {
+  const advancedKey = advancedKeys[key as keyof typeof advancedKeys]
+  if (advancedKey) {
+    const previous = store.workspace.compatibility.unrecognizedFields.advanced_settings
+    const advanced = previous && typeof previous === 'object' && !Array.isArray(previous) ? previous : {}
+    store.workspace.compatibility.unrecognizedFields.advanced_settings = { ...advanced, [advancedKey]: val }
+  }
   emit('update:settings', {
     ...props.settings,
     [key]: val,
@@ -40,7 +64,7 @@ function updateField<K extends keyof SimulationSettings>(key: K, val: Simulation
             <option value="true">开启（Mower 默认）</option>
             <option value="false">关闭（允许最低心情候选兜底）</option>
           </select>
-          <span class="control-hint">按作业要求设置；排班图片不包含这个全局选项。</span>
+          <span class="control-hint">与排班高级设置共用；支持随新版排班导入和导出。</span>
         </label>
         <label class="control-item">
           <span class="control-label">菲亚阈值（%）</span>
@@ -62,7 +86,7 @@ function updateField<K extends keyof SimulationSettings>(key: K, val: Simulation
             <option value="false">关闭（Mower 默认）</option>
             <option value="true">开启（恢复后腾出床位）</option>
           </select>
-          <span class="control-hint">对应 Mower 全局 free_room；排班图片不包含此选项。</span>
+          <span class="control-hint">与排班高级设置中的「宿舍不养闲人」共用。</span>
         </label>
         <!-- 采样天数 -->
         <label class="control-item">

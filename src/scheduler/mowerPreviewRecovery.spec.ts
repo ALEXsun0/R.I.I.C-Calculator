@@ -31,9 +31,13 @@ describe('recoverable Mower preview failure',()=>{
   expect(state.occupants).toEqual(before)
  })
 
- it('finishes the original first-day roster with the default compatibility strategy and a bounded event budget',()=>{
-  const workspace=importMowerJson(readFileSync(new URL('../../validation/mower-backup-2026-09-22/roster.json',import.meta.url),'utf8'))
-  const result=runScheduleSimulationBridge(workspace,{sampleHours:24,warmupHours:0,maxEvents:2000,warmupModel:'hourly',recordSegments:true,production:{outputMode:'potential',runOrderMode:'ideal',droneTarget:'exp',seed:42}},{fiammettaFool:false,restingThreshold:.65})
+ it('finishes the original first-day roster with the September compatibility strategy and a bounded event budget',()=>{
+  const json=readFileSync(new URL('../../validation/mower-backup-2026-09-22/roster.json',import.meta.url),'utf8')
+  const workspace=importMowerJson(json)
+  // The September contract includes retired phase timing fields. Current
+  // imports migrate them away; this historical fixture retains its source input.
+  workspace.compatibility.backupPlans=JSON.parse(json).backup_plans
+  const result=runScheduleSimulationBridge(workspace,{schedulingModel:'mower-default',sampleHours:24,warmupHours:0,maxEvents:2000,warmupModel:'hourly',recordSegments:true,production:{outputMode:'potential',runOrderMode:'ideal',droneTarget:'exp',seed:42}},{fiammettaFool:false,restingThreshold:.65})
   expect(result.report?.success,JSON.stringify(result.report?.diagnostics)).toBe(true)
   expect(result.report?.production?.success).toBe(true)
   expect(result.report?.elapsedHours).toBe(24)
@@ -74,11 +78,15 @@ describe('recoverable Mower preview failure',()=>{
 
  it('passes both the rejected preview and a later unchanged shift without disabling backups',()=>{
   const json=readFileSync(new URL('../../validation/mower-backup-2026-09-22/roster.json',import.meta.url),'utf8')
-  const workspace=importMowerJson(json),before=structuredClone(workspace)
+  const workspace=importMowerJson(json)
+  workspace.compatibility.backupPlans=JSON.parse(json).backup_plans
+  const before=structuredClone(workspace)
+  // This September fixture keeps its original model; current alpha decisions
+  // are covered by the October 13 native oracles and shared-group runtime tests.
   // Confirmed dorm recovery changes the physical return trajectory: this fixed
   // fixture completes in 3027 intervals. Keep a tight total budget, and guard
   // local density and consecutive clock quanta instead of only counting hours.
-  const result=runScheduleSimulationBridge(workspace,{sampleHours:48,warmupHours:0,maxEvents:3200,warmupModel:'hourly',recordSegments:true,production:{outputMode:'potential',runOrderMode:'ideal',droneTarget:'gold',seed:42}},{fiammettaFool:true,restingThreshold:.65})
+  const result=runScheduleSimulationBridge(workspace,{schedulingModel:'mower-default',sampleHours:48,warmupHours:0,maxEvents:3200,warmupModel:'hourly',recordSegments:true,production:{outputMode:'potential',runOrderMode:'ideal',droneTarget:'gold',seed:42}},{fiammettaFool:true,restingThreshold:.65})
   expect(result.error).toBeUndefined()
   expect(result.report?.success,JSON.stringify(result.report?.diagnostics)).toBe(true)
   expect(result.report?.production?.success).toBe(true)

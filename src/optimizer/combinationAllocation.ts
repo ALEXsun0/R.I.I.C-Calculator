@@ -58,7 +58,7 @@ function groupVariant(ws: RosterWorkspace, variant: CombinationVariant, locks: A
   // Presence support remains stationed in both shifts; it is not a working shift group.
   for (const p of variant.placements.filter(p => ws.mainPlan.facilities[p.roomId].type === 'dormitory')) {
     const slot = ws.mainPlan.facilities[p.roomId].slots[p.slotIndex]!
-    if (!frozen(p.roomId, p.slotIndex)) slot.groupId ||= `组合驻留_${variant.definitionId}_${key(p)}`
+    if (!frozen(p.roomId, p.slotIndex)) slot.dormitoryResident = true
   }
   applyCombinationPolicy(ws, variant.policy)
   return !locks.enforceRecoveryCapacity || recoveryGroupCapacityIssues(ws, true).length === 0

@@ -1,3 +1,4 @@
+import { effectiveMowerDormOrder } from '../domain/mowerDormOrder'
 import {orderMowerRecoveryBeds} from './mowerGlobalDormOrder'
 import {readMowerMoodLimits} from './mowerMoodLimits'
 import { isTradeRunOrderOperator } from '../domain/shiftRunPolicy'
@@ -162,6 +163,9 @@ export function compiledScheduleToRuntimeConfig(schedule: CompiledSchedule): Run
 
   const sourceList=(key:string)=>{const raw=(schedule.policies as Record<string,unknown>)[key];return (Array.isArray(raw)?raw:typeof raw==='string'?raw.split(','):[]).map(String).filter(Boolean).map(resolveOperatorCharId)}
   return {
+    mowerDormIsolation:schedule.assumptions.dormIsolation,
+    mowerDormOrder:effectiveMowerDormOrder(typeof schedule.rawConf.dorm_order==='string'?schedule.rawConf.dorm_order.split(','):[]),
+    majorMaintenanceStartHours:schedule.assumptions.majorMaintenanceStartHours,
     mowerMoodLimits:readMowerMoodLimits(schedule.rawConf,resolveOperatorCharId),
     mowerDroneRoom:schedule.assumptions.droneRoom??null,
     // Preserve ideal runner metadata; excludedCandidates below blocks ordinary shift use.
@@ -172,11 +176,11 @@ export function compiledScheduleToRuntimeConfig(schedule: CompiledSchedule): Run
     mowerDroneCountLimit:schedule.assumptions.droneCountLimit??100,
     mowerRecycleBuilt:schedule.rooms.some(room=>room.type==='recycle')||undefined,
     mowerRunLoopClock:{minimumClockStepMicros:1,notificationSleepMicros:1_000_000},
-    mowerSourcePlan:Object.fromEntries(schedule.rooms.filter(r=>r.type!=='gaming'&&r.type!=='').flatMap(r=>{let last=r.slots.length-1;while(last>=0&&!r.slots[last]!.primaryOperatorId&&r.slots[last]!.occupant.kind!=='free')last--;return last<0?[]:[[r.roomId,r.slots.slice(0,last+1).map(slot=>({agent:slot.primaryOperatorId??(slot.occupant.kind==='free'?'Free':'Current'),group:slot.groupId??'',replacement:[...slot.orderedCandidates]}))]]})),
+    mowerSourcePlan:Object.fromEntries(schedule.rooms.filter(r=>r.type!=='gaming'&&r.type!=='').flatMap(r=>{let last=r.slots.length-1;while(last>=0&&!r.slots[last]!.primaryOperatorId&&r.slots[last]!.occupant.kind!=='free')last--;return last<0?[]:[[r.roomId,r.slots.slice(0,last+1).map(slot=>({agent:slot.primaryOperatorId??(slot.occupant.kind==='free'?'Free':'Current'),group:slot.groupId??'',replacement:[...slot.orderedCandidates],groupBindings:slot.groupBindings?structuredClone(slot.groupBindings):undefined}))]]})),
     mowerSourceRules:{workaholic:sourceList('workaholic'),exhaustRequire:sourceList('exhaust_require'),restInFull:sourceList('rest_in_full'),lowPriority:sourceList('resting_priority'),refreshDrained:sourceList('refresh_drained'),refreshTrading:sourceList('refresh_trading'),lingMode:mode,standby:sourceList('resting_standby'),priorityReplacement:sourceList('resting_priority_replacement'),freeRoomExclusions:sourceList('free_room_exclusions')},
     idleOperators: schedule.assumptions.idleOperators,
     freeBlacklist: [...new Set([...sourceList('free_blacklist'),...sourceList('workaholic')])],
-    mowerPolicy: { groupRestInFullOnMoodGap:schedule.assumptions.groupRestInFullOnMoodGap, groupMoodGapMaxExtraWaitHours:schedule.assumptions.groupMoodGapMaxExtraWaitHours, mergeIntervalMinutes:schedule.assumptions.mergeIntervalMinutes, restMoodLimits, restingThreshold, freeRoom: schedule.assumptions.freeRoom ?? false, rescueThreshold: schedule.assumptions.rescueThreshold ?? 0.75, taskBuffers: true, powerPlantCount: schedule.rooms.filter(r => r.type === 'power').length, opeRestingPriority: [...(schedule.policies.ope_resting_priority ?? [])] },
+    mowerPolicy: { groupRestInFullOnMoodGap:schedule.assumptions.groupRestInFullOnMoodGap, groupMoodGapThresholdMinutes:schedule.assumptions.groupMoodGapThresholdMinutes, groupMoodGapMaxExtraWaitHours:schedule.assumptions.groupMoodGapMaxExtraWaitHours, mergeIntervalMinutes:schedule.assumptions.mergeIntervalMinutes, restMoodLimits, restingThreshold, freeRoom: schedule.assumptions.freeRoom ?? false, rescueThreshold: schedule.assumptions.rescueThreshold ?? 0.75, taskBuffers: true, powerPlantCount: schedule.rooms.filter(r => r.type === 'power').length, opeRestingPriority: [...(schedule.policies.ope_resting_priority ?? [])] },
     positions,
     beds:orderMowerRecoveryBeds(beds,schedule.assumptions.dormOrder??''),
     initialMorale,

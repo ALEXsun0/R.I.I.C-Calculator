@@ -453,6 +453,22 @@ describe('BaseMap.vue', () => {
     expect(store.workspace.mainPlan.facilities.room_1_2.type).toBe('manufacture')
   })
 
+  it('preserves dorm slot positions and displays both shared-group color segments', () => {
+    const store = useRosterWorkbenchStore()
+    const dorm = store.workspace.mainPlan.facilities.dormitory_4
+    dorm.slots[2] = {
+      occupant: { kind: 'operator', operatorId: 'char_242_otter' },
+      groupId: '烟火', replacements: ['Free'],
+      groupBindings: [{ groupId: '自动化', replacements: ['Free'] }],
+    }
+    const wrapper = mount(BaseMap)
+    const avatars = wrapper.find('[data-room-id="dormitory_4"]').findAll('.avatar-wrapper')
+    expect(avatars).toHaveLength(5)
+    expect(avatars[0]!.find('.avatar-empty').exists()).toBe(true)
+    expect(avatars[2]!.get('img').attributes('style')).toContain('linear-gradient(to right')
+    expect(avatars[2]!.get('img').attributes('style')).toContain('50%')
+  })
+
   it('provides responsive adaptive scaling for mobile and small screens', async () => {
     Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 480 })
     window.dispatchEvent(new Event('resize'))
@@ -465,9 +481,9 @@ describe('BaseMap.vue', () => {
     expect(fitBtn.exists()).toBe(true)
     expect(originalBtn.exists()).toBe(true)
 
-    // Initially 100%
-    expect(wrapper.vm.zoomMode).toBe('100')
-    expect(wrapper.vm.computedScale).toBe(1)
+    // Start with the whole Mower board visible on narrow screens.
+    expect(wrapper.vm.zoomMode).toBe('fit')
+    expect(wrapper.vm.computedScale).toBeLessThan(1)
 
     // Switch to fit mode
     await fitBtn.trigger('click')

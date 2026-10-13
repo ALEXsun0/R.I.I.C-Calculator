@@ -67,8 +67,9 @@ it('records the scheduling model and excludes comparisons across models',()=>{
  const r=report(),b=summarizeIncome(r)
  expect(b.eligible).toBe(true)
  expect(b.assumptions.some(d=>d.code==='MOWER_SCHEDULING_MODEL')).toBe(true)
- expect(r.inputs.options.schedulingModel).toBe('mower-default')
- r.inputs.options.schedulingModel='mower-alpha'
+ expect(b.assumptions.some(d=>d.code==='MOWER_CONTINUOUS_MOOD_MODEL')).toBe(true)
+ expect(r.inputs.options.schedulingModel).toBe('mower-alpha')
+ r.inputs.options.schedulingModel='mower-default'
  expect(summarizeIncome(r).context).not.toBe(b.context)
  const baseline=cases(),candidate=improved()
  candidate[0]!.context=summarizeIncome(r).context

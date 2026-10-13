@@ -11,6 +11,8 @@ import { buildCombinationPool } from './combinationEvaluation'
 import { applySmartDormitoryPolicy } from '../scheduler/smartDormitoryPolicy'
 import mixedEntries from './fixtures/mixed-level-inventory.json'
 import { validatePhysicalRoster } from './rosterDraft'
+import { validateMowerRosterRules } from '../domain/mowerRosterRules'
+import { exportMowerJson } from '../workbench/compat/mowerJson'
 import type { CombinationVariant } from './combinationModel'
 
 afterEach(() => yieldToRunner(5))
@@ -107,6 +109,10 @@ describe('combination-first main and backup allocation', () => {
     const ws = allocateCombinationSkeleton(base, { ...pool, values: [supported] }, 0).workspace
     const p = supported.variant.placements.find(p => p.operatorId === id('伊芙利特'))!
     const before = productionTeamTheory(ws, inventory, 'room_1_1')
+    expect(ws.mainPlan.facilities[p.roomId].slots[p.slotIndex]!.groupId).toBeNull()
+    expect(ws.mainPlan.facilities[p.roomId].slots[p.slotIndex]!.dormitoryResident).toBe(true)
+    expect(validateMowerRosterRules(ws).filter(issue => issue.roomId.startsWith('dormitory'))).toEqual([])
+    expect(exportMowerJson(ws)).not.toContain('dormitoryResident')
     for (let i = 0; i < 2; i++) applySmartDormitoryPolicy(ws, { entries: owned })
     expect(ws.mainPlan.facilities[p.roomId].slots[p.slotIndex]!.occupant).toEqual({ kind: 'operator', operatorId: id('伊芙利特') })
     expect(productionTeamTheory(ws, inventory, 'room_1_1')).toBe(before)

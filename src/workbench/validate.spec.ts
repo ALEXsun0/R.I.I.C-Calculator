@@ -299,9 +299,9 @@ describe('validateRosterWorkspace', () => {
       replacements: [],
     }
 
-    // Placeholders Free and Current
+    // Current placeholders remain non-blocking until current occupants are supplied
     ws.mainPlan.facilities.room_1_1.slots[1] = {
-      occupant: { kind: 'free' },
+      occupant: { kind: 'current' },
       groupId: null,
       replacements: [],
     }
@@ -378,5 +378,122 @@ describe('validateRosterWorkspace', () => {
     expect(gamingWarning?.severity).toBe('warning')
     expect(gamingWarning?.roomId).toBe('gaming_1')
     expect(res.isValid).toBe(true) // Non-blocking
+  })
+})
+
+describe('alpha shared group validation', () => {
+  it('allows same-group working primaries as replacements but rejects self and foreign groups', () => {
+    const ws = createDefaultWorkspace()
+    ws.mainPlan.facilities.dormitory_4.slots = Array.from({length: 5}, () => ({occupant: {kind: 'free' as const}, groupId: null, replacements: []}))
+    ws.mainPlan.facilities.room_1_1.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_123_fang'}, groupId: 'A', replacements: ['char_240_wyvern']}
+    ws.mainPlan.facilities.room_1_2.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_240_wyvern'}, groupId: 'A', replacements: ['char_123_fang']}
+    expect(validateRosterWorkspace(ws).criticalErrors.filter(e => e.code === 'CONFLICTING_REPLACEMENT')).toEqual([])
+    ws.mainPlan.facilities.room_1_1.slots[0]!.replacements = ['char_123_fang']
+    expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.code === 'CONFLICTING_REPLACEMENT')).toBe(true)
+    ws.mainPlan.facilities.room_1_1.slots[0]!.replacements = ['char_240_wyvern']
+    ws.mainPlan.facilities.room_1_2.slots[0]!.groupId = 'B'
+    expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.code === 'CONFLICTING_REPLACEMENT')).toBe(true)
+  })
+
+  it('rejects empty or duplicate binding group names and missing shared replacements', () => {
+    const ws = createDefaultWorkspace()
+    ws.mainPlan.facilities.dormitory_4.slots = Array.from({length: 5}, () => ({occupant: {kind: 'free' as const}, groupId: null, replacements: []}))
+    const slot = ws.mainPlan.facilities.room_1_1.slots[0] = {occupant: {kind: 'operator' as const, operatorId: 'char_123_fang'}, groupId: 'A', replacements: ['char_240_wyvern'], groupBindings: [{groupId: 'A', replacements: ['char_192_falco']}]}
+    expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.code === 'INVALID_CONFIG')).toBe(true)
+    slot.groupBindings[0]!.groupId = ''
+    expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.code === 'INVALID_CONFIG')).toBe(true)
+    slot.groupBindings[0] = {groupId: 'B', replacements: []}
+    expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.code === 'INVALID_CONFIG')).toBe(true)
+  })
+
+  it('requires fixed working anchors for every shared group and grouped Free dorm', () => {
+    const ws = createDefaultWorkspace()
+    ws.mainPlan.facilities.dormitory_4.slots = Array.from({length: 5}, () => ({occupant: {kind: 'free' as const}, groupId: null, replacements: []}))
+    ws.mainPlan.facilities.room_1_1.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_123_fang'}, groupId: 'A', replacements: ['char_240_wyvern'], groupBindings: [{groupId: 'B', replacements: ['char_240_wyvern']}]}
+    expect(validateRosterWorkspace(ws).criticalErrors.filter(e => e.message.includes('缺少决定上下班')).length).toBe(2)
+    ws.mainPlan.facilities.room_1_2.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_192_falco'}, groupId: 'A', replacements: ['char_500_noirc']}
+    ws.mainPlan.facilities.room_2_1.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_286_cast3'}, groupId: 'B', replacements: ['char_500_noirc']}
+    expect(validateRosterWorkspace(ws).criticalErrors.filter(e => e.message.includes('缺少决定上下班'))).toEqual([])
+    ws.mainPlan.conf.resting_standby = ['char_286_cast3']
+    expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.message.startsWith('B 缺少决定上下班'))).toBe(true)
+  })
+
+  it('validates each additional column independently, including Free dorm restrictions', () => {
+    const ws = createDefaultWorkspace()
+    ws.mainPlan.facilities.dormitory_4.slots = Array.from({length: 5}, () => ({occupant: {kind: 'free' as const}, groupId: null, replacements: []}))
+    const slot = ws.mainPlan.facilities.dormitory_1.slots[0] = {occupant: {kind: 'operator' as const, operatorId: 'char_123_fang'}, groupId: 'A', replacements: ['Free'], groupBindings: [{groupId: 'B', replacements: ['Free']}]}
+    ws.mainPlan.facilities.room_1_2.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_192_falco'}, groupId: 'A', replacements: ['char_500_noirc']}
+    ws.mainPlan.facilities.room_2_1.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_286_cast3'}, groupId: 'B', replacements: ['char_500_noirc']}
+    expect(validateRosterWorkspace(ws).criticalErrors).toEqual([])
+    slot.groupBindings[0]!.replacements = ['char_240_wyvern', 'char_240_wyvern']
+    expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.code === 'DUPLICATE_REPLACEMENT')).toBe(true)
+    slot.groupBindings[0] = {groupId: '', replacements: ['Free']}
+    expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.code === 'INVALID_CONFIG')).toBe(true)
+    ws.mainPlan.facilities.room_1_1.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_240_wyvern'}, groupId: 'A', replacements: ['Free']}
+    expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.roomId === 'room_1_1' && e.code === 'INVALID_CONFIG')).toBe(true)
+  })
+})
+
+
+describe('effective backup validation', () => {
+  it('checks Current product overlays and shared binding anchors before simulation', () => {
+    const ws = createDefaultWorkspace()
+    ws.mainPlan.facilities.dormitory_4.slots = Array.from({length: 5}, () => ({occupant: {kind: 'free' as const}, groupId: null, replacements: []}))
+    ws.mainPlan.facilities.room_1_1.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_123_fang'}, groupId: null, replacements: ['char_240_wyvern']}
+    ws.compatibility.backupPlans = [{name: 'invalid product', trigger: 'True', plan: {room_1_1: {product: 'lmd', plans: [{agent: 'Current'}]}}}]
+    expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.message.includes('副表 invalid product'))).toBe(true)
+    ws.compatibility.backupPlans = [{name: 'shared', trigger: 'True', plan: {room_1_1: {plans: [{agent: '芬', group: 'first', replacement: ['香草'], group_bindings: [{group: 'second', replacement: ['翎羽']}]}]}}}]
+    expect(validateRosterWorkspace(ws).criticalErrors.filter(e => e.message.includes('缺少决定上下班')).length).toBe(2)
+  })
+
+  it('does not reject cooperating backups using an unreachable single-backup combination', () => {
+    const ws = createDefaultWorkspace()
+    ws.mainPlan.facilities.dormitory_4.slots = Array.from({length: 5}, () => ({occupant: {kind: 'free' as const}, groupId: null, replacements: []}))
+    ws.mainPlan.facilities.room_1_1.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_123_fang'}, groupId: null, replacements: ['char_240_wyvern']}
+    ws.mainPlan.facilities.room_1_2.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_237_gravel'}, groupId: null, replacements: ['char_192_falco']}
+    ws.compatibility.backupPlans = [
+      {name: 'cover', trigger: 'True', plan: {room_1_1: {plans: [{agent: '芬', group: 'paired', replacement: ['砾']}]}}},
+      {name: 'member', trigger: 'True', plan: {room_1_2: {plans: [{agent: '砾', group: 'paired', replacement: ['翎羽']}]}}},
+    ]
+    const result = validateRosterWorkspace(ws)
+    expect(result.criticalErrors).toEqual([])
+    expect(result.warnings.some(issue => issue.message.includes('单独生效'))).toBe(true)
+    ws.compatibility.backupPlans[1] = {name: 'malformed', trigger: 'True', plan: []}
+    expect(validateRosterWorkspace(ws).criticalErrors.some(issue => issue.message.includes('格式错误'))).toBe(true)
+  })
+
+  it('merges policy additions and removals before checking the effective group anchor', () => {
+    const ws = createDefaultWorkspace()
+    ws.mainPlan.facilities.dormitory_4.slots = Array.from({length: 5}, () => ({occupant: {kind: 'free' as const}, groupId: null, replacements: []}))
+    ws.mainPlan.facilities.room_1_1.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_123_fang'}, groupId: 'group', replacements: ['char_240_wyvern']}
+    ws.compatibility.backupPlans = [{name: 'standby', trigger: 'True', conf: {resting_standby: '芬'}}]
+    expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.message.includes('副表 standby') && e.message.includes('缺少决定上下班'))).toBe(true)
+    ws.compatibility.backupPlans = [{name: 'removed standby', trigger: 'True', conf: {resting_standby: '芬', removed_operators: {resting_standby: '芬'}}}]
+    expect(validateRosterWorkspace(ws).criticalErrors).toEqual([])
+  })
+})
+
+
+describe('alpha group capacity checks', () => {
+  it('rejects ordinary Free slots outside a dormitory', () => {
+    const ws = createDefaultWorkspace()
+    ws.mainPlan.facilities.room_1_1.slots[0]!.occupant = {kind: 'free'}
+    expect(validateRosterWorkspace(ws).criticalErrors.some(issue => issue.message === 'Free 只能安排在宿舍。')).toBe(true)
+  })
+
+  it('requires distinct group covers and enough effective beds after primary-to-primary swaps', () => {
+    const ws = createDefaultWorkspace()
+    ws.mainPlan.facilities.room_1_1.slots = [
+      {occupant: {kind: 'operator', operatorId: 'char_123_fang'}, groupId: 'A', replacements: ['char_192_falco']},
+      {occupant: {kind: 'operator', operatorId: 'char_240_wyvern'}, groupId: 'A', replacements: ['char_192_falco']},
+    ]
+    expect(validateRosterWorkspace(ws).criticalErrors.some(issue => issue.message.includes('替班名单不能覆盖'))).toBe(true)
+    ws.mainPlan.facilities.room_1_1.slots[0]!.replacements = ['char_240_wyvern']
+    ws.mainPlan.facilities.room_1_1.slots[1]!.replacements = ['char_123_fang']
+    expect(validateRosterWorkspace(ws).criticalErrors).toEqual([])
+    ws.mainPlan.facilities.room_1_1.slots[1]!.replacements = ['char_192_falco']
+    expect(validateRosterWorkspace(ws).criticalErrors.some(issue => issue.message.includes('有效宿舍床位不足'))).toBe(true)
+    ws.mainPlan.facilities.dormitory_1.slots[2]!.occupant = {kind: 'free'}
+    expect(validateRosterWorkspace(ws).criticalErrors).toEqual([])
   })
 })

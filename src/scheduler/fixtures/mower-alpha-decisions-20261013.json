@@ -1,0 +1,192 @@
+{
+  "revision": "ab0a4e5bec23f6f8d7c37b0648f05dda28f31866",
+  "scope": "Unmodified ordered_dorms and nested replacement_available; explicit offline occupancy, no full scheduler or device equivalence claim.",
+  "sourceSha256": {
+    "arknights_mower/utils/plan.py": "724030b1f2a33a3e84229898654dee5839c7cacf0ffd73fbfb884d93c46c1191",
+    "arknights_mower/utils/operators.py": "3cea0b585418154621f82958a47677f58cd1d30dfa2572530fff2eb647aa2982",
+    "arknights_mower/solvers/base_schedule.py": "5987139c8f32a09b4b678ee316b5c353ceebdaeed2469a7dcbae6229b01d1d5c"
+  },
+  "dormCases": [
+    {
+      "order": [],
+      "closed": [],
+      "indices": [
+        0,
+        2,
+        1,
+        3
+      ]
+    },
+    {
+      "order": [],
+      "closed": [
+        0
+      ],
+      "indices": [
+        1,
+        2,
+        3,
+        0
+      ]
+    },
+    {
+      "order": [],
+      "closed": [
+        0,
+        2
+      ],
+      "indices": [
+        1,
+        3,
+        0,
+        2
+      ]
+    },
+    {
+      "order": [
+        "dormitory_2_low",
+        "dormitory_1"
+      ],
+      "closed": [],
+      "indices": [
+        3,
+        0,
+        2,
+        1
+      ]
+    },
+    {
+      "order": [
+        "dormitory_2_low",
+        "dormitory_1"
+      ],
+      "closed": [
+        0
+      ],
+      "indices": [
+        3,
+        1,
+        2,
+        0
+      ]
+    },
+    {
+      "order": [
+        "dormitory_2_low",
+        "dormitory_1"
+      ],
+      "closed": [
+        0,
+        2
+      ],
+      "indices": [
+        1,
+        3,
+        2,
+        0
+      ]
+    },
+    {
+      "order": [
+        "dormitory_2",
+        "dormitory_2_4"
+      ],
+      "closed": [],
+      "indices": [
+        2,
+        0,
+        3,
+        1
+      ]
+    },
+    {
+      "order": [
+        "dormitory_2",
+        "dormitory_2_4"
+      ],
+      "closed": [
+        0
+      ],
+      "indices": [
+        2,
+        1,
+        3,
+        0
+      ]
+    },
+    {
+      "order": [
+        "dormitory_2",
+        "dormitory_2_4"
+      ],
+      "closed": [
+        0,
+        2
+      ],
+      "indices": [
+        3,
+        1,
+        2,
+        0
+      ]
+    }
+  ],
+  "covers": [
+    {
+      "name": "idle cover",
+      "room": "",
+      "index": -1,
+      "existing": false,
+      "retained": false,
+      "accepted": true
+    },
+    {
+      "name": "resting cover",
+      "room": "dormitory_1",
+      "index": 0,
+      "existing": false,
+      "retained": false,
+      "accepted": true
+    },
+    {
+      "name": "already in target",
+      "room": "room_1_1",
+      "index": 0,
+      "existing": false,
+      "retained": false,
+      "accepted": true
+    },
+    {
+      "name": "already in target retained by preview",
+      "room": "room_1_1",
+      "index": 0,
+      "existing": true,
+      "retained": true,
+      "accepted": true
+    },
+    {
+      "name": "already in target reserved elsewhere",
+      "room": "room_1_1",
+      "index": 0,
+      "existing": true,
+      "retained": false,
+      "accepted": false
+    },
+    {
+      "name": "different working slot",
+      "room": "room_1_2",
+      "index": 0,
+      "existing": false,
+      "retained": false,
+      "accepted": false
+    },
+    {
+      "name": "same room different slot",
+      "room": "room_1_1",
+      "index": 1,
+      "existing": false,
+      "retained": false,
+      "accepted": false
+    }
+  ]
+}

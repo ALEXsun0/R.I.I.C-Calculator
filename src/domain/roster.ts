@@ -51,10 +51,26 @@ export type MowerOccupant =
   | { kind: 'current' }
   | { kind: 'empty' }
 
+export interface MowerGroupBinding {
+  groupId: string | null
+  replacements: string[]
+  metadata?: Record<string, unknown>
+}
+
+export const MOWER_OPERATOR_LIST_FIELDS = [
+  'rest_in_full', 'exhaust_require', 'resting_priority', 'resting_priority_replacement',
+  'free_room_exclusions', 'resting_standby', 'workaholic', 'free_blacklist',
+  'refresh_trading', 'refresh_drained', 'ope_resting_priority',
+] as const
+export type MowerOperatorListField = (typeof MOWER_OPERATOR_LIST_FIELDS)[number]
+
 export interface MowerSlot {
+  /** Local optimizer residency; never exported as a Mower shift group or slot field. */
+  dormitoryResident?: boolean
   occupant: MowerOccupant
   groupId: string | null
   replacements: string[]
+  groupBindings?: MowerGroupBinding[]
   metadata?: Record<string, unknown>
 }
 
@@ -76,6 +92,11 @@ export interface MowerMainConf {
   refresh_trading: string[]
   refresh_drained: string[]
   ope_resting_priority: string[]
+  resting_priority_replacement?: string[]
+  free_room_exclusions?: string[]
+  resting_standby?: string[]
+  free_blacklist?: string[]
+  removed_operators?: Partial<Record<MowerOperatorListField, string | string[]>>
   [customKey: string]: unknown
 }
 
@@ -90,6 +111,8 @@ export interface MowerCompatibilityEnvelope {
   sourceVersion?: string
   defaultPlanKey: string
   backupPlans: unknown[]
+  retiredBackupPlans?: unknown[]
+  migrationWarnings?: string[]
   otherPlans: Record<string, unknown>
   unrecognizedFields: Record<string, unknown>
   facilityMetadata?: Record<string, Record<string, unknown>>

@@ -146,6 +146,7 @@ describe('WorkbenchShell.vue and App primary entry integration', () => {
     wrapper.vm.simSettings.sampleDays = 1
     await flushPromises()
     expect(JSON.stringify(wrapper.vm.store.workspace)).toBe(original)
+    wrapper.vm.store.workspace.compatibility.unrecognizedFields.advanced_settings = { fia_fool: false, resting_threshold: .7, rescue_threshold: .25, free_room: true }
     const productionWeights = { ...DEFAULT_PRODUCTION_WEIGHTS, exp: 2 }
     wrapper.vm.handleConfirmCalculation({
       droneTarget: 'none', droneTradingRoomId: '',
@@ -157,6 +158,7 @@ describe('WorkbenchShell.vue and App primary entry integration', () => {
     const request = pending[0]!.postMessage.mock.calls[0]![0]
     expect(request.workspace.productionWeights).toEqual(productionWeights)
     expect(request.options.simulationOptions.productionWeights).toEqual(productionWeights)
+    expect(request.options.simulationAssumptions).toMatchObject({ fiammettaFool: false, restingThreshold: .7, rescueThreshold: .25, freeRoom: true })
     wrapper.vm.simSettings.productionWeights!.gold = 0
     await flushPromises()
     expect(wrapper.vm.isCalculating).toBe(false)

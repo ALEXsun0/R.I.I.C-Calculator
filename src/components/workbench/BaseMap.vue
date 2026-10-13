@@ -34,6 +34,7 @@
                 :key="`room_${row}_${col}`"
                 :facility="store.workspace.mainPlan.facilities[`room_${row}_${col}` as MowerOutputRoomId]"
                 :is-selected="store.selectedRoomId === `room_${row}_${col}`"
+                :workaholic-ids="workaholicIds"
                 variant="output"
                 @select="handleSelect"
                 @swap="handleSwap"
@@ -97,7 +98,7 @@ import '../../workbench/styles.css'
 const store = useRosterWorkbenchStore()
 const wrapperRef = ref<HTMLDivElement | null>(null)
 const outer = ref<HTMLDivElement | null>(null)
-const zoomMode = ref<'fit' | '100'>('100')
+const zoomMode = ref<'fit' | '100'>('fit')
 const containerWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 980)
 
 const isNarrowViewport = computed(() => {
@@ -113,7 +114,7 @@ const computedScale = computed(() => {
 })
 
 const scaleWrapperStyle = computed(() => {
-  if (computedScale.value >= 1) return {}
+  if (computedScale.value >= 1) return { margin: '0 auto' }
   const baseHeight = outer.value?.offsetHeight || 420
   return {
     width: `${980 * computedScale.value}px`,
@@ -150,6 +151,13 @@ onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('resize', updateWidth)
   }
+})
+
+const workaholicIds = computed(() => {
+  const fia = Object.values(store.workspace.mainPlan.facilities)
+    .flatMap(facility => facility.slots)
+    .find(slot => slot.occupant.kind === 'operator' && slot.occupant.operatorId === 'char_300_phenxi')
+  return store.workspace.mainPlan.conf.workaholic.filter(id => !fia?.replacements.includes(id))
 })
 
 const rightFacilities: readonly MowerRoomId[] = ['meeting', 'factory', 'contact', 'train', 'recycle']

@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
-import { expect, it } from 'vitest'
+import { beforeEach, expect, it } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
+import { useRosterWorkbenchStore } from '../../workbench/store'
+import { exportMowerJson } from '../../workbench/compat/mowerJson'
+beforeEach(() => setActivePinia(createPinia()))
 import { mount } from '@vue/test-utils'
 import SettingsView, { type SimulationSettings } from './SettingsView.vue'
 import { DEFAULT_PRODUCTION_WEIGHTS } from '../../domain/productionWeights'
@@ -42,5 +46,16 @@ it('uses default weights for old settings and emits weights through shared simul
   })
   await wrapper.setProps({ settings: update })
   expect((wrapper.get('[data-test="weight-gold"]').element as HTMLInputElement).value).toBe('0')
+  wrapper.unmount()
+})
+
+it('shares imported advanced values and persists edits into the exported plan', async () => {
+  const store = useRosterWorkbenchStore()
+  store.workspace.compatibility.unrecognizedFields.advanced_settings = { fia_fool: false, rescue_threshold: .25, future: 7 }
+  const wrapper = mount(SettingsView, { props: { settings }, global: { stubs: { OperatorInventoryPanel: true } } })
+  expect((wrapper.get('[data-test="fiammetta-fool"]').element as HTMLSelectElement).value).toBe('false')
+  expect((wrapper.get('[data-test="rescue-threshold"]').element as HTMLInputElement).value).toBe('25')
+  await wrapper.get('[data-test="rescue-threshold"]').setValue('50')
+  expect(JSON.parse(exportMowerJson(store.workspace)).advanced_settings).toEqual({ fia_fool: false, rescue_threshold: .5, future: 7 })
   wrapper.unmount()
 })

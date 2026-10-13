@@ -8,7 +8,7 @@
           <span class="mower-badge">Mower Backup Plans</span>
         </div>
         <p class="editor-subtitle">
-          查看与配置条件触发副表（换班前/后时机判定、即时进驻任务 Task 与策略覆盖 Conf）
+          按条件收敛应用副表，配置即时进驻任务与策略增减。
         </p>
       </div>
 
@@ -45,22 +45,6 @@
         <span class="stat-label">副表总数</span>
         <span class="stat-value text-accent">{{ backupPlans.length }}</span>
       </div>
-      <div class="stat-pill">
-        <span class="stat-label">排班前 (BEFORE)</span>
-        <span class="stat-value">{{ timingCounts.BEFORE_PLANNING }}</span>
-      </div>
-      <div class="stat-pill">
-        <span class="stat-label">排班后 (AFTER)</span>
-        <span class="stat-value">{{ timingCounts.AFTER_PLANNING }}</span>
-      </div>
-      <div class="stat-pill">
-        <span class="stat-label">周期结束 (END)</span>
-        <span class="stat-value">{{ timingCounts.END }}</span>
-      </div>
-      <div class="stat-pill">
-        <span class="stat-label">周期开始 (BEGINNING)</span>
-        <span class="stat-value">{{ timingCounts.BEGINNING }}</span>
-      </div>
     </div>
 
     <!-- Main Two-Pane Layout -->
@@ -93,12 +77,7 @@
             <div class="card-head">
               <span class="plan-index">#{{ item.index + 1 }}</span>
               <span class="plan-title" :title="item.plan.name">{{ item.plan.name || `副表 #${item.index + 1}` }}</span>
-              <span
-                class="timing-badge"
-                :class="`timing-${(item.plan.trigger_timing || 'BEFORE_PLANNING').toLowerCase()}`"
-              >
-                {{ getTimingBadge(item.plan.trigger_timing) }}
-              </span>
+
             </div>
 
             <!-- Condition Preview -->
@@ -190,15 +169,7 @@
                 />
               </div>
 
-              <div class="field-col flex-1">
-                <label class="form-label">触发时机 (Trigger Timing)</label>
-                <n-select
-                  v-model:value="activePlan.trigger_timing"
-                  :options="timingOptions"
-                  data-test="plan-timing-select"
-                  @update:value="saveCurrentPlan"
-                />
-              </div>
+
             </div>
           </div>
 
@@ -439,25 +410,8 @@
                 <div class="conf-info-banner">
                   <p>
                     <strong>策略配置覆盖（Conf）：</strong>
-                    副表激活时，临时覆盖主排班策略（例如令夕模式、用尽心情、0心情工作狂、宿舍黑名单等）。
+                    副表按顺序先添加干员，再移除指定干员；停用后从主表与其余活动副表重新计算。
                   </p>
-                </div>
-
-                <!-- 令夕模式 (ling_xi) -->
-                <div class="conf-field-group" data-test="conf-ling-xi">
-                  <div class="field-title-box">
-                    <span class="field-name">令夕模式 (ling_xi)</span>
-                    <span class="field-desc">副表激活时的令夕感知/烟火模式覆盖</span>
-                  </div>
-                  <n-radio-group
-                    :value="(activePlanConf.ling_xi as number | undefined) ?? 1"
-                    size="small"
-                    @update:value="updateConfValue('ling_xi', $event)"
-                  >
-                    <n-radio :value="1">感知信息 (模式 1)</n-radio>
-                    <n-radio :value="2">人间烟火 (模式 2)</n-radio>
-                    <n-radio :value="3">均衡模式 (模式 3)</n-radio>
-                  </n-radio-group>
                 </div>
 
                 <!-- Conf List Fields -->
@@ -504,6 +458,7 @@
                       />
                     </div>
                   </div>
+                  <n-input :value="getRemovedOperators(field.key)" placeholder="移除干员（逗号分隔）" :aria-label="`${field.label}移除名单`" :data-test="`conf-remove-${field.key}`" @update:value="setRemovedOperators(field.key, $event)" />
                 </div>
               </div>
             </n-tab-pane>
@@ -584,7 +539,6 @@ import { OPERATORS } from '../../domain/operators'
 import { useRosterWorkbenchStore } from '../../workbench/store'
 import {
   BACKUP_CONF_FIELDS,
-  BACKUP_TIMING_OPTIONS,
   createDefaultBackupPlan,
   getFacilityMaxSlots,
   getFacilityRoomDisplayName,
@@ -593,7 +547,6 @@ import {
   parseConfStringToOperatorNames,
   serializeBackupTrigger,
   validateBackupTrigger,
-  type BackupTiming,
   type MowerBackupPlan,
 } from '../../workbench/backupPlanHelpers'
 import { getOperatorAvatarUrl, getOperatorName } from '../../workbench/operatorHelpers'
@@ -619,12 +572,6 @@ const builderState = ref({
 
 // Conf fields definition
 const confFields = BACKUP_CONF_FIELDS
-
-// Timing select options
-const timingOptions = BACKUP_TIMING_OPTIONS.map((opt) => ({
-  label: opt.label,
-  value: opt.value,
-}))
 
 // Operators options for dropdowns
 const baseOperatorOptions: SelectOption[] = OPERATORS.map((op) => ({
@@ -686,23 +633,6 @@ const filteredPlans = computed(() => {
     })
 })
 
-// Timing counts
-const timingCounts = computed(() => {
-  const counts = {
-    BEFORE_PLANNING: 0,
-    AFTER_PLANNING: 0,
-    BEGINNING: 0,
-    END: 0,
-  }
-  for (const plan of backupPlans.value) {
-    const timing = (plan.trigger_timing || 'BEFORE_PLANNING') as BackupTiming
-    if (counts[timing] !== undefined) {
-      counts[timing]++
-    }
-  }
-  return counts
-})
-
 // Active plan
 const activePlan = computed<MowerBackupPlan | null>(() => {
   if (
@@ -743,12 +673,6 @@ const validationInfo = computed(() => {
   }
   return validateBackupTrigger(currentExpressionText.value)
 })
-
-// Helpers for badges
-function getTimingBadge(timing: string | undefined): string {
-  const found = BACKUP_TIMING_OPTIONS.find((t) => t.value === timing)
-  return found ? found.badge : '排班前'
-}
 
 function hasTasks(plan: MowerBackupPlan): boolean {
   return !!plan.task && Object.keys(plan.task).length > 0
@@ -797,8 +721,20 @@ function handleClearPlans(): void {
   selectedIndex.value = 0
 }
 
+function getRemovedOperators(key: string): string {
+  const removed = activePlan.value?.conf?.removed_operators as Record<string, unknown> | undefined
+  const value = removed?.[key]
+  return Array.isArray(value) ? value.join(',') : typeof value === 'string' ? value : ''
+}
+function setRemovedOperators(key: string, value: string): void {
+  if (!activePlan.value) return
+  const conf = activePlan.value.conf ??= {}
+  conf.removed_operators = { ...(conf.removed_operators as Record<string, unknown> ?? {}), [key]: value }
+  saveCurrentPlan()
+}
 function saveCurrentPlan(): void {
   if (selectedIndex.value >= 0 && activePlan.value) {
+    delete activePlan.value.trigger_timing
     store.updateBackupPlan(selectedIndex.value, activePlan.value)
   }
 }

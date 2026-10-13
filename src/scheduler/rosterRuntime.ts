@@ -25,11 +25,13 @@ export interface RuntimePosition {
 }
 export interface RuntimeBed { id: string; roomId: string; vip: boolean; managedRecovery?: boolean }
 export interface RuntimeConfig {
+ majorMaintenanceStartHours?:number
  /** The application simulation selects the October 3 source contract. */
+ mowerDormIsolation?:string[][]
  mowerAlpha?:boolean;mowerDormOrder?:string[]
  mowerMoodLimits?:MowerMoodLimitConfig
   positions: RuntimePosition[]; beds: RuntimeBed[]; initialMorale?: Record<string, number>
-  mowerSourcePlan?: Record<string,{agent:string;group:string;replacement:string[]}[]>
+  mowerSourcePlan?: Record<string,{agent:string;group:string;replacement:string[];groupBindings?:{group:string;replacement:string[]}[]}[]>
   mowerRecycleBuilt?: boolean
   /** Disable order tasks only for the old no-wake comparison. */
   mowerRunOrderEnabled?: boolean
@@ -49,7 +51,7 @@ export interface RuntimeConfig {
   mowerServices?:{enableParty:boolean;droneIntervalHours:number;reloadRooms:readonly string[]|null;maaGapHours:number;leifengMode:boolean}
   mowerClueObservations?:{partyEndMicros:number|null;clueCount:number}
   mowerTaskScheduling?:MowerTaskSchedulingOptions
-  mowerPolicy?: { groupRestInFullOnMoodGap?:boolean; groupMoodGapMaxExtraWaitHours?:number; mergeIntervalMinutes?:number; restMoodLimits?: Record<string,number>; freeRoom?: boolean; taskBuffers?: boolean; rescueThreshold?: number; restingThreshold: number; powerPlantCount: number; opeRestingPriority: string[] }
+  mowerPolicy?: { groupRestInFullOnMoodGap?:boolean; groupMoodGapThresholdMinutes?:number; groupMoodGapMaxExtraWaitHours?:number; mergeIntervalMinutes?:number; restMoodLimits?: Record<string,number>; freeRoom?: boolean; taskBuffers?: boolean; rescueThreshold?: number; restingThreshold: number; powerPlantCount: number; opeRestingPriority: string[] }
   runOrderPolicies?: RunOrderPolicy[]
 }
 export interface RuntimeEvent {

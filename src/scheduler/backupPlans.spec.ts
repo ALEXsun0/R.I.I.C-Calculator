@@ -153,12 +153,12 @@ describe('Mower backup source contract', () => {
     delete state.occupants[p.id]
     state.bedOccupants.dormitory_2_2 = p.primary
     state.morale[id('苍苔')] = 7
-    controller.evaluate('BEFORE_PLANNING')
+    controller.evaluate('END')
     expect(controller.active[1]).toBe(true)
     expect(state.mowerBackupGenerated?.[0]?.plan.dormitory_3).toEqual(['Current','Current','Current',id('苍苔'),id('引星棘刺')])
     expect(state.morale[id('苍苔')]).toBe(7)
     const count = state.events.length
-    controller.evaluate('BEFORE_PLANNING')
+    controller.evaluate('END')
     expect(state.events).toHaveLength(count)
     const ids = [...Object.values(state.occupants), ...Object.values(state.bedOccupants)]
     expect(new Set(ids).size).toBe(ids.length)

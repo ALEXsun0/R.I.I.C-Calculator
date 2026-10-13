@@ -1,58 +1,24 @@
+import {parseProduct, serializeProduct} from '../../domain/mowerProducts'
+export {parseProduct, serializeProduct} from '../../domain/mowerProducts'
 import { resolveOperatorCharId, restoreOperatorMowerName } from '../../domain/operatorIdentifiers'
 export { resolveOperatorCharId, restoreOperatorMowerName } from '../../domain/operatorIdentifiers'
 import { createDefaultWorkspace } from '../defaults'
+import { migrateMowerAlphaDocument } from './mowerAlphaMigration'
 import { inferFacilityLevels } from '../levelInference'
 import { hasDormKeeper } from '../facilityState'
 import {
   MOWER_ROOM_IDS,
-  type MowerFacilityType,
-  type MowerProduct,
+  MOWER_OPERATOR_LIST_FIELDS,
   type MowerRoomId,
   type MowerSlot,
   type RosterWorkspace,
 } from '../../domain/roster'
 
-export function parseProduct(product: unknown): MowerProduct | undefined {
-  if (typeof product !== 'string') return undefined
-  if (product === 'exp3' || product === 'exp') return 'exp'
-  if (product === 'orirock' || product === 'fragment') return 'fragment'
-  if (product === 'lmd' || product === 'money') return 'money'
-  if (product === 'gold') return 'gold'
-  if (product === 'orundum') return 'orundum'
-  return undefined
-}
-
-export function serializeProduct(
-  facilityType: MowerFacilityType,
-  product: MowerProduct | undefined,
-): string | undefined {
-  if (facilityType === 'manufacture') {
-    if (product === 'exp') return 'exp3'
-    if (product === 'fragment') return 'orirock'
-    if (product === 'gold') return 'gold'
-    return undefined
-  }
-  if (facilityType === 'trading') {
-    if (product === 'orundum') return 'orundum'
-    if (product === 'money') return 'lmd'
-    return undefined
-  }
-  return undefined
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-const CONF_LIST_FIELDS = [
-  'exhaust_require',
-  'rest_in_full',
-  'resting_priority',
-  'workaholic',
-  'refresh_trading',
-  'refresh_drained',
-  'ope_resting_priority',
-] as const
+const CONF_LIST_FIELDS = MOWER_OPERATOR_LIST_FIELDS
 
 type ConfListField = (typeof CONF_LIST_FIELDS)[number]
 
@@ -60,17 +26,33 @@ function isConfListField(key: string): key is ConfListField {
   return (CONF_LIST_FIELDS as readonly string[]).includes(key)
 }
 
+export function importMowerGroupBindings(value: unknown, roomId: string): NonNullable<MowerSlot['groupBindings']> {
+  if (!Array.isArray(value)) throw new Error(`Invalid Mower JSON: group_bindings in room "${roomId}" must be an array`)
+  return value.map((binding: unknown) => {
+    if (!isRecord(binding) || !Array.isArray(binding.replacement ?? [])) throw new Error(`Invalid Mower JSON: Invalid group binding in room "${roomId}"`)
+    const metadata = Object.fromEntries(Object.entries(binding).filter(([key]) => key !== 'group' && key !== 'replacement'))
+    return {
+      groupId: typeof binding.group === 'string' && binding.group ? binding.group : null,
+      replacements: (binding.replacement as unknown[] ?? []).filter((name): name is string => typeof name === 'string').map(resolveOperatorCharId),
+      ...(Object.keys(metadata).length ? { metadata } : {}),
+    }
+  })
+}
+
 export function importMowerJson(text: string): RosterWorkspace {
-  let parsed: unknown
+  let raw: unknown
   try {
-    parsed = JSON.parse(text)
+    raw = JSON.parse(text)
   } catch (err) {
     throw new Error(`Invalid Mower JSON: ${err instanceof Error ? err.message : String(err)}`)
   }
 
-  if (!isRecord(parsed)) {
+  if (!isRecord(raw)) {
     throw new Error('Invalid Mower JSON: Root must be an object')
   }
+
+  const migration = migrateMowerAlphaDocument(raw)
+  const parsed = migration.document
 
   const defaultKey = typeof parsed.default === 'string' && parsed.default.trim()
     ? parsed.default.trim()
@@ -86,6 +68,8 @@ export function importMowerJson(text: string): RosterWorkspace {
 
   const ws = createDefaultWorkspace()
   ws.compatibility.defaultPlanKey = defaultKey
+  if (migration.retiredBackupPlans.length) ws.compatibility.retiredBackupPlans = migration.retiredBackupPlans
+  if (migration.warnings.length) ws.compatibility.migrationWarnings = migration.warnings
   ws.compatibility.facilityMetadata = {}
   ws.compatibility.unrecognizedRooms = {}
 
@@ -135,6 +119,7 @@ export function importMowerJson(text: string): RosterWorkspace {
     const parsedProduct = parseProduct(rawFacility.product)
     if (parsedProduct) {
       facility.product = parsedProduct
+      if (rawFacility.product === 'orirock_device') facilityExtra.rawProduct = rawFacility.product
     } else {
       facility.product = undefined
       if (typeof rawFacility.product === 'string' && rawFacility.product) {
@@ -157,7 +142,7 @@ export function importMowerJson(text: string): RosterWorkspace {
 
         const slotExtra: Record<string, unknown> = {}
         for (const [sk, sv] of Object.entries(rawSlot)) {
-          if (sk !== 'agent' && sk !== 'group' && sk !== 'replacement') {
+          if (sk !== 'agent' && sk !== 'group' && sk !== 'replacement' && sk !== 'group_bindings') {
             slotExtra[sk] = sv
           }
         }
@@ -186,6 +171,9 @@ export function importMowerJson(text: string): RosterWorkspace {
           occupant,
           groupId: typeof rawSlot.group === 'string' && rawSlot.group ? rawSlot.group : null,
           replacements,
+        }
+        if (rawSlot.group_bindings !== undefined) {
+          slot.groupBindings = importMowerGroupBindings(rawSlot.group_bindings, roomId)
         }
         if (Object.keys(slotExtra).length > 0) {
           slot.metadata = slotExtra
@@ -229,6 +217,7 @@ export function importMowerJson(text: string): RosterWorkspace {
 
     for (const key of CONF_LIST_FIELDS) {
       const val = c[key]
+      if (val === undefined && ws.mainPlan.conf[key] === undefined) continue
       let items: string[] = []
       if (typeof val === 'string') {
         items = val
@@ -358,6 +347,9 @@ export function exportMowerJson(workspace: RosterWorkspace): string {
         group: slot.groupId || '',
         replacement,
       }
+      if (slot.groupBindings !== undefined) slotObj.group_bindings = slot.groupBindings.map(binding => ({
+        ...(binding.metadata ?? {}), group: binding.groupId || '', replacement: binding.replacements.map(restoreOperatorMowerName),
+      }))
       return slotObj
     })
 
@@ -370,7 +362,9 @@ export function exportMowerJson(workspace: RosterWorkspace): string {
     let exportedProduct: string | undefined
     if (f.type !== 'power') {
       const serialized = serializeProduct(f.type, f.product)
-      if (serialized !== undefined) {
+      if (f.product === 'fragment' && meta?.rawProduct === 'orirock_device') {
+        exportedProduct = 'orirock_device'
+      } else if (serialized !== undefined) {
         exportedProduct = serialized
       } else if (f.product === undefined && typeof meta?.rawProduct === 'string' && meta.rawProduct) {
         exportedProduct = meta.rawProduct
@@ -405,7 +399,11 @@ export function exportMowerJson(workspace: RosterWorkspace): string {
   }
   conf.ling_xi = workspace.mainPlan.conf.ling_xi
   for (const field of CONF_LIST_FIELDS) {
-    const list = workspace.mainPlan.conf[field] || []
+    const value: unknown = workspace.mainPlan.conf[field]
+    if (value === undefined) continue
+    // Persisted pre-alpha workspaces retained these newer lists as native CSV.
+    const list = Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string')
+      : typeof value === 'string' ? value.split(/[,，]/).map(item => item.trim()).filter(Boolean) : []
     conf[field] = list.map(restoreOperatorMowerName).join(',')
   }
 

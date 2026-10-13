@@ -85,11 +85,8 @@ Mower plan files do not store facility levels directly; levels are deduced based
   - Maps primary operator slots, converts the first replacement into `operatorBackups`, and aggregates grouped operators into `operatorGroups`.
   - Gracefully handles placeholder occupants (`Free`, `Current`, `Empty`) by filtering them out of active yield simulation.
 
-### 5. Unsupported Subplans, Triggers & Tasks Containment
-- **Excluded Dynamic Features:**
-  - Secondary plans and alternate shift triggers (`backup_plans`, `TriggerDialog`, AST condition expressions).
-  - Scheduled room task automation (`roomTask`, timed swap rules).
-  - Continuous runtime dynamic simulation and ADB execution routines.
-- **Envelope Preservation:**
-  - All imported `backup_plans`, triggers, and non-main configuration entries are safely sequestered in `workspace.compatibility.backupPlans` and `unrecognizedFields`.
-  - These entries are never passed into the static yield calculator, but are preserved bit-for-bit upon re-exporting JSON or JPG files, preventing any data loss for Mower users.
+### 5. Alpha Scheduling and Settings Adaptation
+- Current compatibility source: Mower alpha `ab0a4e5bec23f6f8d7c37b0648f05dda28f31866` (MIT). Adapted decisions include backup configuration layering, group bindings, shared replacements, dorm ordering/isolation, morale limits, product switching and plan validation. Settings labels and form organization follow the source Vue components.
+- The local simulator supports a documented subset of the scheduling lifecycle and ideal trade-order model. It does not execute ADB, device recognition, training tasks or the complete native product-switch staffing/locking sequence. Historical fixtures retain their original source revisions.
+- Unknown JSON fields are preserved structurally. Retired fields are migrated explicitly; preserved unsupported backup expressions produce diagnostics. Re-serialized JSON is not claimed to be byte-identical.
+- Source hashes, independently generated native decision fixtures and their scope are recorded in [the alpha validation directory](validation/mower-alpha-2026-10-13/README.md).

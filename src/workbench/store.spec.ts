@@ -1,3 +1,4 @@
+import { compileRosterSchedule } from '../scheduler/compileRosterSchedule'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useRosterWorkbenchStore } from './store'
@@ -356,6 +357,51 @@ describe('RosterWorkbenchStore', () => {
     expect(store.workspace.compatibility.facilityMetadata?.room_1_1?.otherMeta).toBe('keep_this')
   })
 
+  it('replaces operator references in every binding, policy and backup without dropping metadata', () => {
+    const store = useRosterWorkbenchStore()
+    const slot = store.workspace.mainPlan.facilities.room_1_1.slots[0]!
+    slot.groupBindings = [{groupId: 'second', replacements: ['char_123_fang'], metadata: {keep: true}}]
+    store.workspace.mainPlan.conf.resting_priority_replacement = ['char_123_fang']
+    store.workspace.mainPlan.conf.free_room_exclusions = ['char_123_fang']
+    store.workspace.compatibility.backupPlans = [{trigger: 'True', plan: {room_1_1: {plans: [{agent: '芬', group: 'first', replacement: ['芬'], group_bindings: [{group: 'second', replacement: ['芬'], note: 1}]}]}}, conf: {resting_standby: '芬', removed_operators: {free_blacklist: '芬'}, operator_mood_limits: {'芬': {lower: 1, upper: 20}}}, task: {room_1_1: ['芬', 'Current']}}]
+    store.replaceOperatorGlobally('char_123_fang', 'char_240_wyvern')
+    expect(slot.groupBindings).toEqual([{groupId: 'second', replacements: ['char_240_wyvern'], metadata: {keep: true}}])
+    expect(store.workspace.mainPlan.conf.resting_priority_replacement).toEqual(['char_240_wyvern'])
+    expect(store.workspace.mainPlan.conf.free_room_exclusions).toEqual(['char_240_wyvern'])
+    expect(store.workspace.compatibility.backupPlans[0]).toMatchObject({plan: {room_1_1: {plans: [{agent: '香草', replacement: ['香草'], group_bindings: [{replacement: ['香草'], note: 1}]}]}}, conf: {resting_standby: '香草', removed_operators: {free_blacklist: '香草'}, operator_mood_limits: {'香草': {lower: 1, upper: 20}}}, task: {room_1_1: ['香草', 'Current']}})
+  })
+
+  it('updates isolation and favorites during global replacement while preserving unknown advanced data', () => {
+    const store = useRosterWorkbenchStore()
+    store.workspace.compatibility.unrecognizedFields.advanced_settings = {
+      dorm_isolation: [['芬', '杜林'], ['char_123_fang', '逻各斯']],
+      favorite: '芬,char_123_fang,杜林',
+      future_setting: { names: ['芬'], enabled: true },
+    }
+    store.replaceOperatorGlobally('char_123_fang', 'char_240_wyvern')
+    expect(store.workspace.compatibility.unrecognizedFields.advanced_settings).toEqual({
+      dorm_isolation: [['香草', '杜林'], ['char_240_wyvern', '逻各斯']],
+      favorite: '香草,char_240_wyvern,杜林',
+      future_setting: { names: ['芬'], enabled: true },
+    })
+    const isolation = compileRosterSchedule(JSON.parse(JSON.stringify(store.workspace))).assumptions.dormIsolation!
+    expect(isolation.every(group => group.includes('char_240_wyvern') && !group.includes('char_123_fang'))).toBe(true)
+  })
+
+  it('clears additional bindings with primary slots while retaining policy selections', () => {
+    const store = useRosterWorkbenchStore()
+    const slot = store.workspace.mainPlan.facilities.room_1_1.slots[0]!
+    slot.groupBindings = [{groupId: 'second', replacements: ['char_123_fang']}]
+    store.workspace.mainPlan.conf.resting_priority_replacement = ['char_123_fang']
+    store.workspace.mainPlan.conf.free_room_exclusions = ['char_123_fang']
+    store.workspace.mainPlan.conf.operator_mood_limits = {'char_123_fang': {lower: 1, upper: 20}}
+    store.clearAllOperators()
+    expect(slot.groupBindings).toBeUndefined()
+    expect(store.workspace.mainPlan.conf.resting_priority_replacement).toEqual(['char_123_fang'])
+    expect(store.workspace.mainPlan.conf.free_room_exclusions).toEqual(['char_123_fang'])
+    expect(store.workspace.mainPlan.conf.operator_mood_limits).toEqual({'char_123_fang': {lower: 1, upper: 20}})
+  })
+
   it('clears all operators and replacements across facilities while preserving layout, levels, products, and scheme name', () => {
     const store = useRosterWorkbenchStore()
     // Configure custom non-default layout and name
@@ -375,8 +421,10 @@ describe('RosterWorkbenchStore', () => {
       replacements: ['char_010_chen'],
     }
     store.selectRoom('room_1_1')
+    store.workspace.mainPlan.facilities.dormitory_1.slots[0]!.dormitoryResident = true
 
     store.clearAllOperators()
+    expect(store.workspace.mainPlan.facilities.dormitory_1.slots[0]!.dormitoryResident).toBeUndefined()
 
     // Layout, levels, products and scheme name must be preserved
     expect(store.workspace.name).toBe('我的自定义排班')
@@ -406,3 +454,18 @@ describe('RosterWorkbenchStore', () => {
   })
 })
 
+
+
+describe('placeholder staffing clears incompatible bindings', () => {
+  it.each(['free', 'empty', 'current'] as const)('clears all group columns when the occupant becomes %s', kind => {
+    setActivePinia(createPinia())
+    const store = useRosterWorkbenchStore()
+    store.updateSlot('dormitory_1', 0, { occupant: {kind:'operator',operatorId:'char_242_otter'}, groupId:'A', replacements:['Free'], groupBindings:[{groupId:'B',replacements:['Free']}] })
+    const slot = store.workspace.mainPlan.facilities.dormitory_1.slots[0]!
+    slot.dormitoryResident = true
+    store.updateSlotOccupant('dormitory_1',0,{kind})
+    expect(slot.dormitoryResident).toBeUndefined()
+    expect(store.workspace.mainPlan.facilities.dormitory_1.slots[0]).toMatchObject({occupant:{kind},groupId:null,replacements:[]})
+    expect(store.workspace.mainPlan.facilities.dormitory_1.slots[0]?.groupBindings).toBeUndefined()
+  })
+})
