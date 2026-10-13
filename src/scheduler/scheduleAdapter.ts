@@ -185,6 +185,7 @@ export function compiledScheduleToRuntimeConfig(schedule: CompiledSchedule): Run
     positions,
     beds:orderMowerRecoveryBeds(beds,schedule.assumptions.dormOrder??''),
     initialMorale,
+    mowerInitialMorale: {fromUpperLimit: schedule.assumptions.defaultsApplied.includes('initialMorale'), explicitOperators: Object.keys(schedule.assumptions.operatorMorale)},
     fiammetta,
     excludedCandidates: Array.from(shiftRunIds),
     runOrderPolicies,

@@ -163,7 +163,7 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
   backups=createBackupPlanController(schedule,state,{canUseFiammetta:id=>hasOperatorSkill({operatorRecords},id,'dorm_exchangeAp[000]')})
   for(const d of backups.diagnostics)diagnostic(d.code,d.message)
  }catch(error){diagnostic('INVALID_RUNTIME',String(error));return report}
- const total=warmupHours+sampleHours,initial={...state.morale}
+ const total=warmupHours+sampleHours,initial=state.initialMorale??{...state.morale}
  const entered=new Map<string,{room:string;time:number}>()
  let hasActiveTemporalSkills=false,hasActiveContinuousWarmup=false
  const checkTemporalSkills=()=>{
@@ -479,7 +479,7 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
   if(state.config.mowerSourcePlan?nextRosterActionHours(state,rates)===0:Math.abs(dt-action)<=EPS){settle();production?.settle(()=>frameAt(0))}
  }
   report.elapsedHours=state.time;report.success=!backupFailed&&Math.abs(state.time-total)<EPS
- report.operators=[...stats.values()].map(s=>({...s,finalMorale:state.morale[s.operatorId]!,workFraction:report.observedHours?s.workHours/report.observedHours:0,workRestRatio:s.restHours>EPS?s.workHours/s.restHours:null}))
+ report.operators=[...stats.values()].map(s=>({...s,initialMorale:initial[s.operatorId]??s.initialMorale,finalMorale:state.morale[s.operatorId]!,workFraction:report.observedHours?s.workHours/report.observedHours:0,workRestRatio:s.restHours>EPS?s.workHours/s.restHours:null}))
  report.rooms=[...roomStats.values()].map(r=>({...r,averageEfficiencyPercent:report.observedHours?r.efficiencyPercentHours/report.observedHours:0,teams:r.teams.map(t=>({...t,fraction:report.observedHours?t.hours/report.observedHours:0}))}))
  if(production){report.production=production.report();report.production.success&&=report.success}
  report.events=state.events.filter(e=>e.time>=warmupHours-EPS)

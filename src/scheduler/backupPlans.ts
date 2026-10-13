@@ -2,6 +2,7 @@ import {validateMowerRosterRules} from '../domain/mowerRosterRules'
 import {assertMowerBackupRoomOwners, assertMowerBackupTaskRooms, mowerBackupRoomCapacity, prepareMowerBackupRoom} from '../domain/mowerBackupFacilities'
 import {MowerShiftPreviewError} from './mowerNativeErrors'
 import {preserveMowerBackupReplacements} from './mowerBackupReplacements'
+import {captureMowerBackupRefreshRules,inheritMowerBackupRefreshRules} from './mowerBackupRefresh'
 import { effectiveMowerDormOrder } from '../domain/mowerDormOrder'
 import {mowerPlanEntries} from './mowerPlanOrder'
 import {readMowerOperatorList, readMowerRemovedOperators, mergeMowerBackupConfig} from './mowerBackupConfig'
@@ -118,7 +119,10 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
   if(plans.some(plan=>plan.usesMajorMaintenance)&&base.assumptions.majorMaintenanceStartHours===undefined)diagnostics.push({code:'MOWER_MAINTENANCE_ASSUMPTION',message:'未提供维护时间，本次模拟没有停服窗口'})
   if(plans.some(plan=>plan.usesMasteryPlan)&&state.config.mowerMasteryPlanPresent!==undefined)diagnostics.push({code:'MOWER_MASTERY_PLAN_ASSUMPTION',message:`本次模拟固定为${state.config.mowerMasteryPlanPresent?'有':'无'}未完成的训练计划（包含失败但未清除的计划），不模拟训练进度或计划完成时刻`})
   const active = plans.map(() => false)
-  for (const id of participants) state.morale[id] ??= base.assumptions.operatorMorale[id] ?? base.assumptions.initialMorale
+  for (const id of participants) {
+    state.morale[id] ??= base.assumptions.operatorMorale[id] ?? base.assumptions.initialMorale
+    ;(state.initialMorale??={})[id] ??= state.morale[id]
+  }
   const displaced = new Set<string>()
   let effective = base
   const alphaConfigs=new Map<string,{compiled:CompiledSchedule;config:RuntimeState['config']}>()
@@ -163,7 +167,7 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
     nextConditionWakeMicros:data=>plans.some(plan=>plan.usesCurrentMood||plan.usesMajorMaintenance&&base.assumptions.majorMaintenanceStartHours!==undefined)?data.nowMicros+1_000_000:undefined,
     nextIdleConditionWakeMicros:data=>plans.some(plan=>plan.usesMajorMaintenance)&&base.assumptions.majorMaintenanceStartHours!==undefined&&data.nowMicros<=base.assumptions.majorMaintenanceStartHours*3_600_000_000?data.nowMicros+1_000_000:undefined,
     evaluate(data){return plans.map(p=>Boolean(p.condition({...state,time:data.nowMicros/3_600_000_000,mowerSource:{...getMowerSourceRuntime(state),data}})))},
-    swap(data,conditions){const {config}=alphaConfiguration(conditions);const next=makeMowerSchedulingData({...state,config,morale:{...state.morale}},{data});next.planConditions=[...conditions];return next},
+    swap(data,conditions){const {config}=alphaConfiguration(conditions);const next=makeMowerSchedulingData({...state,config,morale:{...state.morale},initialMorale:{...state.initialMorale}},{data});next.planConditions=[...conditions];return next},
     transition(previous,next,original,conditions,recovery=previous){
       const transition:Record<string,string[]>={},groupPositions=new Set<string>(),replacementPositions:[string,number][]=[],restored=new Set<string>()
       plans.forEach((p,i)=>{if(original[i]&&!conditions[i])for(const [room,names] of Object.entries(p.task))names.forEach((name,index)=>{if(name!=='Current')restored.add(alphaPosition(room,index))})})
@@ -196,10 +200,12 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
       for(const [room,names] of Object.entries(transition))if(room.startsWith('dorm'))names.forEach((name,index)=>{if(!['Current','Free',''].includes(name)&&next.restMoodComplete(name)&&next.currentOperator(room,index)?.name!==name)names[index]='Current'})
       return stripMowerCurrent(transition)
     },
-    activate(conditions){
+    activate(conditions,task){
+      const previous=getMowerSourceRuntime(state).data,oldDrained=state.config.mowerSourceRules?.refreshDrained??[]
       const snapshot=alphaConfiguration(conditions)
       conditions.forEach((value,i)=>{if(value!==active[i])state.events.push({time:state.time,type:'backup-plan',operators:[],backupIndex:i,backupName:plans[i]!.name,active:value,timing:'END'});active[i]=value})
       state.config=snapshot.config;effective=snapshot.compiled;getMowerSourceRuntime(state).data.planConditions=[...active]
+      captureMowerBackupRefreshRules(task,previous,getMowerSourceRuntime(state).data,oldDrained,state.config.mowerSourceRules?.refreshDrained??[])
     },
   }
   if(state.config.mowerAlpha){state.mowerShiftModel=alphaModel;getMowerSourceRuntime(state).data.planConditions=[...active]}
@@ -215,7 +221,8 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
         const merged=coalesceMowerBackupTransition(current,transition,queue.tasks)
         const generated:MowerTask[]=[]
         if(Object.keys(merged.plan).length){const task=new MowerTask({time:state.time,type:Object.keys(merged.plan).some(room=>room.startsWith('dorm'))?T.RE_ORDER:T.SELF_CORRECTION,plan:merged.plan,metadata:'副表内存收敛'});if(state.mowerBackupContext?.customTimeMicros!==undefined)task.timeMicros=state.mowerBackupContext.customTimeMicros;generated.push(task);queue.tasks.push(task);queue.tasks=queue.tasks.filter(t=>!merged.consumed.includes(t))}
-        alphaModel.activate(conditions);getMowerSourceRuntime(state).data.dorms=current.dorms
+        if(generated[0])inheritMowerBackupRefreshRules(generated[0],merged.consumed)
+        alphaModel.activate(conditions,generated[0]);getMowerSourceRuntime(state).data.dorms=current.dorms
         for(const event of state.events.slice(-plans.length))if(event.type==='backup-plan'&&event.time===state.time)event.timing=timing
         const followup=new MowerTask({time:state.time});if(state.mowerBackupContext?.customTimeMicros!==undefined)followup.timeMicros=state.mowerBackupContext.customTimeMicros;generated.push(followup)
         state.mowerBackupGenerated=generated

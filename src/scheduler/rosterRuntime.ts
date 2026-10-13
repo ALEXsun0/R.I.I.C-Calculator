@@ -31,6 +31,8 @@ export interface RuntimeConfig {
  mowerAlpha?:boolean;mowerDormOrder?:string[]
  mowerMoodLimits?:MowerMoodLimitConfig
   positions: RuntimePosition[]; beds: RuntimeBed[]; initialMorale?: Record<string, number>
+  /** Default scene input uses native policy upper limits; explicit overrides remain unchanged. */
+  mowerInitialMorale?: { fromUpperLimit: boolean; explicitOperators: string[] }
   mowerSourcePlan?: Record<string,{agent:string;group:string;replacement:string[];groupBindings?:{group:string;replacement:string[]}[]}[]>
   mowerRecycleBuilt?: boolean
   /** Disable order tasks only for the old no-wake comparison. */
@@ -67,6 +69,8 @@ export interface RuntimeState {
   mowerSource?:MowerSourceRuntime; mowerBackupContext?:MowerBackupContext; mowerBackupGenerated?:MowerTask[]
   mowerShiftModel?:MowerShiftModel
   config: RuntimeConfig; time: number; occupants: Record<string, string>; morale: Record<string, number>
+  /** First physical mood, including operators first introduced by a later backup. */
+  initialMorale?: Record<string, number>
   bedOccupants: Record<string, string>; events: RuntimeEvent[]
   backupBedOccupants?: Set<string>
   pendingRest?: string[]
@@ -114,6 +118,7 @@ export function createRosterRuntime(config: RuntimeConfig): RuntimeState {
     if (!Number.isFinite(m) || m < 0 || m > 24) throw new Error(`Invalid morale: ${id}`)
     s.morale[id] = m
   }
+  s.initialMorale = {...s.morale}
   if (config.mowerPolicy && config.beds.length && config.idleOperators === undefined && config.availableIdleOperators === undefined) rosterDiagnostic(s,'idle-roster-unspecified','Mower Free card pool is unspecified in this direct fixture')
   return s
 }

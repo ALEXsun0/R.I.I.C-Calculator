@@ -38,7 +38,7 @@
 
 ## 纳入范围
 
-共 610 个索引文件，其中应用 TypeScript/Vue/CSS 文件 222 个，业务测试文件 249 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
+共 613 个索引文件，其中应用 TypeScript/Vue/CSS 文件 223 个，业务测试文件 251 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
 
 ### 根目录管理入口
 
@@ -477,6 +477,8 @@ src/
 │   ├── mowerBackupConfig.ts
 │   ├── mowerBackupConvergence.spec.ts
 │   ├── mowerBackupFacilities.spec.ts
+│   ├── mowerBackupRefresh.spec.ts
+│   ├── mowerBackupRefresh.ts
 │   ├── mowerBackupReplacements.ts
 │   ├── mowerBatchPlanning.spec.ts
 │   ├── mowerBedPool.spec.ts
@@ -596,6 +598,7 @@ src/
 │   ├── mowerAlphaProductSimulation.spec.ts
 │   ├── mowerEfficiencyCache.spec.ts
 │   ├── mowerGladiiaFatigue.long.spec.ts
+│   ├── mowerInitialMorale.spec.ts
 │   ├── mowerManufactureIO.spec.ts
 │   ├── mowerNativeClueIO.ts
 │   ├── mowerNativeProductionIO.spec.ts

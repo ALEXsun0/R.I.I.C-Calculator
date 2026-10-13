@@ -1,4 +1,5 @@
 import {planMowerDormIsolation} from './mowerDormIsolation'
+import {inheritMowerBackupRefreshRules} from './mowerBackupRefresh'
 import {normalizeMowerSharedArrangement,mowerArrangementGroupTransitions,commitMowerGroupShifts} from './mowerSharedGroups'
 // Complete in-memory arrangement replay, Mower alpha b2d9ac8 (MIT).
 import type {MowerSchedulingData} from './mowerSchedulingData'
@@ -20,7 +21,7 @@ export interface MowerShiftModel {
  evaluate(data:MowerSchedulingData):boolean[]
  swap(data:MowerSchedulingData,conditions:boolean[]):MowerSchedulingData
  transition(previous:MowerSchedulingData,next:MowerSchedulingData,original:boolean[],conditions:boolean[],previousRecovery?:MowerSchedulingData):MowerTaskPlan
- activate(conditions:boolean[]):void
+ activate(conditions:boolean[],task?:MowerTask):void
 }
 const same=(a:boolean[],b:boolean[])=>a.length===b.length&&a.every((v,i)=>v===b[i])
 export function mergeMowerPlanOverlay(target:MowerTaskPlan,overlay:MowerTaskPlan,data:MowerSchedulingData):void{
@@ -131,6 +132,7 @@ export function prepareMowerShiftCycle(data:MowerSchedulingData,task:MowerTask,q
   if(cancelledShiftLeavesOnlyDormFill(data,simulation,task,intent,conditions,coalesced,final))throw new MowerShiftPreviewError('原下班意图被完全取消，仅剩普通填床换位，保留原任务，暂不执行换人')
   task.groupShiftTransitions=Object.fromEntries(Object.entries(simulation.groupShiftState).filter(([group,resting])=>data.groupIsResting(group)!==resting))
   task.backupShiftIntent=intent;task.backupShiftConditions=[...conditions];task.plan=final
+  inheritMowerBackupRefreshRules(task,coalesced)
   task.dormFillPlan=Object.fromEntries(Object.entries(final).filter(([room])=>room.startsWith('dorm')).map(([room,names])=>[room,names.map((name,index)=>simulation.operators[name]?.temporaryDormFill||ordinaryUnknown.has(alphaPosition(room,index))?name:'Current')]))
   queue.tasks=queue.tasks.filter(t=>!coalesced.includes(t))
   for(const [room,names] of Object.entries(final))if(room.startsWith('dorm'))for(const name of names)if(data.operators[name])data.operators[name]!.dormMoodFallback=simulation.operators[name]!.dormMoodFallback
