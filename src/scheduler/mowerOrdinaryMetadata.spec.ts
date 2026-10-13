@@ -4,6 +4,7 @@ import { MowerOperatorState } from './mowerOperatorState'
 import { mowerResting, planMowerOrdinary } from './mowerOrdinaryPlanning'
 import { MowerDormState, MowerSchedulingData } from './mowerSchedulingData'
 import { MOWER_TASK_TYPES as T, MowerTask, MowerTaskQueue, toMowerMicros } from './mowerTaskQueue'
+import { alphaRestingTier } from './mowerAlphaDorm'
 
 function fixture(alpha = false) {
   const operators = {
@@ -59,21 +60,21 @@ describe('ordinary Mower metadata preparation', () => {
     expect(queue.tasks[0]!.plan).toEqual(original.plan)
   })
 
-  it('retains alpha metadata rebuilding after the standby priority update', () => {
+  it('keeps standby priority unchanged through alpha metadata preparation', () => {
     const { data, queue, operators } = fixture(true)
     data.standbyNames = ['A']
     operators.A.restingPriority = 'standby'
     operators.A.mood = 10
     const actualBuild = metadata.planMowerMetadata
-    const observed: boolean[] = []
+    const observed: number[] = []
     const build = vi.spyOn(metadata, 'planMowerMetadata').mockImplementation((state, tasks) => {
-      observed.push(state.operators.A!.standbyLowPriority)
+      observed.push(alphaRestingTier(state, 'A'))
       actualBuild(state, tasks)
     })
     planMowerOrdinary(data, queue)
     expect(build).toHaveBeenCalledTimes(2)
-    expect(observed).toEqual([false, true])
-    expect(operators.A.standbyLowPriority).toBe(true)
+    expect(observed).toEqual([4, 4])
+    expect(alphaRestingTier(data, 'A')).toBe(4)
   })
 
   it('keeps the actual metadata guard and queue identity during a protected arrangement', () => {

@@ -81,7 +81,7 @@ export class MowerSchedulingData {
   const names=Array.from({length:room==='train'?2:this.plan[room]!.length},(_,index)=>coordinates.get(index)??'')
   return !bypass&&names.some((name,index)=>!name&&(indexes===undefined||indexes.includes(index)))?undefined:names
  }
- canStandby(op:MowerOperatorState):boolean{return op.isHigh()&&!!(this.alpha||op.group||this.policy.experimentalDormLogic)&&op.restingPriority==='standby'&&(this.alpha||!op.standbyLowPriority)&&!op.room.startsWith('dorm')&&!op.workaholic&&!op.exhaustRequire&&!op.restInFull&&!!(this.alpha||this.policy.experimentalDormLogic||!op.workshop)}
+ canStandby(op:MowerOperatorState):boolean{return op.isHigh()&&!!(this.alpha||op.group||this.policy.experimentalDormLogic)&&op.restingPriority==='standby'&&!op.room.startsWith('dorm')&&!op.workaholic&&!op.exhaustRequire&&!op.restInFull&&!!(this.alpha||this.policy.experimentalDormLogic||!op.workshop)}
  getDormByName(name:string):[number,MowerDormState]|undefined {
   const op=this.operators[name];if(!op)return undefined
   const beds=this.allDorms(),index=beds.findIndex(bed=>bed.position[0]===op.currentRoom&&bed.position[1]===op.currentIndex&&this.recoveryDorm(bed,name))
@@ -110,10 +110,6 @@ export class MowerSchedulingData {
  restMoodComplete(name:string):boolean {const op=this.operators[name];return !!op&&op.restMoodLimit&&hasRestingMood(op,this.nowMicros)&&(restingMood(op,this.nowMicros)>=op.upperLimit||this.alpha&&!op.currentRoom&&op.restMoodReleaseLimit===op.upperLimit)}
  freeRoomExcluded(name:string):boolean {const op=this.operators[name];return this.alpha&&this.freeRoom&&this.freeRoomExclusions.includes(name)&&!!op&&!op.workaholic&&!this.freeBlacklist.includes(name)&&!this.restMoodComplete(name)}
  replacementExhausted(name:string):boolean{const op=this.operators[name];return !!op&&hasRestingMood(op,this.nowMicros)&&restingMood(op,this.nowMicros)<=op.lowerLimit}
- updateStandbyLowPriority(op:MowerOperatorState,returnedToPost=false):void {
-  if(!this.standbyNames.includes(op.name)||returnedToPost)op.standbyLowPriority=false
-  else if(restingMood(op,this.nowMicros)<op.lowerLimit+(op.upperLimit-op.lowerLimit)*this.policy.restingThreshold*this.policy.rescueThreshold)op.standbyLowPriority=true
- }
  idleRestChecked(name:string):boolean {const op=this.operators[name],checked=op?.idleRestCheck;return !!op&&!op.currentRoom&&!!checked&&checked[0]>=op.upperLimit&&checked[1]===op.mood&&checked[2]===op.timeStampMicros}
  stopIdleDormSearch():void {if(!this.idleDormSearchExhausted){this.idleDormSearchExhausted=true;this.idleDormSearchStoppedAtMicros=this.nowMicros}}
  refreshIdleDormSearch(reason?:string,names?:Set<string>):boolean {

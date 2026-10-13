@@ -407,5 +407,48 @@
       "originalInputModified": false,
       "caveat": "Comparison with previous baseline changes both efficiency rules and roster policy; no attribution of production changes to policy alone."
     }
+  },
+  "standbyPriorityRemoval": {
+    "basis": "User-requested simulator policy; intentional divergence from pinned native standby promotion.",
+    "baseline": "ac0fdaf0a9ca56a5c6f31d80a276296f2cb05a8b",
+    "removed": [
+      "temporary standbyLowPriority state",
+      "low-morale promotion during observations and planning",
+      "promotion state copied across backup rebuilds"
+    ],
+    "preserved": [
+      "explicit priority lists",
+      "standby allocation and displacement",
+      "group return",
+      "general rescue thresholds",
+      "original user plans"
+    ],
+    "tests": {
+      "files": 14,
+      "passed": 183,
+      "beforeChangeBehavioralFailures": 4
+    },
+    "build": "passed; existing chunk-size warning",
+    "browser": "HTTP responses from localhost:4173 serve permanent standby tier and updated policy help.",
+    "backup": {
+      "path": "artifacts/mower-alpha-20261014-standby-priority/source-before.tar",
+      "sha256": "ea6d4fd03fe42ca2b6bbd47bb6daa4b152d7cb6fbc4bab89b10afdc53e79a1c7"
+    },
+    "typecheck": "passed after temporary private runner removal",
+    "structure": "passed",
+    "privateReplay": {
+      "warmupHours": 72,
+      "sampleHours": 168,
+      "success": true,
+      "wallSeconds": 115.07735175,
+      "integrationIntervals": 18548,
+      "identicalInput": true,
+      "sameProductionAndTaskCounts": true,
+      "sameOperatorTimes": true,
+      "gladiiaIdleSeconds": 57.5,
+      "deferrals": 68,
+      "unresolvedDeferrals": 0,
+      "privacy": "Private input and temporary runner remain ignored local artifacts."
+    }
   }
 }
