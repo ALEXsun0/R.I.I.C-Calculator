@@ -27,7 +27,7 @@ function runtime(raw: object, masteryPlanPresent?: boolean) {
 describe('Mower backup-only right-side rooms', () => {
   it('validates omitted training slots without changing the imported main or round trip', () => {
     const raw = fixture(), workspace = importMowerJson(JSON.stringify(raw)), before = structuredClone(workspace)
-    expect(workspace.mainPlan.facilities.train).toMatchObject({level: 0, slots: []})
+    expect(workspace.mainPlan.facilities.train).toMatchObject({level: 3, slots: []})
     expect(validateRosterWorkspace(workspace).criticalErrors).toEqual([])
     expect(workspace).toEqual(before)
     expect(JSON.parse(exportMowerJson(workspace))).toEqual(raw)
@@ -44,7 +44,7 @@ describe('Mower backup-only right-side rooms', () => {
     expect(state.config.positions.filter(position => position.roomId === 'train').map(position => position.primary)).toEqual([id('桃金娘'), id('褐果')])
     expect(controller.schedule.rooms.find(room => room.roomId === 'train')?.level).toBe(3)
     model.activate([false])
-    expect(controller.schedule.rooms.some(room => room.roomId === 'train')).toBe(false)
+    expect(controller.schedule.rooms.find(room => room.roomId === 'train')).toMatchObject({level: 3, slots: []})
     expect(state.config.positions.some(position => position.roomId === 'train')).toBe(false)
     expect(workspace).toEqual(original)
   })
@@ -179,6 +179,6 @@ describe('Mower backup-only right-side rooms', () => {
     expect(() => runtime(tooMany)).toThrow()
     const {state, controller} = runtime(fixture([]))
     state.mowerShiftModel!.activate([true])
-    expect(controller.schedule.rooms.some(room => room.roomId === 'train')).toBe(false)
+    expect(controller.schedule.rooms.find(room => room.roomId === 'train')).toMatchObject({level: 3, slots: []})
   })
 })

@@ -38,7 +38,7 @@
 
 ## 纳入范围
 
-共 658 个索引文件，其中应用 TypeScript/Vue/CSS 文件 236 个，业务测试文件 278 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
+共 665 个索引文件，其中应用 TypeScript/Vue/CSS 文件 238 个，业务测试文件 283 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
 
 ### 根目录管理入口
 
@@ -504,11 +504,14 @@ src/
 │   ├── mowerBackupRefresh.spec.ts
 │   ├── mowerBackupRefresh.ts
 │   ├── mowerBackupReplacements.ts
+│   ├── mowerBackupRestingJoin.spec.ts
+│   ├── mowerBackupRestingJoin.ts
 │   ├── mowerBatchPlanning.spec.ts
 │   ├── mowerBedPool.spec.ts
 │   ├── mowerBedTakeover.spec.ts
 │   ├── mowerClueLifecycle.spec.ts
 │   ├── mowerClueLifecycle.ts
+│   ├── mowerCompletedDeparture.spec.ts
 │   ├── mowerCorrection.ts
 │   ├── mowerDefaultIdlePool.spec.ts
 │   ├── mowerDepartingReplacements.spec.ts
@@ -544,6 +547,8 @@ src/
 │   ├── mowerIsolationReservations.spec.ts
 │   ├── mowerLatestSchedulingWiring.spec.ts
 │   ├── mowerLimitedRest.spec.ts
+│   ├── mowerMaintenanceRunOrders.spec.ts
+│   ├── mowerMaintenanceRunOrders.ts
 │   ├── mowerMaintenanceScheduling.spec.ts
 │   ├── mowerMaintenanceScheduling.ts
 │   ├── mowerMetadata.spec.ts
@@ -633,6 +638,7 @@ src/
 │   ├── mowerGladiiaFatigue.long.spec.ts
 │   ├── mowerInitialMorale.spec.ts
 │   ├── mowerInventoryBackup.spec.ts
+│   ├── mowerMaintenanceOrders.spec.ts
 │   ├── mowerManufactureIO.spec.ts
 │   ├── mowerNativeClueIO.ts
 │   ├── mowerNativeProductionIO.spec.ts
@@ -695,6 +701,7 @@ src/
 │   │   ├── mowerAlphaJson.spec.ts
 │   │   ├── mowerAlphaMigration.ts
 │   │   ├── mowerBackupAudit.spec.ts
+│   │   ├── mowerFacilityLevels.spec.ts
 │   │   ├── mowerJson.spec.ts
 │   │   ├── mowerJson.ts
 │   │   ├── mowerQrCodec.spec.ts

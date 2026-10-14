@@ -1,0 +1,54 @@
+{
+  "repository": "https://github.com/ArkMowers/arknights-mower",
+  "revision": "48ae469895dd9a64fda8a565d2403c49f431cde8",
+  "checkedDate": "2026-10-14",
+  "baselinePreviouslyChecked": "3de2b2ac6f1aeff6513b63faaeea4b2369cf8856",
+  "behaviorReferences": {
+    "maintenance": "19a322969",
+    "measuredDormDeparture": "b9ec78a822099285a2e509630fce98f27afa6580",
+    "restoredRestingGroup": "80c97ee604375af144090656ef84b083acd6dc7f",
+    "builtInSimulationAndFacilityLevels": "c2cd17883"
+  },
+  "sources": [
+    {
+      "path": "arknights_mower/solvers/base_schedule.py",
+      "sha256": "cc4c47c6ea47b32c76b8e36f096a931c2d05c735684e17603db9c2f6d31bb41b"
+    },
+    {
+      "path": "arknights_mower/utils/operators.py",
+      "sha256": "607b3433afc187a44c531e0a614cea69f6df9668f578a37202930d64b3c250ce"
+    },
+    {
+      "path": "arknights_mower/tests/completed_group_departure_tests.py",
+      "sha256": "6b57d69a930fb748f1d5555c7d324e668ba90c7442badf4c1a6610832c10c537"
+    },
+    {
+      "path": "arknights_mower/tests/maintenance_run_order_tests.py",
+      "sha256": "e746bc3693e53e80e00f5aad615591d1c19f280b3373661d368ea502ed02d484"
+    },
+    {
+      "path": "arknights_mower/tests/backup_relocation_state_tests.py",
+      "sha256": "3e0a7a73ecf00a27b0b49f0fd54e011ae63f191f68f4cefa5b21982a60a7201d"
+    },
+    {
+      "path": "ui/src/riic/vendor/source.json",
+      "sha256": "ebb76c1db6977ffd7a8515dbb76b82a461663c4aec7312f172179b6db1dd65ff"
+    }
+  ],
+  "scope": [
+    "maintenance primary slots pause all ideal run-order policies until effective maintenance primaries are removed",
+    "ordinary completed dorm departures preserve measured mood and stop dorm recovery extrapolation",
+    "backup restoration keeps an already-resting group resting with matching covers and missing-bed admission",
+    "saved shared facility levels enter import, export, compilation, capacity and power checks",
+    "RIIC automatic candidate evaluation and native simulation share the simulation bridge",
+    "Mower built-in simulation pins the verified calculator source; Yituliu receives editor changes only"
+  ],
+  "limitations": [
+    "maintenance replacement Drone Acceleration and physical roster restoration are not simulated by the ideal run-order model",
+    "persistent return_windows and complete cross-dorm recovery prioritization remain outside the existing port",
+    "does not simulate live mastery progress or device training protection observations",
+    "does not claim a complete native scheduler port or live game verification",
+    "Yituliu simulation code is outside this update",
+    "Windows D:/Tools/R.I.I.C-Calculator installation is unavailable on this macOS host"
+  ]
+}
