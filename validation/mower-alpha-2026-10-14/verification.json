@@ -52,5 +52,30 @@
     "files": 35,
     "passed": 401
   },
-  "delivery": "new draft PR required: previous PR was merged at 0630aa3"
+  "delivery": {
+    "draftPullRequest": "https://github.com/Panda-Panta/R.I.I.C-Calculator/pull/11",
+    "implementationCommit": "dd8d5a4",
+    "mainIntegrationCommit": "6e5d8db",
+    "pushed": true
+  },
+  "integratedReplay": {
+    "input": "privately confirmed plan13 without two inventory backups",
+    "warmupHours": 72,
+    "sampleHours": 168,
+    "seed": 42,
+    "success": true,
+    "runnerExitCode": 0,
+    "diagnosticWallSeconds": 80.265,
+    "deferredShifts": 65,
+    "resolvedDeferredShifts": 65,
+    "longestDeferredHours": 29.236077,
+    "limitations": [
+      "shared replacement conflict retries observed",
+      "diagnostic overhead prevents treating elapsed time as browser benchmark"
+    ],
+    "sourceStage": "after merging origin/main 04def42",
+    "sourceManifestSha256": "36df9c5ebba5c1666c21b46f2cd5a3ca887d5412ecd4ee7b9ead240614bbb8e9",
+    "sourceHashesMatchFinalWorkingTree": true,
+    "newDiagnosticsComparedWithPreMerge": false
+  }
 }
