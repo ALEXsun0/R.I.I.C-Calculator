@@ -9,6 +9,7 @@ import {createBackupPlanController} from './backupPlans'
 import {getMowerSourceRuntime} from './mowerSourceRuntime'
 import {projectMowerArrangements} from './mowerObservations'
 import {resolveOperatorCharId as id} from '../domain/operatorIdentifiers'
+import type {SimulationAssumptions} from './types'
 
 const column = (agent: string, replacement: string[] = []) => ({agent, group: '', replacement})
 function fixture(plans = [column('桃金娘', ['安赛尔']), column('褐果', ['芙蓉'])]) {
@@ -17,8 +18,8 @@ function fixture(plans = [column('桃金娘', ['安赛尔']), column('褐果', [
     dormitory_1: {name: '', plans: [column('杜林'), ...Array.from({length: 4}, () => column('Free'))]},
   }, backup_plans: [{name: 'temporary training staff', trigger: 'True', plan: {train: {name: '', plans}}, conf: {}}]}
 }
-function runtime(raw: object, masteryPlanPresent?: boolean) {
-  const workspace = importMowerJson(JSON.stringify(raw)), base = compileRosterSchedule(workspace, {masteryPlanPresent})
+function runtime(raw: object, options: Partial<SimulationAssumptions> = {}) {
+  const workspace = importMowerJson(JSON.stringify(raw)), base = compileRosterSchedule(workspace, options)
   const config = compiledScheduleToRuntimeConfig(base); config.mowerAlpha = true
   const state = createRosterRuntime(config), controller = createBackupPlanController(base, state)
   return {workspace, base, state, controller}
@@ -125,22 +126,42 @@ describe('Mower backup-only right-side rooms', () => {
     expect(() => runtime(raw)).toThrow('任务房间/槽位错误')
   })
 
-  it.each([true, false])('reports the explicit fixed mastery-plan assumption (%s)', present => {
+  it.each([undefined, false, true])('activates the no-plan training backup even with retired state %s', present => {
     const raw = fixture()
     raw.backup_plans[0]!.trigger = 'not op_data.facility_has_mastery_plan("train")'
-    const {state, controller} = runtime(raw, present)
-    expect(controller.diagnostics.find(issue => issue.code === 'MOWER_MASTERY_PLAN_ASSUMPTION')?.message).toContain(present ? '固定为有' : '固定为无')
-    expect(state.mowerShiftModel!.evaluate(getMowerSourceRuntime(state).data)).toEqual([!present])
-    state.mowerShiftModel!.activate([!present])
-    expect(state.config.mowerMasteryPlanPresent).toBe(present)
+    const original = structuredClone(raw), options = present === undefined ? {} : {initialMorale: 24, masteryPlanPresent: present}
+    const originalOptions = structuredClone(options)
+    const {workspace, state, controller} = runtime(raw, options)
+    const originalWorkspace = structuredClone(workspace)
+    expect(controller.diagnostics.find(issue => issue.code === 'MOWER_MASTERY_PLAN_ASSUMPTION')?.message).toContain('固定为无')
+    const model = state.mowerShiftModel!, previous = getMowerSourceRuntime(state).data, conditions = model.evaluate(previous)
+    expect(conditions).toEqual([true])
+    const next = model.swap(previous, conditions), transition = model.transition(previous, next, [false], conditions)
+    expect(transition.train).toEqual([id('桃金娘'), id('褐果')])
+    expect(projectMowerArrangements(next, [transition]).currentRoom('train')).toEqual([id('桃金娘'), id('褐果')])
+    model.activate(conditions)
+    expect(state.config.positions.filter(position => position.roomId === 'train').map(position => position.primary)).toEqual([id('桃金娘'), id('褐果')])
+    expect(model.evaluate(getMowerSourceRuntime(state).data)).toEqual([true])
+    const result = runScheduleSimulationBridge(workspace, {sampleHours: .01, recordSegments: true, maxEvents: 200}, {...options, idleOperators: []})
+    expect(result.report?.success, result.error ?? JSON.stringify(result.report?.diagnostics)).toBe(true)
+    expect(result.report?.segments.some(segment => segment.occupants.train_0 === id('桃金娘') && segment.occupants.train_1 === id('褐果'))).toBe(true)
+    expect(workspace).toEqual(originalWorkspace)
+    expect(JSON.parse(exportMowerJson(workspace))).toEqual(original)
+    expect({raw, options}).toEqual({raw: original, options: originalOptions})
   })
 
-  it('does not silently assume a missing mastery plan state', () => {
+  it.each([undefined, false, true])('leaves a positive mastery-plan backup inactive with retired state %s', present => {
     const raw = fixture()
-    raw.backup_plans[0]!.trigger = 'not op_data.facility_has_mastery_plan("train")'
-    const {state, controller} = runtime(raw)
-    expect(controller.diagnostics.some(issue => issue.code === 'MOWER_MASTERY_PLAN_ASSUMPTION')).toBe(false)
-    expect(() => state.mowerShiftModel!.evaluate(getMowerSourceRuntime(state).data)).toThrow('缺少训练室专精计划状态')
+    raw.backup_plans[0]!.trigger = 'op_data.facility_has_mastery_plan("train")'
+    const options = present === undefined ? {} : {initialMorale: 24, masteryPlanPresent: present}
+    const {workspace, state, controller} = runtime(raw, options)
+    expect(state.mowerShiftModel!.evaluate(getMowerSourceRuntime(state).data)).toEqual([false])
+    expect(controller.evaluate('END')).toBe(false)
+    expect(controller.active).toEqual([false])
+    expect(state.config.positions.some(position => position.roomId === 'train')).toBe(false)
+    const result = runScheduleSimulationBridge(workspace, {sampleHours: .01, recordSegments: true, maxEvents: 200}, {...options, idleOperators: []})
+    expect(result.report?.success, result.error ?? JSON.stringify(result.report?.diagnostics)).toBe(true)
+    expect(result.report?.segments.every(segment => !segment.occupants.train_0 && !segment.occupants.train_1)).toBe(true)
   })
 
   it.each([['meeting', 2], ['factory', 1], ['contact', 1], ['recycle', 2]] as const)('accepts omitted %s within its native capacity', (room, capacity) => {

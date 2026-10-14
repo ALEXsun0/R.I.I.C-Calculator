@@ -133,7 +133,6 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
           rescueThreshold: simSettings.value.rescueThreshold ?? .75,
           freeRoom: simSettings.value.freeRoom ?? false,
           ...mowerAdvancedAssumptions(store.workspace),
-          masteryPlanPresent: simSettings.value.masteryPlanPresent ?? false,
         },
         simulationOptions: {
           productionWeights: normalizeProductionWeights(simSettings.value.productionWeights),
