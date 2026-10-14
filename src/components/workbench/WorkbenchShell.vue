@@ -78,7 +78,7 @@ const validationResult = computed<ValidationResult>(() => {
 })
 
 const { smartRosterConfigModalOpen, generationProgress, handleAutoGenerate, handleConfirmSmartRosterConfig, handleAbortAutoGenerate } = useSmartRosterGeneration(store, session)
-const { calculationConfigOpen, calculationProgress, calculationTiming, handleCalculate, handleConfirmCalculation, handleAbortCalculation } = useWorkbenchCalculation(store, session, validationResult)
+const { calculationConfigOpen, calculationProgress, calculationTiming, calculationSilence, handleCalculate, handleConfirmCalculation, handleAbortCalculation } = useWorkbenchCalculation(store, session, validationResult)
 const { handleInventoryChange, handleInventoryImported } = useWorkbenchPersistence(store, session)
 
 // Focus FacilityEditor when room selection changes
@@ -320,6 +320,7 @@ defineExpose({
           :is-calculating="isCalculating"
           :calculation-progress="calculationProgress"
           :calculation-timing="calculationTiming"
+          :calculation-silence="calculationSilence"
           @abort-calculation="handleAbortCalculation"
           theme="dark"
           @open-replace="handleOpenReplace"

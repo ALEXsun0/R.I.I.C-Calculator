@@ -7,6 +7,13 @@ import type { CalculationConfig } from '../settings'
 import type { WorkbenchSession } from '../session'
 import type { useRosterWorkbenchStore } from '../store'
 import type { ValidationResult } from '../validate'
+import type { SimulationActivity } from '../../simulator/simulationActivity'
+
+export interface CalculationSilence {
+  seconds: number
+  lastProgressSeconds: number | null
+  observation?: { activity: SimulationActivity; receivedSeconds: number }
+}
 
 /** Owns independent income calculation, cancellation and stale worker messages. */
 export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbenchStore>, session: WorkbenchSession, validationResult: ComputedRef<ValidationResult>) {
@@ -14,11 +21,13 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
   const calculationConfigOpen = ref(false)
   const calculationProgress = ref<CalculationProgress | null>(null)
   const calculationElapsed = ref(0)
+  const calculationSilence = ref<CalculationSilence | null>(null)
   let calculationWorker: Worker | null = null
   let calculationTimer: ReturnType<typeof setInterval> | undefined
   const calculationTiming = computed(() => {
     const seconds = Math.floor(calculationElapsed.value)
     const elapsed = seconds < 60 ? `${seconds} 秒` : `${Math.floor(seconds / 60)} 分 ${seconds % 60} 秒`
+    if (calculationSilence.value || calculationProgress.value?.activity?.status === 'slow') return `已用 ${elapsed} · 暂无法估算剩余时间`
     const fraction = calculationProgress.value?.fraction ?? 0
     if (fraction >= .99) return `已用 ${elapsed} · 即将完成`
     if (seconds < 3 || fraction < .01) return `已用 ${elapsed} · 剩余时间估算中`
@@ -34,6 +43,7 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
     calculationTimer = undefined
     isCalculating.value = false
     calculationProgress.value = null
+    calculationSilence.value = null
   }
   function handleAbortCalculation(): void {
     stopCalculation()
@@ -77,9 +87,20 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
     timelineData.value = null
     isCalculating.value = true
     calculationElapsed.value = 0
+    calculationSilence.value = null
     calculationProgress.value = { label: '正在准备计算…', fraction: 0 }
     const started = performance.now()
-    calculationTimer = setInterval(() => { calculationElapsed.value = (performance.now() - started) / 1000 }, 1000)
+    let lastProgressAt = started
+    let receivedProgress = false
+    let lastObservation: CalculationSilence['observation']
+    calculationTimer = setInterval(() => {
+      const now = performance.now()
+      calculationElapsed.value = (now - started) / 1000
+      const silentSeconds = Math.floor((now - lastProgressAt) / 1000)
+      calculationSilence.value = silentSeconds >= 15
+        ? { seconds: silentSeconds, lastProgressSeconds: receivedProgress ? Math.floor((lastProgressAt - started) / 1000) : null, observation: lastObservation }
+        : null
+    }, 1000)
     try {
       let inventoryEntries: OwnedOperatorInput[] | undefined
       if (simSettings.value.useOperatorInventory !== false) {
@@ -142,6 +163,10 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
         if (calculationWorker !== worker) return
         const message = event.data
         if (message.type === 'progress') {
+          lastProgressAt = performance.now()
+          receivedProgress = true
+          if (message.progress.activity) lastObservation = { activity: message.progress.activity, receivedSeconds: Math.floor((lastProgressAt - started) / 1000) }
+          calculationSilence.value = null
           calculationProgress.value = message.progress
         } else if (message.type === 'complete') {
           const result = message.result
@@ -169,5 +194,5 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
     }
   }
 
-  return { calculationConfigOpen, calculationProgress, calculationTiming, handleCalculate, handleConfirmCalculation, handleAbortCalculation }
+  return { calculationConfigOpen, calculationProgress, calculationTiming, calculationSilence, handleCalculate, handleConfirmCalculation, handleAbortCalculation }
 }

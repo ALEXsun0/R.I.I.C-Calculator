@@ -1,8 +1,9 @@
 import { runCalculationBridge, type CalculationBridgeOptions, type CalculationBridgeResult } from './calculationBridge'
 import type { RosterWorkspace } from '../domain/roster'
 import { buildTimelineData, type TimelineDataset } from './timeline/timelineModel'
+import type { SimulationActivity } from '../simulator/simulationActivity'
 
-export interface CalculationProgress { label: string; fraction: number }
+export interface CalculationProgress { label: string; fraction: number; activity?: SimulationActivity }
 export type CalculationWorkerMessage =
   | { type: 'progress'; progress: CalculationProgress }
   | { type: 'complete'; result: CalculationBridgeResult; timelineData: TimelineDataset | null }
@@ -19,6 +20,7 @@ self.onmessage = (event: MessageEvent<{ workspace: RosterWorkspace; options: Cal
       send({ type: 'progress', progress: {
         label: `正在${warmup ? '预热' : '采样'} ${done.toFixed(1)} / ${total.toFixed(1)} 小时`,
         fraction: Math.min(.99, p.elapsedHours / p.totalHours),
+        activity: p.activity,
       } })
     })
     send({ type: 'progress', progress: { label: '正在汇总产出报告…', fraction: .99 } })

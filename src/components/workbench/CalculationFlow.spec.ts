@@ -43,7 +43,7 @@ it('asks for drone settings before launching a cancellable background calculatio
   wrapper.vm.handleConfirmCalculation({ droneTarget: 'trading', droneTradingRoomId: 'room_3_1' })
   await wrapper.vm.$nextTick()
   expect(workers).toHaveLength(1)
-  expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationAssumptions).toEqual({ fiammettaFool: false, fiammettaThreshold: .8, restingThreshold: .7, rescueThreshold: .9, freeRoom: true })
+  expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationAssumptions).toEqual({ fiammettaFool: false, fiammettaThreshold: .8, restingThreshold: .7, rescueThreshold: .9, freeRoom: true, masteryPlanPresent: false })
   expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationOptions.production).toMatchObject({
     droneTarget: 'trading', droneTradingRoomId: 'room_3_1',
   })
@@ -96,6 +96,26 @@ it('estimates remaining time from real progress and resets timing on restart', a
   await wrapper.vm.$nextTick()
   expect(wrapper.get('[data-test="calculation-progress-row"]').text()).toContain('已用 0 秒')
   expect(wrapper.get('[data-test="calculation-progress-row"]').text()).toContain('估算中')
+})
+
+it('wires slow activity and unresponsive observations through the toolbar and clears them on recovery', async () => {
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'performance'] })
+  wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '' })
+  const activity = { status: 'slow', message: 'slow', capturedHours: 80, windowSeconds: 15, advancedHours: .01, iterations: 10,
+    operators: [{ id: 'aroma', name: '阿罗玛', morale: 3, upperLimit: 20, groups: ['贸易组'], room: 'room_1_1', eventCount: 2 }], recentEvents: [] }
+  workers[0]!.onmessage!({ data: { type: 'progress', progress: { label: '正在采样 8 / 168 小时', fraction: .4, activity } } } as MessageEvent)
+  await wrapper.vm.$nextTick()
+  expect(wrapper.get('[data-test="calculation-activity"]').text()).toContain('阿罗玛')
+  expect(wrapper.get('[data-test="calculation-progress-row"]').text()).toContain('暂无法估算')
+  vi.advanceTimersByTime(15000)
+  await wrapper.vm.$nextTick()
+  expect(wrapper.get('[data-test="calculation-activity"]').text()).toContain('后台计算暂未响应')
+  expect(wrapper.get('[data-test="calculation-activity"]').text()).toContain('最后进度：启动后 0 秒')
+  expect(wrapper.find('[data-test="abort-calculation-btn"]').exists()).toBe(true)
+  workers[0]!.onmessage!({ data: { type: 'progress', progress: { label: '正在采样 9 / 168 小时', fraction: .41, activity: { ...activity, status: 'running' } } } } as MessageEvent)
+  await wrapper.vm.$nextTick()
+  expect(wrapper.find('[data-test="calculation-activity"]').exists()).toBe(false)
+  expect(wrapper.get('[data-test="calculation-progress-row"]').text()).toContain('约剩余')
 })
 
 it('shows a recoverable error when workers are unavailable instead of running on the UI thread', async () => {

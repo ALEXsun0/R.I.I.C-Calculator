@@ -202,6 +202,7 @@
         <div class="progress-bar-fill" :style="{ width: `${Math.round((calculationProgress?.fraction || 0) * 100)}%` }"></div>
       </div>
       <span class="calculation-timing">{{ calculationTiming }}</span>
+      <CalculationActivityNotice :activity="calculationProgress?.activity" :silence="calculationSilence" :progress-label="calculationProgress?.label" />
     </div>
 
     <!-- Visible Success / Error / Info Status Message Banner -->
@@ -254,6 +255,9 @@
 
 import { computed, inject, ref } from 'vue'
 import OperatorImportModal from './OperatorImportModal.vue'
+import CalculationActivityNotice from './CalculationActivityNotice.vue'
+import type { CalculationProgress } from '../../workbench/calculationWorker'
+import type { CalculationSilence } from '../../workbench/composables/useWorkbenchCalculation'
 import type { OwnedOperatorInput } from '../../domain/operatorInventory'
 import type { SmartRosterProgress } from '../../optimizer/smartRoster'
 import {
@@ -277,8 +281,9 @@ export interface PlanToolbarProps {
   isGeneratingRoster?: boolean
   generationProgress?: SmartRosterProgress | null
   isCalculating?: boolean
-  calculationProgress?: { label: string; fraction: number } | null
+  calculationProgress?: CalculationProgress | null
   calculationTiming?: string
+  calculationSilence?: CalculationSilence | null
 }
 
 const props = withDefaults(defineProps<PlanToolbarProps>(), {

@@ -1,3 +1,4 @@
+import {createSimulationActivityMonitor, type SimulationActivity} from './simulationActivity'
 import { parseProduct, serializeProduct } from '../domain/mowerProducts'
 import {createMowerClueIO} from './mowerNativeClueIO'
 import {createMowerProductionIO} from './mowerNativeProductionIO'
@@ -23,6 +24,7 @@ import {advanceRoster,createRosterRuntime,currentMoraleDerivatives,MORALE_EPSILO
 
 export interface ScheduleSimulationProgress {
  phase:'warmup'|'sampling'; elapsedHours:number; totalHours:number; warmupHours:number
+ activity?:SimulationActivity
 }
 export interface ScheduleSimulationOptions {
  /** The complete-preview alpha scheduler requires an explicit opt-in. */
@@ -374,10 +376,8 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
   Object.assign(rates,createMowerProductionIO(state,production,()=>frameAt(0)))
   diagnostic('MOWER_ORDER_OBSERVATION_MODEL','理想跑单在新单开始时锁定佩佩/可露希尔模式，在普通订单完成时转换但书/龙舌兰收益；保留 Mower 订单读取、任务排序与唤醒，不执行临时换人；常规换班、收取及无人机任务仍按 Mower 时间线执行。')
  }
- settle()
- if(backupFailed)return report
- production?.settle(()=>frameAt(0))
  let steps=0,lastProgress=-1,lastPhase=''
+ const activityMonitor=onProgress?createSimulationActivityMonitor():undefined
  // Keep numerical morale integration boundaries independent of production subdivisions.
  // Real native I/O actions still advance this same clock and can change staffing.
  const independentMoraleClock=!!production&&(options.production?.runOrderMode??'ideal')==='ideal'
@@ -385,11 +385,16 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
  const reportProgress=()=>{
   if(!onProgress)return
   const percent=Math.floor(state.time/total*100),phase=state.time<warmupHours-EPS?'warmup':'sampling'
-  if(percent!==lastProgress||phase!==lastPhase){
+  const activity=activityMonitor?.capture(state,steps)
+  if(percent!==lastProgress||phase!==lastPhase||activity){
    lastProgress=percent;lastPhase=phase
-   onProgress({phase,elapsedHours:state.time,totalHours:total,warmupHours})
+   onProgress({phase,elapsedHours:state.time,totalHours:total,warmupHours,activity:activity??activityMonitor?.latest})
   }
  }
+ reportProgress()
+ settle()
+ if(backupFailed)return report
+ production?.settle(()=>frameAt(0))
  let statsOccRevision=-1
  const cachedOccupantToPos=new Map<string,typeof state.config.positions[0]>()
  const cachedRestingSet=new Set<string>()
