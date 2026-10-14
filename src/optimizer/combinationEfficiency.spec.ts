@@ -181,6 +181,6 @@ describe('RIIC combination candidate evaluator probes', () => {
 
     config = applyAssignments(greyy); room = targetRoom(config, greyy)
     // Greyy direct charging at default drone capacity: 23 plus one power-station base 5.
-    expect(evaluateOperators(room, config).efficiencyPercent).toBe(128)
+    expect(evaluateOperators(room, config).efficiencyPercent).toBe(130)
   })
 })

@@ -2,12 +2,13 @@ import {describe,it,expect} from 'vitest'
 import {OPERATORS} from '../domain/operators'
 import type {OwnedOperatorInput} from '../domain/operatorInventory'
 import {createDefaultWorkspace} from '../workbench/defaults'
+import {withMowerFreeBeds} from '../test/mowerRosterFixture'
 import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import {generateBackupNeighbors} from './backupNeighborhood'
 const owned=(names:string[]):OwnedOperatorInput[]=>names.map(operator=>{const o=OPERATORS.find(o=>o.name===operator)!;return {operator,elitePhase:o.rarity<3?0:o.rarity===3?1:2,level:o.rarity<3?30:o.rarity===3?55:o.rarity===4?70:o.rarity===5?80:90}})
 const allOwned=owned(OPERATORS.map(o=>o.name))
 function fixture(){
- const w=createDefaultWorkspace()
+ const w=withMowerFreeBeds(createDefaultWorkspace())
  for(const [key,name,replacements] of [['room_1_1','砾',['淬羽赫默','梅尔']],['room_1_2','调香师',['雪猎','维伊']]] as const){
   const room=w.mainPlan.facilities[key];room.type='manufacture';room.product=key==='room_1_1'?'gold':'exp';room.level=3
   room.slots[0]!.occupant={kind:'operator',operatorId:id(name)};room.slots[0]!.replacements=[...replacements];room.slots[0]!.groupId=key+'-group'

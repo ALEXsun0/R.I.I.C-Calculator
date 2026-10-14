@@ -2,6 +2,7 @@ import {describe,it,expect} from 'vitest'
 import {OPERATORS,OPERATOR_MAP} from '../domain/operators'
 import {compileOperatorInventory,type OwnedOperatorInput} from '../domain/operatorInventory'
 import {createDefaultWorkspace} from '../workbench/defaults'
+import {withMowerFreeBeds} from '../test/mowerRosterFixture'
 import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import {validatePhysicalRoster} from './rosterDraft'
 import {generateControlMainNeighbors} from './controlNeighborhood'
@@ -12,10 +13,10 @@ const owned=(names:string[]):OwnedOperatorInput[]=>names.map(operator=>{
 })
 const allOwned=owned(OPERATORS.map(o=>o.name))
 function fixture(){
- const w=createDefaultWorkspace()
+ const w=withMowerFreeBeds(createDefaultWorkspace())
  w.name='保留导入名称';w.compatibility.sourceVersion='source-v1'
  w.mainPlan.facilities.central.slots[0]={occupant:{kind:'operator',operatorId:'阿米娅'},groupId:'联合组',replacements:['杜宾']}
- w.mainPlan.facilities.central.slots[1]={occupant:{kind:'operator',operatorId:id('陈')},groupId:'第二组',replacements:[]}
+ w.mainPlan.facilities.central.slots[1]={occupant:{kind:'operator',operatorId:id('陈')},groupId:'第二组',replacements:['清道夫']}
  return w
 }
 describe('protected control main neighborhood',()=>{

@@ -1,7 +1,8 @@
 import type { AppConfig, OutputRoom, RoomType } from './types'
 import { EDITION } from './edition'
+import { DEFAULT_DRONE_CAPACITY } from './droneCapacity'
 
-export const DRONE_CAPACITY = 250
+export const DRONE_CAPACITY = DEFAULT_DRONE_CAPACITY
 
 export const ROOM_LABELS: Record<RoomType, string> = {
   manufacture: '制造站',

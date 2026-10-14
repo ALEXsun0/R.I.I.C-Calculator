@@ -29,7 +29,8 @@ function safeClone<T>(val: T): T {
 
 export function compileRosterSchedule(workspace: RosterWorkspace, options: Partial<SimulationAssumptions> = {}): CompiledSchedule {
   const sourceWorkspace = safeClone(workspace)
-  const assumptions = { ...DEFAULTS, ...mowerAdvancedAssumptions(workspace), ...safeClone(options), schemaVersion: 1 as const }
+  const explicitOptions = Object.fromEntries(Object.entries(options).filter(([, value]) => value !== undefined)) as Partial<SimulationAssumptions>
+  const assumptions = { ...DEFAULTS, ...mowerAdvancedAssumptions(workspace), ...safeClone(explicitOptions), schemaVersion: 1 as const }
   // User contract: Party Time is a fixed disabled external condition.
   assumptions.enableParty=false
   assumptions.operatorMorale = safeClone(options.operatorMorale ?? {})

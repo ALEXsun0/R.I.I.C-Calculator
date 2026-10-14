@@ -132,6 +132,41 @@ describe('WorkbenchShell.vue and App primary entry integration', () => {
     document.body.innerHTML = ''
   })
 
+  it('persists and restores the roster-page capacity without writing it to native Mower settings', async () => {
+    const wrapper = mountWithPinia(WorkbenchShell)
+    await flushPromises()
+    const input = wrapper.get<HTMLInputElement>('[data-test="drone-capacity-input"]')
+    expect(input.element.value).toBe('250')
+    await input.setValue('240')
+    await flushPromises()
+    const storageKey = `arc-income-calculator-workspace-v8-${EDITION.storageNamespace}`
+    expect(JSON.parse(localStorage.getItem(storageKey)!).droneCapacity).toBe(240)
+    wrapper.unmount()
+    const restored = mountWithPinia(WorkbenchShell)
+    await flushPromises()
+    expect(restored.get<HTMLInputElement>('[data-test="drone-capacity-input"]').element.value).toBe('240')
+    expect(compileMainPlanToAppConfig(restored.vm.store.workspace.mainPlan, restored.vm.store.workspace, createDefaultConfig()).efficiencyResources.droneCapacity).toBe(240)
+    expect(restored.vm.store.workspace.compatibility.unrecognizedFields.advanced_settings ?? {}).not.toHaveProperty('droneCapacity')
+  })
+
+  it('includes the selected capacity in the real calculation worker request', async () => {
+    const pending: Array<{ postMessage: ReturnType<typeof vi.fn>; terminate: ReturnType<typeof vi.fn> }> = []
+    vi.stubGlobal('Worker', class {
+      onmessage: ((event: MessageEvent) => void) | null = null
+      postMessage = vi.fn()
+      terminate = vi.fn()
+      constructor() { pending.push(this) }
+    })
+    const wrapper = mountWithPinia(WorkbenchShell)
+    await flushPromises()
+    await wrapper.get('[data-test="drone-capacity-input"]').setValue('240')
+    wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '', useOperatorInventory: false })
+    await flushPromises()
+    const request = pending[0]!.postMessage.mock.calls[0]![0]
+    expect(request.workspace.droneCapacity).toBe(240)
+    expect(compileMainPlanToAppConfig(request.workspace.mainPlan, request.workspace, createDefaultConfig()).efficiencyResources.droneCapacity).toBe(240)
+  })
+
   it('saves changed weights before starting a worker and cancels only when those weights change again', async () => {
     const pending: Array<{ postMessage: ReturnType<typeof vi.fn>; terminate: ReturnType<typeof vi.fn> }> = []
     vi.stubGlobal('Worker', class {

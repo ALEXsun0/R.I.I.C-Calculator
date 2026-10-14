@@ -102,7 +102,9 @@ describe('native recycling plan compatibility', () => {
   })
 
   it.each([1, 2, 3])('retains explicit level %i, its actual capacity, and zero additional power cost', level => {
-    const workspace = importMowerJson(JSON.stringify({ default: 'plan1', plan1: { recycle: { ...recycle, level, plans: recycle.plans.slice(0, level === 1 ? 1 : 2) } } }))
+    // Capacity and power do not require a bound rest group in this room-only plan.
+    const plans = recycle.plans.slice(0, level === 1 ? 1 : 2).map(plan => ({ ...plan, group: '' }))
+    const workspace = importMowerJson(JSON.stringify({ default: 'plan1', plan1: { recycle: { ...recycle, level, plans } } }))
     const result = validateRosterWorkspace(workspace)
     expect(result.criticalErrors).toEqual([])
     expect(result.power).toMatchObject({ generation: 0, consumption: 0, margin: 0 })

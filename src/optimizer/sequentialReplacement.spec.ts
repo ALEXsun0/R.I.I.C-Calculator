@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { compileOperatorInventory, fullCatalogIdleInventory } from '../domain/operatorInventory'
 import { createDefaultWorkspace } from '../workbench/defaults'
+import { withMowerFreeBeds } from '../test/mowerRosterFixture'
 import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { runGlobalPerCapitaReplacement } from './globalPerCapitaReplacement'
 import { productionTeamTheory } from './productionSingletons'
@@ -12,8 +13,10 @@ function scenario(names: string[], replacements: string[], extra: string[]) {
     slots: names.map((name, i) => ({ occupant: { kind: 'operator', operatorId: id(name) }, groupId: '莱茵组合', replacements: [id(replacements[i]!)] })) }
   ws.mainPlan.facilities.room_3_3 = { roomId: 'room_3_3', type: 'power', level: 3,
     slots: [{ occupant: { kind: 'operator', operatorId: id('雷蛇') }, groupId: null, replacements: [id('格雷伊')] }] }
+  ws.mainPlan.facilities.dormitory_1 = { roomId: 'dormitory_1', type: 'dormitory', level: 5,
+    slots: Array.from({ length: 5 }, () => ({ occupant: { kind: 'empty' }, groupId: null, replacements: [] })) }
   const owned = fullCatalogIdleInventory().filter(o => [...names, ...replacements, ...extra, '雷蛇', '格雷伊'].some(name => id(name) === o.operator))
-  return { ws, owned }
+  return { ws: withMowerFreeBeds(ws), owned }
 }
 const mainIds = (ws: ReturnType<typeof createDefaultWorkspace>) => ws.mainPlan.facilities.room_1_1.slots.map(s => s.occupant.kind === 'operator' ? id(s.occupant.operatorId) : '')
 

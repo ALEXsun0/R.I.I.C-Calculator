@@ -55,6 +55,8 @@ describe('bounded ordinary backup income search',()=>{
  })
  it('adds candidates only when owned at maximum skill stage and with the room skill',()=>{
   const w=simple();w.mainPlan.facilities.room_1_1.slots[0]!.replacements=[]
+  // An independent ungrouped slot may acquire a backup; an incomplete explicit group is invalid.
+  w.mainPlan.facilities.room_1_1.slots[0]!.groupId=null
   const entries=[...owned(['砾','Lancet-2']),{operator:'调香师',elitePhase:0,level:1}]
   expect(ordinaryBackupNeighbors(w,entries,2)).toEqual([])
   expect(ordinaryBackupNeighbors(w,owned(['砾','调香师']),2)[0]!.workspace.mainPlan.facilities.room_1_1.slots[0]!.replacements).toEqual([id('调香师')])

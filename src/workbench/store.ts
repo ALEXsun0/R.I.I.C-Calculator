@@ -6,6 +6,7 @@ import { createDefaultWorkspace } from './defaults'
 import { inferFacilityLevels } from './levelInference'
 import { normalizeMissingFacilities } from './facilityState'
 import { promotePreservedRecycleRoom } from './compat/mowerJson'
+import { isDroneCapacity } from '../domain/droneCapacity'
 import {
   MOWER_OUTPUT_ROOM_IDS,
   MOWER_OPERATOR_LIST_FIELDS,
@@ -39,6 +40,11 @@ export const useRosterWorkbenchStore = defineStore('rosterWorkbench', () => {
 
   function selectRoom(roomId: MowerRoomId | null): void {
     selectedRoomId.value = roomId
+  }
+
+  function setDroneCapacity(capacity: number): void {
+    if (!isDroneCapacity(capacity)) throw new RangeError('无人机上限须为0或以上的安全整数')
+    workspace.value.droneCapacity = capacity
   }
 
   function markRoomPresent(roomId: MowerRoomId): void {
@@ -343,6 +349,7 @@ export const useRosterWorkbenchStore = defineStore('rosterWorkbench', () => {
     selectedRoom,
     loadWorkspace,
     selectRoom,
+    setDroneCapacity,
     swapOutputRooms,
     updateFacility,
     updateSlot,

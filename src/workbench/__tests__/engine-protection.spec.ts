@@ -16,12 +16,12 @@ function fileSha256(relativePath: string): string {
 
 describe('Engine Protection & Calculation Equivalence', () => {
   it('protects engine source files against unauthorized modifications', () => {
-    // Authorized 2026-10-12 changes: shared scoring import relocation, support-skill
-    // mood conditions and recycle workplace counts. Five saved scenarios separately
-    // compare the complete numeric reports and events; hashes are normalized to LF.
+    // Authorized 2026-10-14 changes reuse PR10 exhausted Abyssal grants and add
+    // the 45/90% Gladiia stage cap. Dedicated static and dynamic tests validate
+    // the behavior; calculate/morale remain unchanged. Hashes are normalized to LF.
     expect(fileSha256('engine/calculate.ts')).toBe('34739fc18ac6f96af10dda40d03e3b0fe92a698b8556dd4dfd905998ce345c4a')
     expect(fileSha256('engine/morale.ts')).toBe('d0e4915c4919626e4f0a0eec47141107a314613f6a95eb4174690f21ce720ec3')
-    expect(fileSha256('engine/operatorRules.ts')).toBe('cfd4a6ddeac43ff04ccbfa3bb0954f6273818f42545a2cf73dbe3bf526d507ff')
+    expect(fileSha256('engine/operatorRules.ts')).toBe('c07812ea02bed35cf503e2acbcba399cf1915b0413e7c72d59befb9e70fa26a0')
   })
 
   it('produces deterministic baseline report for default configuration', () => {

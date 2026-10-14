@@ -125,6 +125,8 @@ export interface MowerCompatibilityEnvelope {
 export interface RosterWorkspace {
   /** Local calculator preference; never emitted as a native Mower configuration field. */
   productionWeights?: import('./productionWeights').ProductionWeights
+  /** Local drone storage capacity; never emitted in native Mower JSON. */
+  droneCapacity?: number
   schemaVersion: 8
   name: string
   mainPlan: MowerMainPlan
