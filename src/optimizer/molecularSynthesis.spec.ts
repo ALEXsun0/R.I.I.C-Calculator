@@ -10,7 +10,16 @@ afterEach(() => yieldToRunner(5))
 import { OPERATORS } from '../domain/operators'
 import { compileOperatorInventory, type OwnedOperatorInput } from '../domain/operatorInventory'
 import { createDefaultWorkspace } from '../workbench/defaults'
-import { restoreOperatorMowerName } from '../domain/operatorIdentifiers'
+import { resolveOperatorCharId as id, restoreOperatorMowerName } from '../domain/operatorIdentifiers'
+import { inventoryOperatorRecords } from '../domain/operatorContext'
+import { buildRiicGlobalContext } from '../engine/globalContext'
+import { evaluateOperators } from '../engine/operatorRules'
+import { compileRosterSchedule } from '../scheduler/compileRosterSchedule'
+import { allocateCombinationSkeleton } from './combinationAllocation'
+import { buildCombinationPool } from './combinationEvaluation'
+import { productionTeamTheory } from './productionSingletons'
+import { validatePhysicalRoster } from './rosterDraft'
+import { projectRosterConfig } from './rosterProjection'
 import { generateMolecularCandidates } from './molecularSynthesis'
 import { runSmartRoster } from './smartRoster'
 
@@ -22,7 +31,80 @@ const allOwned: OwnedOperatorInput[] = OPERATORS.map((o) => ({
 
 const inventory = compileOperatorInventory(allOwned)
 
+function automationAllocationFixture() {
+  const base = createDefaultWorkspace()
+  for (const room of Object.values(base.mainPlan.facilities)) {
+    if (!['room_1_1', 'room_1_3', 'room_2_3', 'central', 'dormitory_1'].includes(room.roomId)) {
+      room.level = 0
+      room.slots = []
+    }
+  }
+  const manufacture = base.mainPlan.facilities.room_1_1
+  manufacture.level = 2
+  manufacture.slots.length = 2
+  const dorm = base.mainPlan.facilities.dormitory_1
+  dorm.level = 1
+  dorm.slots.forEach((slot, index) => {
+    slot.occupant = index === 0 ? { kind: 'operator', operatorId: id('杜林') } : { kind: 'free' }
+  })
+  const names = ['温蒂', '清流', '森蚺', 'Lancet-2', '承曦格雷伊', '杜林', '砾', '斑点', '阿米娅', '雷蛇']
+  const inventory = compileOperatorInventory(allOwned.filter(operator => names.includes(operator.operator)))
+  const pool = buildCombinationPool(base, inventory)
+  const automation = pool.values.find(value => value.status === 'evaluated' && value.variant.definitionId === 'automation')!
+  return { base, inventory, pool: { ...pool, values: [automation] }, automation }
+}
+
 describe('Molecular Synthesis & Indivisible Atomic Units', () => {
+  it.each(['combination', 'workspace'] as const)('keeps permanent automation support outside ordinary shift groups (%s policy)', policySource => {
+    const { base, inventory, pool, automation } = automationAllocationFixture()
+    expect(automation).toBeDefined()
+    if (policySource === 'workspace') {
+      base.mainPlan.conf.workaholic = [id('Lancet-2')]
+      automation.variant.policy = {}
+    }
+    const allocated = allocateCombinationSkeleton(base, pool, 0).workspace
+    const lancet = Object.values(allocated.mainPlan.facilities).flatMap(room => room.slots)
+      .find(slot => slot.occupant.kind === 'operator' && slot.occupant.operatorId === id('Lancet-2'))!
+    expect(lancet.groupId).toBeNull()
+    expect(lancet.replacements).toEqual([])
+    expect(allocated.mainPlan.conf.workaholic).toContain(id('Lancet-2'))
+    const ordinaryGroups = automation.variant.placements.filter(placement => placement.operatorId !== id('Lancet-2'))
+      .map(placement => allocated.mainPlan.facilities[placement.roomId].slots[placement.slotIndex]!.groupId)
+    expect(ordinaryGroups[0]).toBeTruthy()
+    expect(new Set(ordinaryGroups).size).toBe(1)
+    const replacements = new Map([['温蒂', '砾'], ['清流', '斑点'], ['森蚺', '阿米娅'], ['承曦格雷伊', '雷蛇']])
+    for (const room of Object.values(allocated.mainPlan.facilities)) for (const slot of room.slots) {
+      if (slot.occupant.kind !== 'operator') continue
+      const replacement = replacements.get(restoreOperatorMowerName(slot.occupant.operatorId))
+      if (replacement) slot.replacements = [id(replacement)]
+    }
+    expect(productionTeamTheory(allocated, inventory, 'room_1_1')).toBe(60)
+    const zeroMood = projectRosterConfig(allocated)
+    zeroMood.operatorRecords = inventoryOperatorRecords(inventory)
+    zeroMood.zeroMoraleOperatorIds = [id('Lancet-2')]
+    expect(buildRiicGlobalContext(zeroMood).effectivePowerStations).toEqual({ count: 5, physical: 2, greyBonus: 1, eunectesBonus: 2 })
+    expect(evaluateOperators(zeroMood.rooms.find(room => room.id === 'B101')!, zeroMood).efficiencyPercent).toBe(177)
+    expect(validatePhysicalRoster(allocated)).toEqual([])
+    expect(compileRosterSchedule(allocated).diagnostics.filter(issue => issue.severity === 'error')).toEqual([])
+  })
+
+  it('preserves an explicit user group on permanent automation support', () => {
+    const { base, pool, automation } = automationAllocationFixture()
+    const placement = automation.variant.placements.find(placement => placement.operatorId === id('Lancet-2'))!
+    const slot = base.mainPlan.facilities[placement.roomId].slots[placement.slotIndex]!
+    slot.occupant = { kind: 'operator', operatorId: id('Lancet-2') }
+    slot.groupId = 'user-cycle'
+    slot.replacements = [id('澄闪')]
+    const weedyPlacement = automation.variant.placements.find(placement => placement.operatorId === id('温蒂'))!
+    const weedy = base.mainPlan.facilities[weedyPlacement.roomId].slots[weedyPlacement.slotIndex]!
+    weedy.occupant = { kind: 'operator', operatorId: id('温蒂') }
+    weedy.groupId = 'user-cycle'
+    const before = structuredClone(slot)
+    const allocated = allocateCombinationSkeleton(base, pool, 0).workspace
+    expect(allocated.mainPlan.facilities[placement.roomId].slots[placement.slotIndex]).toEqual(before)
+    expect(base.mainPlan.facilities[placement.roomId].slots[placement.slotIndex]).toEqual(before)
+  })
+
   it('preserves unbuilt dorm and training room across automatic staffing candidates', async ({ annotate }) => {
     await annotate('检查自动排班不会补建已省略设施')
     const base = createDefaultWorkspace()
@@ -171,6 +253,11 @@ describe('Molecular Synthesis & Indivisible Atomic Units', () => {
       .flatMap((r) => r.slots.map((s) => (s.occupant.kind === 'operator' ? restoreOperatorMowerName(s.occupant.operatorId) : '')))
     expect(powerOps).toContain('Lancet-2')
     expect(powerOps).toContain('承曦格雷伊')
+    const lancet = Object.values(ws.mainPlan.facilities).filter(room => room.type === 'power')
+      .flatMap(room => room.slots).find(slot => slot.occupant.kind === 'operator' && restoreOperatorMowerName(slot.occupant.operatorId) === 'Lancet-2')!
+    expect(lancet.groupId).toBeNull()
+    expect(lancet.replacements).toEqual([])
+    expect(compileRosterSchedule(ws).diagnostics.filter(issue => issue.severity === 'error')).toEqual([])
   }, 120000)
 
   it('configures Aroma and Waai Fu in exhaust_require and rest_in_full', async ({ annotate }) => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { compileOperatorInventory, fullCatalogIdleInventory, type OwnedOperatorInput } from '../domain/operatorInventory'
 import { createDefaultWorkspace } from '../workbench/defaults'
+import { withMowerFreeBeds } from '../test/mowerRosterFixture'
 import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { generatePrimaryBackupNeighbors } from './primaryBackupNeighborhood'
 import { productionTeamTheory } from './productionSingletons'
@@ -12,13 +13,15 @@ const backupNames = ['苍苔', '香草']
 const maximumInventory = fullCatalogIdleInventory()
 
 function entries(lowNames = [...mainNames, ...backupNames]): OwnedOperatorInput[] {
-  return [...mainNames, ...backupNames].map(operator => lowNames.includes(operator)
+  const workers: OwnedOperatorInput[] = [...mainNames, ...backupNames].map(operator => lowNames.includes(operator)
     ? { operator, elitePhase: 0, level: 1 }
     : { ...maximumInventory.find(entry => entry.operator === id(operator))!, operator })
+  // The two Free beds need two unused cards in the real alpha inventory.
+  return [...workers, ...maximumInventory.filter(entry => ['艾丽妮', '白铁'].some(name => id(name) === entry.operator))]
 }
 
 function groupedManufacture() {
-  const workspace = createDefaultWorkspace()
+  const workspace = withMowerFreeBeds(createDefaultWorkspace(), 2)
   for (const [index, operator] of mainNames.entries()) {
     workspace.mainPlan.facilities.room_1_1.slots[index] = {
       occupant: { kind: 'operator', operatorId: id(operator) },

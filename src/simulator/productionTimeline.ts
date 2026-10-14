@@ -1,6 +1,6 @@
 import { readMowerProductSwitchSettings, MOWER_MANUFACTURING_FORMULAS, manufacturingProductId, planMowerProductSwitchDrones } from './mowerProductSwitching'
 import { hasOperatorSkill, runOrderSkillRank } from '../domain/operatorContext'
-import { DRONE_CAPACITY } from '../domain/defaults'
+import { resolveDroneCapacity } from '../domain/droneCapacity'
 import type {AppConfig} from '../domain/types'
 import {OPERATOR_MAP} from '../domain/operators'
 import {evaluateManufacturingCapacity,type OperatorEfficiencyResult} from '../engine/operatorRules'
@@ -64,11 +64,12 @@ export function createProductionTimeline(schedule:CompiledSchedule,state:Runtime
  if(!['settled','potential'].includes(outputMode))throw new Error('Invalid output mode')
  const seed=options.seed??1,target=options.droneTarget??'gold',reserve=options.droneReserve??0,interval=potential?0:options.collectionIntervalHours??schedule.assumptions.collectionIntervalHours
  if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff||!['gold','exp','none','trading'].includes(target))throw new Error('Invalid production strategy/seed')
- if(![reserve,interval].every(x=>Number.isFinite(x)&&x>=0)||!Number.isInteger(reserve)||reserve>=DRONE_CAPACITY)throw new Error('Invalid production timing/reserve')
+ const droneCapacity=resolveDroneCapacity(schedule.sourceWorkspace)
+ if(![reserve,interval].every(x=>Number.isFinite(x)&&x>=0)||!Number.isInteger(reserve)||(droneCapacity>0?reserve>=droneCapacity:reserve>0))throw new Error('Invalid production timing/reserve')
  const initial={gold:schedule.assumptions.initialGold,fragment:schedule.assumptions.initialFragments,drone:schedule.assumptions.initialDrones,...options.initialResources,...(potential?{gold:0,fragment:0,lmd:0,exp:0,orundum:0,orirock:0,device:0}:{})}
  for(const k of Object.keys(initial))if(!resources.includes(k as ResourceKind))throw new Error(`Unknown initial resource ${k}`)
  const ledger=createLedger(initial),materialsConsumed:ResourceAmounts={}
- let drones=createDroneState(initial.drone??0),serial=0,valid=true,nextCollection=interval||Infinity
+ let drones=createDroneState(initial.drone??0,droneCapacity),serial=0,valid=true,nextCollection=interval||Infinity
  const events:ProductionEvent[]=[],manufactures=new Map<string,ManufactureRoom>(),trades=new Map<string,TradeRoom>()
  let recycle: ReturnType<typeof createRecycleTimeline> | undefined
  const capacityByEvaluation=new WeakMap<ProductionFrame['evaluations'],Map<string,{moodBand:string;bonus:number}>>()

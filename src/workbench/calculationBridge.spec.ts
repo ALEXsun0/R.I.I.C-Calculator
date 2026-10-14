@@ -81,7 +81,7 @@ it('reports zero accepted drone charge when the simulated stock stays full', () 
     engine: 'simulation',
     simulationOptions: {
       sampleHours: 1,
-      production: { outputMode: 'potential', droneTarget: 'none', initialResources: { drone: 235 } },
+      production: { outputMode: 'potential', droneTarget: 'none', initialResources: { drone: 250 } },
     },
   })
   expect(result.success).toBe(true)

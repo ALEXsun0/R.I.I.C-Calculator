@@ -164,7 +164,7 @@ export function compiledScheduleToRuntimeConfig(schedule: CompiledSchedule): Run
   const sourceList=(key:string)=>{const raw=(schedule.policies as Record<string,unknown>)[key];return (Array.isArray(raw)?raw:typeof raw==='string'?raw.split(','):[]).map(String).filter(Boolean).map(resolveOperatorCharId)}
   return {
     mowerDormIsolation:schedule.assumptions.dormIsolation,
-    mowerDormOrder:effectiveMowerDormOrder(typeof schedule.rawConf.dorm_order==='string'?schedule.rawConf.dorm_order.split(','):[]),
+    mowerDormOrder:effectiveMowerDormOrder(schedule.assumptions.dormOrder?schedule.assumptions.dormOrder.split(','):typeof schedule.rawConf.dorm_order==='string'?schedule.rawConf.dorm_order.split(','):[]),
     majorMaintenanceStartHours:schedule.assumptions.majorMaintenanceStartHours,
     mowerMoodLimits:readMowerMoodLimits(schedule.rawConf,resolveOperatorCharId),
     mowerDroneRoom:schedule.assumptions.droneRoom??null,

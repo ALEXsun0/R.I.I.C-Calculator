@@ -37,7 +37,8 @@
     "limitations": [
       "shared replacement conflict retries observed",
       "diagnostic overhead prevents treating elapsed time as browser benchmark"
-    ]
+    ],
+    "sourceStage": "before merging origin/main 04def42"
   },
   "remaining": [
     "342 original schedule full replay not completed; dense Fiammetta and backup-transition tasks remain",
@@ -45,5 +46,11 @@
   ],
   "privateInputsPublished": false,
   "liveDeviceTests": false,
-  "windowsSync": false
+  "windowsSync": false,
+  "integratedMain": "04def42",
+  "integratedFocusedTests": {
+    "files": 35,
+    "passed": 401
+  },
+  "delivery": "new draft PR required: previous PR was merged at 0630aa3"
 }

@@ -13,7 +13,7 @@ it('decodes the supplied image byte-for-data without losing any backup settings'
   expect(JSON.parse(data)).toEqual(JSON.parse(readFileSync(new URL('roster.json',directory),'utf8')))
 })
 
-it.each([24,168])('completes the unchanged original roster with the default model for %i hours', async hours => {
+it.each([24,168])('completes the unchanged original roster with the default alpha model for %i hours', async hours => {
   // Flush Vitest's task update before the synchronous multi-day simulation.
   await new Promise(resolve => setTimeout(resolve, 150))
   const workspace=importMowerJson(readFileSync(new URL('roster.json',directory),'utf8'))
@@ -23,7 +23,7 @@ it.each([24,168])('completes the unchanged original roster with the default mode
   expect(result.error).toBeUndefined()
   expect(result.report?.success,JSON.stringify(result.report?.diagnostics)).toBe(true)
   expect(result.report?.production?.success).toBe(true)
-  expect(result.report?.assumptions.schedulingModel).toBe('mower-default')
+  expect(result.report?.assumptions.schedulingModel).toBe('mower-alpha')
   expect(workspace.compatibility.backupPlans).toHaveLength(9)
   expect(JSON.stringify(workspace.compatibility.backupPlans)).toBe(backups)
   expect(result.report?.diagnostics.some(d=>d.code==='BACKUP_EXECUTION_FAILED')).toBe(false)

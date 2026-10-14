@@ -147,6 +147,8 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
       if(typeof workspace.mainPlan.conf.dorm_order==='string')dormOrder=workspace.mainPlan.conf.dorm_order
     })
     assertMowerBackupRoomOwners(base.sourceWorkspace,workspace)
+    // A caller's legacy bed order remains the outer simulation override; otherwise use the merged native backup conf.
+    if(base.assumptions.dormOrder)dormOrder=base.assumptions.dormOrder
     const roomOrder=effectiveMowerDormOrder(dormOrder.split(','))
     const ruleErrors=validateMowerRosterRules(workspace);if(ruleErrors.length)fail(ruleErrors.map(error=>error.message).join('；'))
     const compiled=compileRosterSchedule(workspace,{...base.assumptions,dormOrder:''});compiled.assumptions.defaultsApplied=[...base.assumptions.defaultsApplied]

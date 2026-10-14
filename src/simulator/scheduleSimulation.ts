@@ -7,6 +7,7 @@ import { createBackupPlanController } from '../scheduler/backupPlans'
 import { inventoryOperatorRecords, operatorFor, hasOperatorSkill } from '../domain/operatorContext'
 import {createProductionTimeline,assertRunOrderMode,type ProductionOptions,type ProductionReport,type ProductionFrame} from './productionTimeline'
 import {createDefaultConfig,createRoom} from '../domain/defaults'
+import { isDroneCapacity, resolveDroneCapacity } from '../domain/droneCapacity'
 import {OPERATORS,OPERATOR_MAP} from '../domain/operators'
 import {compileOperatorInventory,type OwnedOperatorInput} from '../domain/operatorInventory'
 import {validateScheduleInventory} from '../scheduler/inventoryValidation'
@@ -73,6 +74,7 @@ export function projectScheduleState(schedule:CompiledSchedule,state:RuntimeStat
   return room.slots.map(slot=>state.occupants[`${roomId}_${slot.slotIndex}`]??state.bedOccupants[`${roomId}_${slot.slotIndex}`]??'')
  }
  c.planName=schedule.sourceWorkspace.name
+ c.efficiencyResources.droneCapacity=resolveDroneCapacity(schedule.sourceWorkspace)
  c.rooms=schedule.rooms.filter(r=>['manufacture','trading','power'].includes(r.type)).map(r=>{
   const room=createRoom(r.roomId,r.type as 'manufacture'|'trading'|'power')
   room.level=r.level as 1|2|3;room.operatorIds=occupants(r.roomId).filter(Boolean);room.operatorCount=room.operatorIds.length
@@ -112,6 +114,11 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
  assertRunOrderMode(options.production?.runOrderMode)
  assertRunOrderMode(schedule.assumptions.runOrderSimulationMode)
  schedule=structuredClone(schedule)
+ const capacityOverride=options.efficiencyResources?.droneCapacity
+ if(capacityOverride!==undefined&&!isDroneCapacity(capacityOverride))throw new RangeError('无人机上限须为0或以上的安全整数')
+ const droneCapacity=capacityOverride??resolveDroneCapacity(schedule.sourceWorkspace)
+ schedule.sourceWorkspace.droneCapacity=droneCapacity
+ options={...options,efficiencyResources:{...options.efficiencyResources,droneCapacity}}
  schedule.assumptions.runOrderSimulationMode='ideal'
  schedule.assumptions.idealRunOrderWakeOnly=!options.experimentalDisableIdealWake
  if(options.production){

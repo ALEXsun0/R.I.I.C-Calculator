@@ -3,6 +3,7 @@ import {OPERATORS} from '../domain/operators'
 import {compileOperatorInventory} from '../domain/operatorInventory'
 import {matchesRiicIdentity} from '../domain/riicIdentity'
 import {createDefaultWorkspace} from '../workbench/defaults'
+import {withMowerFreeBeds} from '../test/mowerRosterFixture'
 import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { exportMowerJson, importMowerJson } from '../workbench/compat/mowerJson'
 import {selectCombinationCandidates} from './combinationCandidates'
@@ -27,7 +28,7 @@ describe('typed candidate layout and roster drafts',()=>{
   expect(compileCandidateLayout(candidate('manu-originium-basic')).assignments[0]).toMatchObject({product:'fragment',minimumLevel:3})
  })
  it('shares SEES support with its target team, with six unique main operators',()=>{
-  const ws=createDefaultWorkspace(),before=JSON.stringify(ws)
+  const ws=withMowerFreeBeds(createDefaultWorkspace()),before=JSON.stringify(ws)
   const result=generateRosterDraft(ws,allOwned,['power-aigis-makoto','manu-exp-p3-makoto'])
   expect(result.status).toBe('draft')
   expect(mains(result.workspace!)).toHaveLength(6)
@@ -45,7 +46,7 @@ describe('typed candidate layout and roster drafts',()=>{
   expect(generateRosterDraft(ws,allOwned,['dorm-perception-support','trade-wuyou-duoling-fireworks']).status).toBe('blocked')
  })
  it('does not fill a third slot in an exact two-person template',()=>{
-  const r=generateRosterDraft(createDefaultWorkspace(),allOwned,['manu-gold-weedy-purestream'])
+  const r=generateRosterDraft(withMowerFreeBeds(createDefaultWorkspace()),allOwned,['manu-gold-weedy-purestream'])
   expect(r.status).toBe('draft')
   const room=r.workspace!.mainPlan.facilities[r.placements[0]!.roomId]
   expect(room.slots.filter(s=>s.occupant.kind==='operator')).toHaveLength(2)
@@ -98,10 +99,14 @@ describe('typed candidate layout and roster drafts',()=>{
   assignBackups(ws,inventory,[{roomId:'room_3_1',slotIndex:0,operatorId:id('芬')}])
   expect(slot.replacements).toEqual([id('佩佩'),id('能天使')])
  })
- it('keeps missing rest resources visible and never turns a temporal strategy into permanent staffing',()=>{
+ it('blocks incomplete rest resources explicitly and never turns a temporal strategy into permanent staffing',()=>{
   const r=generateRosterDraft(createDefaultWorkspace(),owned(['温蒂','清流']),['manu-gold-weedy-purestream'])
-  expect(r.status).toBe('draft');expect(r.restResources.missingReplacementIds).toHaveLength(2)
-  expect(r.diagnostics.some(d=>d.code==='REST_RESOURCES_INCOMPLETE')).toBe(true)
+  expect(r.status).toBe('blocked');expect(r.workspace).toBeNull();expect(r.restResources.missingReplacementIds).toHaveLength(2)
+  expect(r.diagnostics).toContainEqual({code:'INVALID_CONFIG',message:'组合_room_1_1 分组无法排班：替班名单不能覆盖所有成员。'})
+  const noBeds=generateRosterDraft(createDefaultWorkspace(),owned(['温蒂','清流','砾','阿罗玛']),['manu-gold-weedy-purestream'])
+  expect(noBeds.status).toBe('blocked');expect(noBeds.workspace).toBeNull();expect(noBeds.restResources.missingReplacementIds).toEqual([])
+  expect(noBeds.restResources.freeBeds).toBe(0);expect(noBeds.restResources.minimumFreeBedsForNewGroup).toBe(2)
+  expect(noBeds.diagnostics).toContainEqual({code:'INVALID_CONFIG',message:'组合_room_1_1 分组无法排班：有效宿舍床位不足。'})
   expect(generateRosterDraft(createDefaultWorkspace(),allOwned,['trade-run-kafka-bibeak']).diagnostics.some(d=>d.code==='TEMPORAL_TEMPLATE')).toBe(true)
  })
  it('distinguishes exhausted search budget, unknown IDs, missing ownership and deterministic reruns',()=>{
@@ -126,7 +131,7 @@ it.each(['central','contact'] as const)('rejects a forged second %s at the meeti
 it('protects keyed room identity and empty slots carrying unknown metadata',()=>{
  let ws=createDefaultWorkspace();ws.mainPlan.facilities.meeting.roomId='contact'
  expect(generateRosterDraft(ws,allOwned,['power-aigis-makoto']).diagnostics.some(d=>d.code==='ROOM_ID_MISMATCH')).toBe(true)
- ws=createDefaultWorkspace();ws.mainPlan.facilities.room_1_1.slots[0]!.metadata={unknownRule:{keep:true}}
+ ws=withMowerFreeBeds(createDefaultWorkspace());ws.mainPlan.facilities.room_1_1.slots[0]!.metadata={unknownRule:{keep:true}}
  const before=structuredClone(ws.mainPlan.facilities.room_1_1.slots[0])
  const r=generateRosterDraft(ws,allOwned,['manu-gold-waai-fu-copy'])
  expect(r.status).toBe('draft');expect(r.placements[0]!.roomId).not.toBe('room_1_1')
@@ -148,9 +153,9 @@ it('executes a generated main/backup team through real morale and production eve
 },30000)
 
 it('keeps an existing on-duty worker absent from the imported idle-only library',()=>{
- const ws=createDefaultWorkspace()
+ const ws=withMowerFreeBeds(createDefaultWorkspace())
  ws.mainPlan.facilities.central.slots[0]!.occupant={kind:'operator',operatorId:id('杜宾')}
- const draft=generateRosterDraft(ws,owned(['温蒂','清流']),['manu-gold-weedy-purestream'])
+ const draft=generateRosterDraft(ws,owned(['温蒂','清流','砾','阿罗玛']),['manu-gold-weedy-purestream'])
  expect(draft.status).toBe('draft')
  expect(draft.workspace?.mainPlan.facilities.central.slots[0]!.occupant).toEqual({kind:'operator',operatorId:id('杜宾')})
  expect(draft.diagnostics.some(d=>d.code==='INVENTORY_OPERATOR_NOT_OWNED')).toBe(false)

@@ -6,6 +6,7 @@ import type {
   TradeStrategy,
 } from '../domain/types'
 import { EDITION } from '../domain/edition'
+import { resolveDroneCapacity } from '../domain/droneCapacity'
 import {
   MOWER_OUTPUT_ROOM_IDS,
   MOWER_ROOM_IDS,
@@ -388,6 +389,7 @@ export function compileMainPlanToAppConfig(
     unrecognized.efficiencyResources,
     cloned.efficiencyResources,
   )
+  efficiencyResources.droneCapacity = resolveDroneCapacity(baseWorkspace, efficiencyResources.droneCapacity)
 
   const result: AppConfig = {
     ...cloned,

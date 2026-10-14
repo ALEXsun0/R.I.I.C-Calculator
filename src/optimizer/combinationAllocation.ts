@@ -38,7 +38,10 @@ export function applyCombinationPolicy(ws: RosterWorkspace, policy: AtomicUnitCo
 
 function groupVariant(ws: RosterWorkspace, variant: CombinationVariant, locks: AllocationLocks): boolean {
   // A relief combination may fill gaps in one shift unit, never join existing units.
-  const positions = variant.placements.filter(p => ws.mainPlan.facilities[p.roomId].type !== 'dormitory')
+  const permanent = new Set([...ws.mainPlan.conf.workaholic, ...(variant.policy.workaholic ?? [])].map(id))
+  // Permanent support keeps its station without acquiring an ordinary rest group.
+  // Existing user groups stay on their slots and retain their configured semantics.
+  const positions = variant.placements.filter(p => ws.mainPlan.facilities[p.roomId].type !== 'dormitory' && !permanent.has(p.operatorId))
   const frozen = (roomId: CombinationPlacement['roomId'], slotIndex: number) => {
     const slot = ws.mainPlan.facilities[roomId].slots[slotIndex]!
     return locks.lockedPositions?.has(`${roomId}:${slotIndex}`) ||

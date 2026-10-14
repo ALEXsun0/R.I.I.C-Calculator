@@ -2,6 +2,7 @@ import {describe,it,expect} from 'vitest'
 import {OPERATORS,OPERATOR_MAP} from '../domain/operators'
 import type {OwnedOperatorInput} from '../domain/operatorInventory'
 import {createDefaultWorkspace} from '../workbench/defaults'
+import {withMowerFreeBeds} from '../test/mowerRosterFixture'
 import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import type {MowerRoomId} from '../domain/roster'
 import {validatePhysicalRoster} from './rosterDraft'
@@ -13,12 +14,12 @@ const owned=(names:string[]):OwnedOperatorInput[]=>names.map(operator=>{
 })
 const allOwned=owned(OPERATORS.map(o=>o.name))
 function fixture(){
- const w=createDefaultWorkspace()
+ const w=withMowerFreeBeds(createDefaultWorkspace())
  w.name='保留原文';w.compatibility.sourceVersion='source-v1'
  w.mainPlan.facilities.room_1_1.slots[0]={occupant:{kind:'operator',operatorId:'砾'},groupId:'制造组',replacements:['白雪']}
  w.mainPlan.facilities.room_1_2.slots[0]={occupant:{kind:'operator',operatorId:id('克洛丝')},groupId:null,replacements:[]}
- w.mainPlan.facilities.room_3_1.slots[0]={occupant:{kind:'operator',operatorId:'芬'},groupId:'贸易组',replacements:[]}
- w.mainPlan.facilities.room_1_3.slots[0]={occupant:{kind:'operator',operatorId:'雷蛇'},groupId:'发电组',replacements:[]}
+ w.mainPlan.facilities.room_3_1.slots[0]={occupant:{kind:'operator',operatorId:'芬'},groupId:'贸易组',replacements:['安德切尔']}
+ w.mainPlan.facilities.room_1_3.slots[0]={occupant:{kind:'operator',operatorId:'雷蛇'},groupId:'发电组',replacements:['炎熔']}
  return w
 }
 function position(key:string){const index=Number(key.slice(key.lastIndexOf('_')+1));return {roomId:key.slice(0,key.lastIndexOf('_')) as MowerRoomId,index}}

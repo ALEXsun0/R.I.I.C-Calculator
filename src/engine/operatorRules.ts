@@ -380,15 +380,16 @@ function controlGlobalBonus(
     if (gladiiaSkill && !roomOperators.some(operator => operator.skills.some(isAutomationSkill))) {
       // cc.c.abyssal2_2 and 2_3: physical manufacturing residents receive this
       // external grant even at zero morale; their staffing and own skills remain
-      // inactive. Automation wins, the room cap is 90%, and Waai Fu cannot copy it.
+      // inactive. Automation wins; the stage cap is 45%/90%, and Waai Fu cannot copy it.
       const multiplier = gladiiaSkill.buffId === 'control_mp_aegir2[010]' ? 10 : 5
+      const stationCap = multiplier === 10 ? 90 : 45
       const manufacturingAbyssalCount = new Set(
         config.rooms.filter(r => r.type === 'manufacture').flatMap(r => r.operatorIds)
           .filter(id => { const operator = OPERATOR_MAP.get(id); return operator !== undefined && matchesRiicIdentity(operator, 'groupId', 'abyssal') }),
       ).size
       const abyssalInRoom = selectedOperators(config, room.operatorIds)
         .filter(operator => matchesRiicIdentity(operator, 'groupId', 'abyssal'))
-      const value = Math.min(90, manufacturingAbyssalCount * abyssalInRoom.length * multiplier)
+      const value = Math.min(stationCap, manufacturingAbyssalCount * abyssalInRoom.length * multiplier)
       if (value > 0) {
         bonus += value
         const perBeneficiaryValue = value / abyssalInRoom.length
@@ -400,7 +401,7 @@ function controlGlobalBonus(
         for (const op of abyssalInRoom) {
           const list = operatorBonuses.get(op.charId) ?? []
           list.push({ name: '歌蕾蒂娅·集群狩猎', value: perBeneficiaryValue,
-            detail: `制造站内共 ${manufacturingAbyssalCount} 名深海猎人，单站最高90%` })
+            detail: `制造站内共 ${manufacturingAbyssalCount} 名深海猎人，单站最高${stationCap}%` })
           operatorBonuses.set(op.charId, list)
         }
       }

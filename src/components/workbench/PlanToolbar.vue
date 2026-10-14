@@ -174,6 +174,8 @@
       </div>
     </div>
 
+    <DroneCapacityInput :disabled="disabled || isCalculating || isGeneratingRoster || isExportingImage" />
+
     <!-- Roster Generation Progress Row (below auto-roster button) -->
     <div
       v-if="isGeneratingRoster || generationProgress"
@@ -255,6 +257,7 @@
 
 import { computed, inject, ref } from 'vue'
 import OperatorImportModal from './OperatorImportModal.vue'
+import DroneCapacityInput from './DroneCapacityInput.vue'
 import CalculationActivityNotice from './CalculationActivityNotice.vue'
 import type { CalculationProgress } from '../../workbench/calculationWorker'
 import type { CalculationSilence } from '../../workbench/composables/useWorkbenchCalculation'
