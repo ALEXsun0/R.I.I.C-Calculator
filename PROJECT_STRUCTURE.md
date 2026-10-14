@@ -38,7 +38,7 @@
 
 ## 纳入范围
 
-共 653 个索引文件，其中应用 TypeScript/Vue/CSS 文件 233 个，业务测试文件 276 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
+共 658 个索引文件，其中应用 TypeScript/Vue/CSS 文件 236 个，业务测试文件 278 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
 
 ### 根目录管理入口
 
@@ -172,6 +172,8 @@ src/
 │       ├── BaseMap.vue
 │       ├── CalculationActivityNotice.spec.ts
 │       ├── CalculationActivityNotice.vue
+│       ├── CalculationBottleneckSummary.spec.ts
+│       ├── CalculationBottleneckSummary.vue
 │       ├── CalculationConfigModal.spec.ts
 │       ├── CalculationConfigModal.vue
 │       ├── CalculationFlow.spec.ts
@@ -659,6 +661,7 @@ src/
 │   ├── scheduleSimulation.ts
 │   ├── simulationActivity.spec.ts
 │   ├── simulationActivity.ts
+│   ├── simulationActivityFindings.ts
 │   ├── skillStages.spec.ts
 │   ├── specialOrders.spec.ts
 │   ├── specialOrdersLaterIdeal.spec.ts
@@ -713,6 +716,8 @@ src/
 │   ├── adapter.ts
 │   ├── backupPlanHelpers.spec.ts
 │   ├── backupPlanHelpers.ts
+│   ├── calculationBottlenecks.spec.ts
+│   ├── calculationBottlenecks.ts
 │   ├── calculationBridge.spec.ts
 │   ├── calculationBridge.ts
 │   ├── calculationProgress.spec.ts

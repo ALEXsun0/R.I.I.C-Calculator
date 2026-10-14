@@ -114,6 +114,8 @@ it.each(['error', 'messageerror', 'reported-error', 'complete'] as const)('clean
   expect(api.calculationSilence.value).toBeNull()
   expect(api.calculationProgress.value).toBeNull()
   expect(vi.getTimerCount()).toBe(0)
+  expect(api.calculationBottleneckSummary.value).toMatchObject({ outcome: 'failed', latest: { activity: slow } })
+  expect(api.calculationBottleneckSummary.value?.error).toBeTruthy()
   start()
   expect(session.calculationError.value).toBeNull()
   expect(session.isCalculating.value).toBe(true)
@@ -131,4 +133,40 @@ it('discards observations when the roster changes or the component unmounts', ()
   wrapper.unmount()
   expect(workers[1]!.terminate).toHaveBeenCalledOnce()
   expect(vi.getTimerCount()).toBe(0)
+})
+
+it('keeps historical slow observations after recovery and manual stop until the next run', () => {
+  start()
+  vi.advanceTimersByTime(15000)
+  workers[0]!.progress(slow)
+  vi.advanceTimersByTime(1000)
+  workers[0]!.progress({ ...slow, status: 'running', capturedHours: 20 })
+  vi.advanceTimersByTime(15000)
+  api.handleAbortCalculation()
+  expect(api.calculationBottleneckSummary.value).toMatchObject({
+    outcome: 'cancelled', elapsedSeconds: 31,
+    slowest: { receivedSeconds: 15, activity: { capturedHours: 5 } },
+    latest: { receivedSeconds: 16, activity: { capturedHours: 20 } },
+    silence: { seconds: 15, lastProgressSeconds: 16 },
+  })
+  const saved = api.calculationBottleneckSummary.value
+  workers[0]!.progress(slow)
+  workers[0]!.onmessageerror?.()
+  expect(api.calculationBottleneckSummary.value).toBe(saved)
+  api.handleCalculate()
+  expect(api.calculationBottleneckSummary.value).toBe(saved)
+  start()
+  expect(api.calculationBottleneckSummary.value).toBeNull()
+  workers[0]!.onerror?.({ message: 'obsolete' } as ErrorEvent)
+  expect(api.calculationBottleneckSummary.value).toBeNull()
+})
+it('preserves roster change evidence and startup failures without borrowing the previous run', () => {
+  start()
+  workers[0]!.progress(slow)
+  store.workspace.name = 'changed'
+  expect(api.calculationBottleneckSummary.value).toMatchObject({ outcome: 'changed', latest: { activity: slow } })
+  vi.stubGlobal('Worker', class { constructor() { throw new Error('startup failed') } })
+  start()
+  expect(api.calculationBottleneckSummary.value).toMatchObject({ outcome: 'failed', error: '无法启动后台计算：startup failed', diagnostics: [] })
+  expect(api.calculationBottleneckSummary.value?.latest).toBeUndefined()
 })

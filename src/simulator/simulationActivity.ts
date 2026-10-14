@@ -1,8 +1,10 @@
+import {simulationActivityFindings,type SimulationActivityFinding} from './simulationActivityFindings'
 import type {RuntimeState, RuntimeEvent} from '../scheduler/rosterRuntime'
 import {OPERATOR_MAP} from '../domain/operators'
 import type {MowerTask} from '../scheduler/mowerTaskQueue'
 
 export interface SimulationActivity {
+  findings?: SimulationActivityFinding[]
   status: 'running' | 'slow'
   message: string
   capturedHours: number
@@ -52,11 +54,13 @@ export function createSimulationActivityMonitor(now: () => number = () => perfor
       const source = state.mowerSource
       const active = source?.activeTask ?? source?.execution?.task
       const task = active ?? source?.queue.tasks.reduce<MowerTask | undefined>((earliest, entry) => !earliest || entry.time < earliest.time ? entry : earliest, undefined)
-      const ids = [...counts].sort((a, b) => b[1] - a[1]).map(([id]) => id)
+      const findings=simulationActivityFindings(state,events.map(item=>item.event))
+      const ids = [...new Set([...findings.filter(finding=>finding.kind==='constraint').flatMap(finding=>finding.operatorIds),...[...counts].sort((a, b) => b[1] - a[1]).map(([id]) => id)])]
       if (task) for (const id of [...Object.values(task.plan).flat(), ...task.metadata.split(',')]) {
         if (id in state.morale && !ids.includes(id)) ids.push(id)
       }
       latest = {
+        findings: findings.length?findings:undefined,
         status: slow ? 'slow' : 'running',
         message: slow ? '演算推进较慢。以下是最近涉及的干员与任务，仅供排查，尚不能确定是哪位干员或配置导致。' : '演算正在推进。',
         capturedHours: state.time, windowSeconds: seconds, advancedHours: advanced,
