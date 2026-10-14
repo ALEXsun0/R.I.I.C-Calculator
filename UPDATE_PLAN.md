@@ -1,3 +1,14 @@
+# 2026-10-15 演算端宿舍预约与离宿观测同步
+
+- 目标：继续现有 RIIC 同步分支，将 Mower 本体演算已完成的宿舍预约、达标成员离宿及换人前观测修复同步到计算器；不修改本体源码，不新增游戏规则。
+- 来源与范围：Mower `codex/income-validation-dorm-sync` 提交 `ab624c727`；同步 `mowerAlphaDorm.ts`、`mowerOrdinaryPlanning.ts`、`mowerSourceRuntime.ts`、`mowerCompletedDeparture.spec.ts`，将两份本体离线回归适配为计算器正式测试。来源文件以 SHA-256 固定，不将已提交源码表述为已合并上游版本。
+- 分工与保护：riic_auto 仅写计算器上述实现、定向测试、来源记录、结构索引及本计划；主 agent 负责集成与统一交付。真实干员库、排班、浏览器数据和安装配置不变。riic_auto 不提交或推送；主 agent 统一提交并更新既有 PR，不同步 Windows 安装。
+- 验收：保留同轮先入寝组员，达标成员腾床不召回未恢复组员；离宿前读取实测心情并停止旧恢复推算，FIA、跑单和训练既有读数边界保留。执行相关定向离线回归、类型检查与结构索引生成/校验，不进行真实设备验证。
+- 备份：`artifacts/riic-dorm-observation-sync-20261015/source-before.zip`；SHA-256 `140bebfc910ce402ce81500fbc22eb14f47afec916ebfc177b0efd6102d229c0`，逐文件哈希已核验，恢复范围见同目录 `backup-manifest.json`。
+- 状态：四个来源文件已同步；`mowerSourceRuntime.ts` 仅增量同步换人前观测，保留 RIIC 既有维护跑单暂停与队列清理，其余三文件与来源字节一致。正式新增七项回归在旧版复现六项失败，修复后七项通过；与达标离宿旧套件合计十八项通过，十一个相关套件共一百五十七项通过。最终类型检查、结构索引生成/校验与差异检查通过，证据位于上述备份目录。Mower 入口另由主 agent 完成三十一天演算（采样约六百七十二小时）；此项仅为外部 Mower 证据，本轮 RIIC 入口不宣称长窗口或真实游戏验证。最终生产构建通过，保留既有大分包提示；主 agent 统一提交并普通推送既有 PR。
+
+---
+
 # 2026-10-14 合并主分支的固定无训练计划规则
 
 - 目标：在 `codex/mower-alpha-compat` 合并最新 `origin/main`，采用 `12d2dc192bcb733fafffedfd60cb57687cb12f8d` 的固定无未完成训练计划语义，解决现有 PR 的合并冲突。
