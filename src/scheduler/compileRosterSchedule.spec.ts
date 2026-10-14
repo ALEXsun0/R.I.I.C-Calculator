@@ -89,16 +89,16 @@ describe('lossless roster compiler', () => {
   })
 })
 
-it('keeps explicit training-plan state through compilation without changing export', () => {
+it.each([false, true, 'false'])('ignores the retired training-plan state %s without changing input, compilation or native export', present => {
   const workspace = createDefaultWorkspace()
+  workspace.compatibility.unrecognizedFields.advanced_settings = {enable_mastery: false}
+  const options = {initialMorale: 24, masteryPlanPresent: present, mowerMasteryPlanPresent: present}
+  const original = structuredClone({workspace, options})
   const before = exportMowerJson(workspace)
-  for (const masteryPlanPresent of [false, true]) {
-    const compiled = compileRosterSchedule(workspace, { masteryPlanPresent })
-    expect(compiled.assumptions.masteryPlanPresent).toBe(masteryPlanPresent)
-    expect(compiledScheduleToRuntimeConfig(compiled).mowerMasteryPlanPresent).toBe(masteryPlanPresent)
-    expect(exportMowerJson(compiled.sourceWorkspace)).toBe(before)
-  }
-  expect(compiledScheduleToRuntimeConfig(compileRosterSchedule(workspace)).mowerMasteryPlanPresent).toBeUndefined()
-  const invalid = compileRosterSchedule(workspace, { masteryPlanPresent: 'false' as unknown as boolean })
-  expect(invalid.diagnostics).toContainEqual(expect.objectContaining({code: 'INVALID_ASSUMPTION', path: 'assumptions.masteryPlanPresent'}))
+  const baseline = compileRosterSchedule(workspace, {initialMorale: 24})
+  const compiled = compileRosterSchedule(workspace, options)
+  expect(compiled).toEqual(baseline)
+  expect(compiledScheduleToRuntimeConfig(compiled)).toEqual(compiledScheduleToRuntimeConfig(baseline))
+  expect(exportMowerJson(compiled.sourceWorkspace)).toBe(before)
+  expect({workspace, options}).toEqual(original)
 })

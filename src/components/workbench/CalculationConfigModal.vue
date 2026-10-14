@@ -18,7 +18,6 @@ const emit = defineEmits<{ close: []; confirm: [config: CalculationConfig] }>()
 const room = ref('none')
 const useOperatorInventory = ref(true)
 const jayeElite0 = ref(false)
-const masteryPlanPresent = ref(false)
 const weights = ref(normalizeProductionWeights())
 const weightsValid = ref(true)
 const initialInventory = ref<SimulationInventory>()
@@ -33,7 +32,6 @@ watch(() => props.open, open => {
     (saved ? 'none' : facilities.value.find(f => f.target === props.initial.droneTarget)?.roomId ?? 'none')
   useOperatorInventory.value = props.initial.useOperatorInventory ?? true
   jayeElite0.value = props.initial.jayeElite0 ?? false
-  masteryPlanPresent.value = props.initial.masteryPlanPresent ?? false
   initialInventory.value = props.initial.initialInventory
   weights.value = normalizeProductionWeights(props.initial.productionWeights)
 }, { immediate: true })
@@ -47,7 +45,6 @@ function confirm() {
     droneTradingRoomId: selected?.target === 'trading' ? selected.roomId : '',
     useOperatorInventory: useOperatorInventory.value,
     jayeElite0: jayeElite0.value,
-    masteryPlanPresent: masteryPlanPresent.value,
     productionWeights: normalizeProductionWeights(weights.value),
     ...(inventory === undefined ? {} : { initialInventory: inventory }),
   })
@@ -69,10 +66,6 @@ function confirm() {
       <label class="inventory-choice">
         <span><input v-model="useOperatorInventory" type="checkbox" data-test="calculation-use-inventory" /> 使用当前干员库配置</span>
         <small>取消勾选则按全部干员满配计算。</small>
-      </label>
-      <label class="inventory-choice">
-        <span><input v-model="masteryPlanPresent" type="checkbox" data-test="calculation-mastery-plan" /> 有未完成的训练计划</span>
-        <small>包含失败但尚未清除的计划。本次模拟始终按所选状态判断副表条件，不模拟训练进度或完成时间；仅影响本地计算。</small>
       </label>
       <label class="inventory-choice">
         <span><input v-model="jayeElite0" type="checkbox" data-test="calculation-jaye-elite0" /> 孑使用精0状态（跑单满差额加成）</span>

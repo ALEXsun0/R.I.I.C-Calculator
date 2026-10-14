@@ -185,7 +185,7 @@ describe('WorkbenchShell.vue and App primary entry integration', () => {
     const productionWeights = { ...DEFAULT_PRODUCTION_WEIGHTS, exp: 2 }
     wrapper.vm.handleConfirmCalculation({
       droneTarget: 'none', droneTradingRoomId: '',
-      useOperatorInventory: false, productionWeights, masteryPlanPresent: true,
+      useOperatorInventory: false, productionWeights,
     })
     await flushPromises()
     expect(wrapper.vm.isCalculating).toBe(true)
@@ -193,12 +193,38 @@ describe('WorkbenchShell.vue and App primary entry integration', () => {
     const request = pending[0]!.postMessage.mock.calls[0]![0]
     expect(request.workspace.productionWeights).toEqual(productionWeights)
     expect(request.options.simulationOptions.productionWeights).toEqual(productionWeights)
-    expect(request.options.simulationAssumptions).toMatchObject({ fiammettaFool: false, restingThreshold: .7, rescueThreshold: .25, freeRoom: true, masteryPlanPresent: true })
+    expect(request.options.simulationAssumptions).toMatchObject({ fiammettaFool: false, restingThreshold: .7, rescueThreshold: .25, freeRoom: true })
     wrapper.vm.simSettings.productionWeights!.gold = 0
     await flushPromises()
     expect(wrapper.vm.isCalculating).toBe(false)
     expect(pending[0]!.terminate).toHaveBeenCalledOnce()
     expect(JSON.parse(localStorage.getItem(`arc-income-calculator-sim-settings-v1-${EDITION.storageNamespace}`)!).productionWeights).toEqual({ ...productionWeights, gold: 0 })
+  })
+
+  it('drops legacy training-plan settings while preserving other preferences and the worker snapshot', async () => {
+    const storageKey = `arc-income-calculator-sim-settings-v1-${EDITION.storageNamespace}`
+    const saved = { warmupDays: .25, sampleDays: .75, step: .25, seed: 42, droneTarget: 'none', droneTradingRoomId: '', useOperatorInventory: false, masteryPlanPresent: true }
+    localStorage.setItem(storageKey, JSON.stringify(saved))
+    const pending: Array<{ postMessage: ReturnType<typeof vi.fn> }> = []
+    vi.stubGlobal('Worker', class {
+      onmessage: ((event: MessageEvent) => void) | null = null
+      postMessage = vi.fn()
+      terminate = vi.fn()
+      constructor() { pending.push(this) }
+    })
+    const wrapper = mountWithPinia(WorkbenchShell)
+    await flushPromises()
+    const original = JSON.stringify(wrapper.vm.store.workspace)
+    expect(wrapper.vm.simSettings).not.toHaveProperty('masteryPlanPresent')
+    expect(wrapper.vm.simSettings).toMatchObject({ warmupDays: .25, sampleDays: .75, seed: 42, useOperatorInventory: false })
+    expect(JSON.parse(localStorage.getItem(storageKey)!)).not.toHaveProperty('masteryPlanPresent')
+    wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '', useOperatorInventory: false })
+    await flushPromises()
+    const request = pending[0]!.postMessage.mock.calls[0]![0]
+    expect(request.options.simulationAssumptions).not.toHaveProperty('masteryPlanPresent')
+    expect(request.options.simulationOptions).toMatchObject({ warmupHours: 6, sampleHours: 18, production: { seed: 42, droneTarget: 'none' } })
+    expect(JSON.stringify(wrapper.vm.store.workspace)).toBe(original)
+    expect(saved.masteryPlanPresent).toBe(true)
   })
 
   it('restores v7 workspace, settings and inventory through the same persisted contract', async () => {

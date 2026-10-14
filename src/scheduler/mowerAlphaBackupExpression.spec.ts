@@ -46,17 +46,21 @@ describe('alpha backup group and mastery predicates',()=>{
   expect(()=>expression(`op_data.group_min_mood('不存在')`).evaluate(fixture())).toThrow('不存在的绑组：不存在')
   expect(()=>expression(`op_data.group_min_mood('红松')`).evaluate(fixture([{name:'A',workaholic:true}]))).toThrow('绑组内没有可统计心情的干员：红松')
  })
- it.each([false,true])('uses the explicit unfinished mastery plan state %s',present=>{
-  const state=fixture();state.config.mowerMasteryPlanPresent=present
+ it.each([undefined,false,true,'true'])('always treats training as having no unfinished plan despite legacy state %s',present=>{
+  const state=fixture()
+  if(present!==undefined)Object.assign(state.config,{mowerMasteryPlanPresent:present})
+  const before=structuredClone(state.config)
   const compiled=expression(`op_data.facility_has_mastery_plan('train') == False`)
   expect(compiled.usesMasteryPlan).toBe(true);expect(compiled.usesCurrentMood).toBe(false)
-  expect(compiled.evaluate(state)).toBe(!present)
-  state.config.mowerMasteryPlanPresent=!present
-  expect(compiled.evaluate(state)).toBe(present)
+  expect(compiled.evaluate(state)).toBe(true)
+  expect(expression(`op_data.facility_has_mastery_plan('train')`).evaluate(state)).toBe(false)
+  state.time=24
+  expect(compiled.evaluate(state)).toBe(true)
+  expect(state.config).toEqual(before)
  })
- it('rejects unknown mastery status instead of silently assuming there is no plan',()=>{
-  const state=fixture();state.config.mowerTaskScheduling={enableMastery:false}
-  expect(()=>expression(`op_data.facility_has_mastery_plan('train') == False`).evaluate(state)).toThrow('缺少训练室专精计划状态')
+ it.each([false,true])('keeps the no-plan condition independent of native enableMastery %s',enabled=>{
+  const state=fixture();state.config.mowerTaskScheduling={enableMastery:enabled}
+  expect(expression(`op_data.facility_has_mastery_plan('train') == False`).evaluate(state)).toBe(true)
  })
  it('rejects rooms other than train as the native method does',()=>{
   expect(()=>expression(`op_data.facility_has_mastery_plan('room_1_1')`)).toThrow('不支持的训练室位置')
@@ -72,5 +76,8 @@ describe('alpha backup group and mastery predicates',()=>{
  })
  it('keeps Python short-circuiting for unused external states',()=>{
   expect(expression(`True or op_data.facility_has_mastery_plan('train')`).evaluate(fixture())).toBe(true)
+  expect(expression(`op_data.facility_has_mastery_plan('train') and op_data.group_min_mood('不存在')`).evaluate(fixture())).toBe(false)
+  expect(expression(`not op_data.facility_has_mastery_plan('train') or op_data.group_min_mood('不存在')`).evaluate(fixture())).toBe(true)
+  expect(expression(`False and op_data.group_min_mood('不存在')`).evaluate(fixture())).toBe(false)
  })
 })

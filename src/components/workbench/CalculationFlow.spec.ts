@@ -97,7 +97,7 @@ it('asks for drone settings before launching a cancellable background calculatio
   wrapper.vm.handleConfirmCalculation({ droneTarget: 'trading', droneTradingRoomId: 'room_3_1' })
   await wrapper.vm.$nextTick()
   expect(workers).toHaveLength(1)
-  expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationAssumptions).toEqual({ fiammettaFool: false, fiammettaThreshold: .8, restingThreshold: .7, rescueThreshold: .9, freeRoom: true, masteryPlanPresent: false })
+  expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationAssumptions).toEqual({ fiammettaFool: false, fiammettaThreshold: .8, restingThreshold: .7, rescueThreshold: .9, freeRoom: true })
   expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationOptions.production).toMatchObject({
     droneTarget: 'trading', droneTradingRoomId: 'room_3_1',
   })

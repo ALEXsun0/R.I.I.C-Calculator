@@ -59,6 +59,8 @@ export function useWorkbenchPersistence(store: ReturnType<typeof useRosterWorkbe
       if (rawSim) {
         const parsedSim = JSON.parse(rawSim)
         if (parsedSim?.sampleDays) {
+          // Retire the local training-plan choice without discarding other preferences.
+          delete parsedSim.masteryPlanPresent
           let productionWeights = normalizeProductionWeights()
           try { productionWeights = normalizeProductionWeights(parsedSim.productionWeights) } catch { /* retain defaults for invalid saved coefficients */ }
           simSettings.value = { ...defaultSimSettings, ...parsedSim, productionWeights }
