@@ -2,7 +2,7 @@
 // Source: c6bdbb292fe7fcd84c6dfb66154a12a1a9bc5b88 (MIT, Copyright 2021 Nano).
 import type {MowerSchedulingData} from './mowerSchedulingData'
 import {MOWER_TASK_TYPES as T,MowerTask,type MowerTaskQueue} from './mowerTaskQueue'
-import {hasRestingMood} from './mowerOperatorState'
+import {hasObservedFullMood,hasRestingMood} from './mowerOperatorState'
 export function prepareMowerRelease(data:MowerSchedulingData,queue:MowerTaskQueue,task:MowerTask):boolean {
  if(data.alpha)return prepareAlphaRelease(data,queue,task)
  let op=data.operators[task.metadata]
@@ -38,7 +38,8 @@ function prepareAlphaMember(data:MowerSchedulingData,queue:MowerTaskQueue,task:M
  if(strict&&!(op?.restMoodLimit&&(task.moodLimit===undefined||task.moodLimit===op.upperLimit))||!strict&&data.skipIdleDormRelease(task.metadata))return reject()
  const room=Object.keys(task.plan)[0],index=room?task.plan[room]!.indexOf('Free'):-1
  if(!room||index<0||!op||op.currentRoom!==room||op.currentIndex!==index)return reject()
- if(!strict&&(!hasRestingMood(op,data.nowMicros)||op.currentMood(data.nowMicros)<op.upperLimit)){
+ // A saved full dorm observation takes precedence over a retained working depletion rate.
+ if(!strict&&!hasObservedFullMood(op)&&(!hasRestingMood(op,data.nowMicros)||op.currentMood(data.nowMicros)<op.upperLimit)){
   const bed=data.getDormByName(op.name)?.[1]
   if(bed?.timeMicros===undefined)return reject()
   if(bed.timeMicros>data.nowMicros){const pending=new MowerTask({type:task.type,plan:structuredClone(task.plan),metadata:task.metadata,strictMoodLimit:strict,moodLimit:task.moodLimit});pending.timeMicros=bed.timeMicros;queue.tasks.push(pending);return reject()}

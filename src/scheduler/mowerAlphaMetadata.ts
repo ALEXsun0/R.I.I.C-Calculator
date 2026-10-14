@@ -1,5 +1,5 @@
 // Mower b2d9ac8 scheduler_task.plan_metadata; recovery gap updated to ab0a4e5 (MIT, Copyright 2021 Nano).
-import {hasRestingMood} from './mowerOperatorState'
+import {hasObservedFullMood,hasRestingMood} from './mowerOperatorState'
 import {projectMowerArrangements} from './mowerObservations'
 import {alphaPosition,alphaRebalanceClosingDorms} from './mowerAlphaDorm'
 import {generateMowerDormTasks,mergeMowerAlphaReleases,mowerArrangementResources,mowerAfterPendingArrangements,type MowerDormBatch,type MowerReturnTargets} from './mowerDormTasks'
@@ -48,7 +48,7 @@ export function planMowerAlphaMetadata(actual:MowerSchedulingData,queue:MowerTas
   }
   if(high.length&&!group)for(const b of high)if(b.timeMicros!==undefined){const full=data.operators[b.name]!.restInFull;add(full?b.timeMicros:Math.min(b.timeMicros,minimum),[b],full)}
  }
- if(data.freeRoom)for(const b of free){const op=data.operators[b.name]!,observed=op.timeStampMicros!==undefined&&op.mood>=op.upperLimit;if(b.timeMicros===undefined&&!observed)continue;const time=observed?now:b.timeMicros!,previous=releases.get(time);if(previous)previous.dorms.push(b);else releases.set(time,{timeMicros:time,dorms:[b],restInFull:null})}
+ if(data.freeRoom)for(const b of free){const op=data.operators[b.name]!,observed=hasObservedFullMood(op);if(b.timeMicros===undefined&&!observed)continue;const time=observed?now:b.timeMicros!,previous=releases.get(time);if(previous)previous.dorms.push(b);else releases.set(time,{timeMicros:time,dorms:[b],restInFull:null})}
  const generated=generateMowerDormTasks([...batches.values(),...releases.values()],data,existing,pending);queue.tasks.push(...generated)
  const returning=new Set(generated.flatMap(t=>Object.values(t.plan).flat()))
  for(const op of Object.values(data.operators)){
