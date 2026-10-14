@@ -1,6 +1,6 @@
 # 当前更新实施计划
 
-## 2026-10-14 移除训练计划选项（进行中）
+## 2026-10-14 移除训练计划选项（已完成）
 
 - 用户要求：删除「有未完成的训练计划」这一项，全部按无训练计划计算。沿用个人程序 main 推送和 D:/Tools/R.I.I.C-Calculator 安全同步授权；另一个一图流任务的既有计划修改保留，不纳入本次提交。
 - 基线与备份：main 04def42eac7462bb14e030a2d45f3666f91c0c01；开工仅 UPDATE_PLAN.md 有既有修改。1759个已跟踪文件归档并逐项校验于 artifacts/training-plan-disabled-20261014/backup/source-before.zip，SHA256 3cf4fb6b6cd88b3f15864506ce1cd22be7d8a657e1f07a3d1030299d698cb593；既有计划文本和 diff 单独保留。
@@ -8,7 +8,7 @@
 - 分工：主 agent 唯一写入界面 CalculationConfigModal、workbench/settings、useWorkbenchCalculation、useWorkbenchPersistence 与对应界面/持久化测试，以及本计划、说明、领域 skill 和交付。训练规则 agent 独占 scheduler 的 types、rosterRuntime、compileRosterSchedule、scheduleAdapter、backupExpression、backupPlans 及三个训练条件相关 spec；移除可调训练状态，保留条件解析、短路及其他副表行为，不自行推送或安装。交叉只读审查由双方对实际 diff 执行。
 - 验收：旧 true 设置恢复后不再显示或传递；直接编译/模拟无训练状态不报缺失；正条件不触发、否定条件正常触发训练室副表且原表不变；既有组心情/时机/主副表回归、Vue 类型检查、生产构建和结构索引检查通过。
 - 交付：仅暂存本任务文件及本计划增量，普通推送并核对远端 SHA；从可证明与提交一致的程序输入构建并通过安全脚本备份/同步，逐文件核对管理文件及原用户文件。维护规则说明与独立 skill 的离线校验和同步，区分文件同步与实际启动证据。
-- 当前状态：实现、双方交叉审查和17个相关测试文件226项回归全部通过（界面48、训练规则48、其他副表/编译/架构130）；Vue 强制类型检查退出0，结构与离线 skill 校验通过。生产构建、远端及安装同步待完成。
+- 当前状态：实现、双方交叉审查和17个相关测试文件226项回归全部通过（界面48、训练规则48、其他副表/编译/架构130）；Vue 强制类型检查、结构与离线 skill 校验退出0，生产构建12.20秒成功。程序提交12d2dc192bcb733fafffedfd60cb57687cb12f8d与远端main一致；独立skill提交3c39b105a9e67a86679a122b61870af43c69bbf3已同步。安装1007管理文件核对、1036原文件备份验证及28非管理文件保留完成。Pages成功，Windows Release仍运行；桌面新进程未启动验收。报告docs/UPDATE_2026-10-14_TRAINING_PLAN.md及本次artifacts保留完整证据。
 
 ---
 
