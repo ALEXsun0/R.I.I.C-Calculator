@@ -64,6 +64,12 @@ export interface RuntimeEvent {
   beds?: string[]; moraleBefore?: number[]; moraleAfter?: number[]; reason?: 'position-correction'
 }
 export interface RuntimeState {
+  /** Current simulation inventory, keyed by the six native Chinese item names. */
+  mowerInventoryCounts?: Readonly<Record<string, number>>
+  /** Observed products with the base-plan fallback already applied by the host. */
+  mowerFacilityProducts?: Readonly<Record<string, string | null>>
+  /** Non-enumerable live query installed only for observed inventory/product conditions. */
+  mowerBackupObservationWakeMicros?: () => number | undefined
   /** Explicit stable scene input shared by headless facility adapters. */
   mowerUI?:{scene:string;lastRoom:string}
   mowerSource?:MowerSourceRuntime; mowerBackupContext?:MowerBackupContext; mowerBackupGenerated?:MowerTask[]

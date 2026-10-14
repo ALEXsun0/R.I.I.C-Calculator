@@ -38,7 +38,7 @@
 
 ## 纳入范围
 
-共 642 个索引文件，其中应用 TypeScript/Vue/CSS 文件 229 个，业务测试文件 269 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
+共 653 个索引文件，其中应用 TypeScript/Vue/CSS 文件 233 个，业务测试文件 276 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
 
 ### 根目录管理入口
 
@@ -212,6 +212,7 @@ src/
 │       ├── ScheduleTimelineGantt.vue
 │       ├── SettingsView.spec.ts
 │       ├── SettingsView.vue
+│       ├── SimulationInventoryEditor.vue
 │       ├── SimulationLogView.spec.ts
 │       ├── SimulationLogView.vue
 │       ├── SlotRow.vue
@@ -266,6 +267,8 @@ src/
 │   ├── riicTags.ts
 │   ├── roster.ts
 │   ├── shiftRunPolicy.ts
+│   ├── simulationInventory.spec.ts
+│   ├── simulationInventory.ts
 │   ├── types.ts
 │   └── xlsxReader.ts
 ├── engine/
@@ -353,6 +356,7 @@ src/
 │   ├── inventoryAdmission.spec.ts
 │   ├── inventoryAdmission.ts
 │   ├── inventoryFallback.spec.ts
+│   ├── inventorySearch.spec.ts
 │   ├── mainPlanOnly.spec.ts
 │   ├── mainPlanOnly.ts
 │   ├── mixedLevelInventory.spec.ts
@@ -446,6 +450,10 @@ src/
 │   │   ├── mower-task-scheduling-alpha.json
 │   │   └── mower-todo-task-alpha.json
 │   ├── backupExpression.ts
+│   ├── backupInventory.spec.ts
+│   ├── backupInventory.ts
+│   ├── backupInventoryExpression.spec.ts
+│   ├── backupInventoryWake.spec.ts
 │   ├── backupPlans.long.spec.ts
 │   ├── backupPlans.spec.ts
 │   ├── backupPlans.ts
@@ -615,12 +623,14 @@ src/
 │   ├── droneTimeline.spec.ts
 │   ├── droneTimeline.ts
 │   ├── idealRunOrder.spec.ts
+│   ├── inventorySimulation.ts
 │   ├── manufacturingTimeline.spec.ts
 │   ├── manufacturingTimeline.ts
 │   ├── mowerAlphaProductSimulation.spec.ts
 │   ├── mowerEfficiencyCache.spec.ts
 │   ├── mowerGladiiaFatigue.long.spec.ts
 │   ├── mowerInitialMorale.spec.ts
+│   ├── mowerInventoryBackup.spec.ts
 │   ├── mowerManufactureIO.spec.ts
 │   ├── mowerNativeClueIO.ts
 │   ├── mowerNativeProductionIO.spec.ts
@@ -715,6 +725,7 @@ src/
 │   ├── facilityState.ts
 │   ├── fileHelpers.spec.ts
 │   ├── fileHelpers.ts
+│   ├── inventorySimulationBridge.spec.ts
 │   ├── layoutPresets.ts
 │   ├── levelInference.spec.ts
 │   ├── levelInference.ts

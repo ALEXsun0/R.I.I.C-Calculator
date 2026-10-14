@@ -2,6 +2,8 @@ import { mowerAdvancedAssumptions } from '../../scheduler/mowerAdvancedSettings'
 import { computed, onBeforeUnmount, ref, toRaw, watch, type ComputedRef } from 'vue'
 import { parseOperatorInventory, type OwnedOperatorInput } from '../../domain/operatorInventory'
 import { normalizeProductionWeights } from '../../domain/productionWeights'
+import { normalizeSimulationInventory } from '../../domain/simulationInventory'
+import { workspaceUsesInventoryConditions } from '../../scheduler/backupInventory'
 import type { CalculationWorkerMessage, CalculationProgress } from '../calculationWorker'
 import type { CalculationConfig } from '../settings'
 import type { WorkbenchSession } from '../session'
@@ -68,9 +70,12 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
   }
 
   function handleConfirmCalculation(config: CalculationConfig): void {
-    calculationConfigOpen.value = false
     if (isCalculating.value || isGeneratingRoster.value) return
-    simSettings.value = { ...simSettings.value, ...config }
+    let initialInventory
+    try { initialInventory = normalizeSimulationInventory(config.initialInventory === undefined && workspaceUsesInventoryConditions(store.workspace) ? {} : config.initialInventory) }
+    catch (error) { calculationError.value = error instanceof Error ? error.message : String(error); return }
+    calculationConfigOpen.value = false
+    simSettings.value = { ...simSettings.value, ...config, initialInventory }
     executeCalculation()
   }
 
@@ -102,6 +107,7 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
         : null
     }, 1000)
     try {
+      const initialInventory = normalizeSimulationInventory(simSettings.value.initialInventory === undefined && workspaceUsesInventoryConditions(store.workspace) ? {} : simSettings.value.initialInventory)
       let inventoryEntries: OwnedOperatorInput[] | undefined
       if (simSettings.value.useOperatorInventory !== false) {
         let inventory = operatorInventory.value
@@ -145,7 +151,11 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
           jayeElite0: simSettings.value.jayeElite0 ?? false,
           operatorInventory: inventoryEntries,
           production: {
-            outputMode: 'potential' as const,
+            ...(initialInventory === undefined ? { outputMode: 'potential' as const } : {
+              outputMode: 'settled' as const,
+              inventoryMode: 'finite' as const,
+              initialResources: initialInventory,
+            }),
             runOrderMode: 'ideal' as const,
             seed: simSettings.value.seed < 0
               ? (typeof process !== 'undefined' && Boolean(process.env?.VITEST) ? 42 : Math.floor(Math.random() * 0xffffffff))

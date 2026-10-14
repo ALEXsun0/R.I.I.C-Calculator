@@ -3,8 +3,65 @@ import { afterEach, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import CalculationConfigModal from './CalculationConfigModal.vue'
 import { createDefaultWorkspace } from '../../workbench/defaults'
+import { normalizeSimulationInventory } from '../../domain/simulationInventory'
 
 afterEach(() => { document.body.innerHTML = '' })
+it('requires finite inventory for an inventory-dependent backup and defaults every item to zero', async () => {
+  const workspace = createDefaultWorkspace()
+  workspace.compatibility.backupPlans = [{ name: '库存', trigger: "op_data.inventory_count('赤金') < 10" }]
+  const wrapper = mount(CalculationConfigModal, { props: { open: true, workspace, initial: { droneTarget: 'none', droneTradingRoomId: '' } }, global: { stubs: { teleport: true } } })
+  try {
+    const toggle = wrapper.get<HTMLInputElement>('[data-test="simulation-inventory-enabled"]')
+    expect(toggle.element.checked).toBe(true)
+    expect(toggle.element.disabled).toBe(true)
+    expect(wrapper.text()).toContain('进入采样时不重置')
+    expect(wrapper.text()).toContain('无外源收入')
+    expect(wrapper.text()).toContain('经验填写总经验值')
+    await wrapper.get('[data-test="confirm-calculation"]').trigger('click')
+    expect(wrapper.emitted('confirm')?.[0]?.[0]).toMatchObject({ initialInventory: normalizeSimulationInventory({}) })
+  } finally { wrapper.unmount() }
+})
+
+it('can disable optional inventory, retain its draft and restore saved amounts', async () => {
+  const wrapper = mount(CalculationConfigModal, { props: { open: true, workspace: createDefaultWorkspace(), initial: { droneTarget: 'none', droneTradingRoomId: '', initialInventory: { gold: 12, exp: 5000 } } }, global: { stubs: { teleport: true } } })
+  try {
+    expect(wrapper.get<HTMLInputElement>('[data-test="initial-inventory-exp"]').element.value).toBe('5000')
+    await wrapper.get('[data-test="initial-inventory-gold"]').setValue('25')
+    await wrapper.get('[data-test="simulation-inventory-enabled"]').setValue(false)
+    await wrapper.get('[data-test="confirm-calculation"]').trigger('click')
+    expect((wrapper.emitted('confirm')?.[0]?.[0] as { initialInventory?: unknown }).initialInventory).toBeUndefined()
+    await wrapper.get('[data-test="simulation-inventory-enabled"]').setValue(true)
+    expect(wrapper.get<HTMLInputElement>('[data-test="initial-inventory-gold"]').element.value).toBe('25')
+    await wrapper.get('[data-test="confirm-calculation"]').trigger('click')
+    expect(wrapper.emitted('confirm')?.[1]?.[0]).toMatchObject({ initialInventory: normalizeSimulationInventory({ gold: 25, exp: 5000 }) })
+  } finally { wrapper.unmount() }
+})
+
+it.each(['', '-1', '1.5', '9007199254740992'])('blocks invalid inventory input %s until corrected', async value => {
+  const wrapper = mount(CalculationConfigModal, { props: { open: true, workspace: createDefaultWorkspace(), initial: { droneTarget: 'none', droneTradingRoomId: '', initialInventory: {} } }, global: { stubs: { teleport: true } } })
+  try {
+    await wrapper.get('[data-test="initial-inventory-gold"]').setValue(value)
+    expect(wrapper.get('[data-test="confirm-calculation"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-test="simulation-inventory-error"]').text()).toContain('安全整数')
+    await wrapper.get('[data-test="confirm-calculation"]').trigger('click')
+    expect(wrapper.emitted('confirm')).toBeUndefined()
+    await wrapper.get('[data-test="initial-inventory-gold"]').setValue('0')
+    expect(wrapper.get('[data-test="confirm-calculation"]').attributes('disabled')).toBeUndefined()
+    await wrapper.get('[data-test="confirm-calculation"]').trigger('click')
+    expect(wrapper.emitted('confirm')).toHaveLength(1)
+  } finally { wrapper.unmount() }
+})
+
+it('keeps corrupt saved quantities blocked until the user explicitly resets them', async () => {
+  const wrapper = mount(CalculationConfigModal, { props: { open: true, workspace: createDefaultWorkspace(), initial: { droneTarget: 'none', droneTradingRoomId: '', initialInventory: { exp: -10 } } }, global: { stubs: { teleport: true } } })
+  try {
+    await wrapper.vm.$nextTick()
+    expect(wrapper.get('[data-test="confirm-calculation"]').attributes('disabled')).toBeDefined()
+    await wrapper.get('[data-test="reset-initial-inventory"]').trigger('click')
+    expect(wrapper.get('[data-test="confirm-calculation"]').attributes('disabled')).toBeUndefined()
+  } finally { wrapper.unmount() }
+})
+
 it('edits and confirms the shared weights including zero', async () => {
   const wrapper = mount(CalculationConfigModal, {
     props: { open: true, workspace: createDefaultWorkspace(), initial: { droneTarget: 'none', droneTradingRoomId: '', productionWeights: { exp: 2, gold: .5, orders: .3, fragments: 4, orundum: 5 } } },

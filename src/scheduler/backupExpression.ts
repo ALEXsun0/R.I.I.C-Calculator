@@ -1,6 +1,7 @@
 // Mower logic_expression.py serializes (left operator right) before evaluation.
 // This interpreter preserves that syntax without evaluating imported Python/JS.
 import { OPERATOR_MAP } from '../domain/operators'
+import { MOWER_INVENTORY_ITEMS } from '../domain/simulationInventory'
 import { resolveOperatorCharId } from '../domain/operatorIdentifiers'
 import type { RuntimeState } from './rosterRuntime'
 import type {MowerDateTimeValue} from './mowerSchedulingData'
@@ -10,6 +11,9 @@ type Value = string | number | boolean | null | MowerDateTimeValue
 type Expression = (state: RuntimeState) => Value
 type Token = { text: string; kind: 'operator' | 'value' | 'worker' | 'external' | 'query'; value?: Value; name?: string; member?: string }
 const roomName = /^(?:room_[1-3]_[1-3]|dormitory_[1-4]|central|meeting|factory|contact|train|recycle)$/
+// Inventory and facility queries: Mower 3de2b2ac Operators (MIT).
+const inventoryNames = new Set<string>(MOWER_INVENTORY_ITEMS.map(item => item.name))
+const facilityRoomName = /^(?:room_[1-3]_[1-3]|dormitory_[1-4]|gaming_[1-3]|central|meeting|factory|contact|train|recycle)$/
 const fail = (message: string): never => { throw new Error(`副表：${message}`) }
 
 export function actualRoom(state: RuntimeState, id: string): string {
@@ -37,13 +41,14 @@ function tokenize(text: string): Token[] {
   for (let rest = text.trim(); rest; rest = rest.trimStart()) {
     if (tokens.length >= 1024) return fail('条件文本超过限制')
     const worker = /^op_data\.operators\[['"]([^'"\[\]]+)['"]\]\.(is_resting\(\)|is_working\(\)|current_mood\(\)|current_room|current_index|room|index|mood|upper_limit|lower_limit|group|workaholic|exhaust_require|rest_in_full|operator_type|resting_priority)\b/.exec(rest) ?? /^op_data\.operators\[['"]([^'"\[\]]+)['"]\]\.(is_resting\(\)|is_working\(\)|current_mood\(\))/.exec(rest)
-    const query = /^op_data\.(group_min_mood|facility_has_mastery_plan)\b/.exec(rest)
+    const query = /^op_data\.(group_min_mood|facility_has_mastery_plan|inventory_count|facility_product)\b/.exec(rest)
     const external = /^op_data\.(?:party_time\b|major_maintenance_remaining_hours\(\))/.exec(rest)
     const quoted = /^(['"])((?:\\.|(?!\1)[^\\])*)\1/.exec(rest)
     const number = /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/.exec(rest)
     const word = /^(?:and|or|not|is|in|True|False|None)\b/.exec(rest)
     const symbol = /^(?:==|!=|<=|>=|[<>+*/()\-])/.exec(rest)
-    const room = /^(?:room_[1-3]_[1-3]|dormitory_[1-4]|central|meeting|factory|contact|train|recycle)\b/.exec(rest)
+    const room = /^(?:room_[1-3]_[1-3]|dormitory_[1-4]|gaming_[1-3]|central|meeting|factory|contact|train|recycle)\b/.exec(rest)
+    const product = /^(?:orirock_device|orirock|orundum|gold|exp3|lmd)\b/.exec(rest)
     let token: Token
     if (worker) token = { text: worker[0], kind: 'worker', name: worker[1], member: worker[2] }
     else if (query) token = { text: query[0], kind: 'query', member: query[1] }
@@ -54,6 +59,7 @@ function tokenize(text: string): Token[] {
       ? { text: word[0], kind: 'value', value: word[0] === 'None' ? null : word[0] === 'True' }
       : { text: word[0], kind: 'operator' }
     else if (symbol) token = { text: symbol[0], kind: 'operator' }
+    else if (product) token = { text: product[0], kind: 'value', value: product[0] }
     else if (room) token = { text: room[0], kind: 'value', value: room[0] }
     else return fail(`不支持的条件 ${rest.slice(0, 120)}`)
     tokens.push(token); rest = rest.slice(token.text.length)
@@ -61,7 +67,7 @@ function tokenize(text: string): Token[] {
   return tokens
 }
 
-export function compileBackupExpression(source: unknown, participants: Set<string>): { evaluate: Expression; usesCurrentMood: boolean; usesMajorMaintenance: boolean; usesMasteryPlan: boolean; skipped?: string } {
+export function compileBackupExpression(source: unknown, participants: Set<string>): { evaluate: Expression; usesCurrentMood: boolean; usesMajorMaintenance: boolean; usesMasteryPlan: boolean; usesInventory: boolean; usesFacilityProduct: boolean; skipped?: string } {
   const tokens = tokenize(serialize(source))
   let cursor = 0, nesting = 0
   const peek = () => tokens[cursor]?.text
@@ -110,6 +116,24 @@ export function compileBackupExpression(source: unknown, participants: Set<strin
         const argument = tokens[cursor++]
         if (argument?.kind !== 'value' || typeof argument.value !== 'string' || !take(')')) return fail(`${token.member} 需要一个字符串参数`)
         const name = argument.value
+        if (token.member === 'inventory_count') {
+          if (!inventoryNames.has(name)) return fail(`不支持的副表仓库资源：${name}`)
+          return state => {
+            const inventory = state.mowerInventoryCounts
+            if (!inventory) return fail('缺少库存状态；请预设初始物品数量')
+            const count = Object.prototype.hasOwnProperty.call(inventory, name) ? inventory[name]! : 0
+            if (!Number.isFinite(count) || count < 0) return fail(`库存数量必须为非负有限数：${name}`)
+            return count
+          }
+        }
+        if (token.member === 'facility_product') {
+          if (!facilityRoomName.test(name)) return fail(`不支持的设施位置：${name}`)
+          return state => {
+            const products = state.mowerFacilityProducts
+            if (!products) return fail('缺少设施产物状态')
+            return Object.prototype.hasOwnProperty.call(products, name) ? products[name] ?? null : null
+          }
+        }
         if (token.member === 'facility_has_mastery_plan') {
           if (name !== 'train') return fail(`不支持的训练室位置：${name}`)
           return state => state.config.mowerMasteryPlanPresent ?? fail('缺少训练室专精计划状态；请明确是否存在尚未完结的计划')
@@ -198,5 +222,11 @@ export function compileBackupExpression(source: unknown, participants: Set<strin
   const evaluate = tokens.length ? logicalOr() : () => false
   if (cursor !== tokens.length) return fail(`条件存在未解析内容 ${peek()}`)
   const usesMajorMaintenance = tokens.some(token => token.kind === 'external' && token.text === 'op_data.major_maintenance_remaining_hours()')
-  return { evaluate, usesMajorMaintenance, usesMasteryPlan: tokens.some(token=>token.kind==='query'&&token.member==='facility_has_mastery_plan'), usesCurrentMood: tokens.some(token=>token.kind==='worker'&&token.member==='current_mood()'||token.kind==='query'&&token.member==='group_min_mood') }
+  return {
+    evaluate, usesMajorMaintenance,
+    usesInventory: tokens.some(token=>token.kind==='query'&&token.member==='inventory_count'),
+    usesFacilityProduct: tokens.some(token=>token.kind==='query'&&token.member==='facility_product'),
+    usesMasteryPlan: tokens.some(token=>token.kind==='query'&&token.member==='facility_has_mastery_plan'),
+    usesCurrentMood: tokens.some(token=>token.kind==='worker'&&token.member==='current_mood()'||token.kind==='query'&&token.member==='group_min_mood'),
+  }
 }

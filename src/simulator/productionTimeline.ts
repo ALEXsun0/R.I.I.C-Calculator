@@ -1,6 +1,8 @@
 import { readMowerProductSwitchSettings, MOWER_MANUFACTURING_FORMULAS, manufacturingProductId, planMowerProductSwitchDrones } from './mowerProductSwitching'
 import { hasOperatorSkill, runOrderSkillRank } from '../domain/operatorContext'
 import { resolveDroneCapacity } from '../domain/droneCapacity'
+import { MOWER_INVENTORY_ITEMS } from '../domain/simulationInventory'
+import { parseProduct, serializeProduct } from '../domain/mowerProducts'
 import type {AppConfig} from '../domain/types'
 import {OPERATOR_MAP} from '../domain/operators'
 import {evaluateManufacturingCapacity,type OperatorEfficiencyResult} from '../engine/operatorRules'
@@ -71,6 +73,15 @@ export function createProductionTimeline(schedule:CompiledSchedule,state:Runtime
  const ledger=createLedger(initial),materialsConsumed:ResourceAmounts={}
  let drones=createDroneState(initial.drone??0,droneCapacity),serial=0,valid=true,nextCollection=interval||Infinity
  const events:ProductionEvent[]=[],manufactures=new Map<string,ManufactureRoom>(),trades=new Map<string,TradeRoom>()
+ // Capture the original main plan once; a speculative backup must not change its own predicate.
+ const baseProducts=Object.fromEntries(Object.values(schedule.sourceWorkspace.mainPlan.facilities).map(room=>{
+  const raw=schedule.sourceWorkspace.compatibility.facilityMetadata?.[room.roomId]?.rawProduct
+  return [room.roomId,typeof raw==='string'&&parseProduct(raw)===room.product?raw:serializeProduct(room.type,room.product)??null]
+ }))
+ Object.defineProperties(state,{
+  mowerInventoryCounts:{configurable:true,enumerable:true,get:()=>Object.fromEntries(MOWER_INVENTORY_ITEMS.map(item=>[item.name,ledger.balances[item.resource]??0]))},
+  mowerFacilityProducts:{configurable:true,enumerable:true,get:()=>({...baseProducts,...actualProducts()})},
+ })
  let recycle: ReturnType<typeof createRecycleTimeline> | undefined
  const capacityByEvaluation=new WeakMap<ProductionFrame['evaluations'],Map<string,{moodBand:string;bonus:number}>>()
  let opening:ResourceAmounts|undefined=warmupHours===0?{...ledger.balances}:undefined,openingIn:ResourceAmounts={},openingOut:ResourceAmounts={}
@@ -106,7 +117,7 @@ export function createProductionTimeline(schedule:CompiledSchedule,state:Runtime
  }
  const collect=(roomId?:string,includeTrade=true,includeManufacture=true,orderLimit=Infinity)=>{
   for(const m of manufactures.values())if(includeManufacture&&(roomId===undefined||roomId===m.roomId)&&m.state.pendingItems){const n=m.state.pendingItems*(m.state.formula.product==='exp'?1000:1);transact({[m.state.formula.product]:n},`collect-manufacture:${m.roomId}`);m.collectedItems+=m.state.pendingItems;m.state=collectManufacturing(m.state).state}
-  for(const t of trades.values())if(includeTrade&&(roomId===undefined||roomId===t.roomId)){let count=0;while(t.pending.length&&count++<orderLimit){const o=t.pending[0]!,delta={gold:unlimitedMaterials?0:-o.goldCost,fragment:unlimitedMaterials?0:-o.fragmentCost,lmd:o.lmdReward,orundum:o.orundumReward};if(!transact(delta,`collect-order:${o.id}`))break;materialsConsumed.gold=(materialsConsumed.gold??0)+o.goldCost;materialsConsumed.fragment=(materialsConsumed.fragment??0)+o.fragmentCost;t.pending.shift();t.collectedOrders++;record('order-collected',{roomId:t.roomId,orderId:o.id})}}
+  for(const t of trades.values())if(includeTrade&&(roomId===undefined||roomId===t.roomId)){let count=0;while(t.pending.length&&count++<orderLimit){const o=t.pending[0]!,delta={gold:unlimitedMaterials?0:-o.goldCost,fragment:unlimitedMaterials?0:-o.fragmentCost,lmd:o.lmdReward,orundum:o.orundumReward};if(!transact(delta,`collect-order:${o.id}`))break;materialsConsumed.gold=(materialsConsumed.gold??0)+o.goldCost;materialsConsumed.fragment=(materialsConsumed.fragment??0)+o.fragmentCost;t.pending.shift();t.collectedOrders++;record('order-collected',{roomId:t.roomId,orderId:o.id,order:o})}}
  }
  const rng=(t:TradeRoom)=>{t.rng=(Math.imul(1664525,t.rng)+1013904223)>>>0;return t.rng/4294967296}
  const synchronize=(frame:ProductionFrame)=>{

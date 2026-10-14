@@ -140,7 +140,7 @@ function updateField<K extends keyof SimulationSettings>(key: K, val: Simulation
         <span class="dot">·</span>
         <span>跑单方式: <strong>理想收益（换人参与排班）</strong></span>
         <span class="dot">·</span>
-        <span>产出口径: <strong>直观产出（忽略库存阻塞）</strong></span>
+        <span>产出口径: <strong>在“计算产出”中设置初始库存；启用后按库存结算</strong></span>
       </div>
     </section>
 

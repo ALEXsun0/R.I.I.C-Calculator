@@ -126,7 +126,7 @@ export function getMowerSourceRuntime(s:RuntimeState):MowerSourceRuntime {
 function nextMowerDecisionMicros(s:RuntimeState,rates:RuntimeRates):number {
  const {data,queue}=getMowerSourceRuntime(s),queued=nextMowerRunRecoveryMicros(queue,data.nowMicros,data.alpha,s.config.mowerTaskScheduling)
  const moraleHours=nextRosterEventHours(s,rates,false)
- const conditionWake=s.mowerShiftModel?.nextConditionWakeMicros?.(data)??Infinity
+ const conditionWake=Math.min(s.mowerShiftModel?.nextConditionWakeMicros?.(data)??Infinity,s.mowerBackupObservationWakeMicros?.()??Infinity)
  return Math.min(queued,conditionWake,Number.isFinite(moraleHours)?data.nowMicros+Math.max(1,toMowerMicros(moraleHours)):Infinity)
 }
 function physicalRoom(s:RuntimeState,room:string,length:number):string[] {
@@ -493,8 +493,10 @@ export function settleMowerSource(s:RuntimeState,rates:RuntimeRates,onPhase?:(ph
   return {changed,generated}
  }
 
- if(!source.execution&&!source.phaseExecution&&!source.runReturn&&source.conditionWakeMicros!==undefined&&source.conditionWakeMicros<=source.data.nowMicros){
+ const observedWake=!source.execution&&!source.phaseExecution&&source.runReturn?s.mowerBackupObservationWakeMicros?.():undefined
+ if(!source.execution&&!source.phaseExecution&&(!source.runReturn||observedWake!==undefined&&observedWake<=source.data.nowMicros)&&source.conditionWakeMicros!==undefined&&source.conditionWakeMicros<=source.data.nowMicros){
   delete source.conditionWakeMicros
+  if(observedWake!==undefined)delete source.runReturn
   backup('END')
  }
 
@@ -849,6 +851,10 @@ export function nextMowerSourceActionHours(s:RuntimeState,rates?:RuntimeRates):n
   if(!source.planningWake||source.planningWake.timeMicros>source.data.nowMicros+1)source.planningWake=nextMowerMoodPlanningWake(s,source.data,rates)
  }
  if(running===undefined)source.conditionWakeMicros??=s.mowerShiftModel?.nextIdleConditionWakeMicros?.(source.data)
- const next=running??Math.min(source.queue.tasks[0]?.timeMicros??Infinity,source.planningWake?.timeMicros??Infinity,source.conditionWakeMicros??Infinity)
+ // New ledger or product observations may wake an idle/sleeping outer run, never an in-flight room operation.
+ const observationWake=!source.execution&&!source.phaseExecution?s.mowerBackupObservationWakeMicros?.():undefined
+ if(observationWake!==undefined)source.conditionWakeMicros=Math.min(source.conditionWakeMicros??Infinity,observationWake)
+ const dispatch=running??Math.min(source.queue.tasks[0]?.timeMicros??Infinity,source.planningWake?.timeMicros??Infinity,source.conditionWakeMicros??Infinity)
+ const next=Math.min(dispatch,observationWake??Infinity)
  return Math.max(0,(next-source.data.nowMicros)/3_600_000_000)
 }

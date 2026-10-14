@@ -15,6 +15,18 @@ const settings: SimulationSettings = {
   rescueThreshold: .75,
 }
 
+it('points output accounting to the calculation inventory setting', async () => {
+  const wrapper = mount(SettingsView, {
+    props: { settings },
+    global: { stubs: { OperatorInventoryPanel: true } },
+  })
+  expect(wrapper.text()).toContain('在“计算产出”中设置初始库存；启用后按库存结算')
+  expect(wrapper.text()).not.toContain('忽略库存阻塞')
+  await wrapper.setProps({ settings: { ...settings, initialInventory: { gold: 0 } } })
+  expect(wrapper.text()).toContain('启用后按库存结算')
+  wrapper.unmount()
+})
+
 it('shows Mower thresholds and keeps Jaye only in calculation options', async () => {
   const wrapper = mount(SettingsView, {
     props: { settings },

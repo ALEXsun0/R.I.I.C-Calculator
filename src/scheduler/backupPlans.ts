@@ -23,7 +23,7 @@ import { compileBackupExpression } from './backupExpression'
 import {getMowerSourceRuntime,makeMowerSchedulingData} from './mowerSourceRuntime'
 import {projectMowerArrangements} from './mowerObservations'
 import type {MowerSchedulingData} from './mowerSchedulingData'
-import {MOWER_TASK_TYPES as T} from './mowerTaskQueue'
+import {MOWER_TASK_TYPES as T,toMowerMicros} from './mowerTaskQueue'
 import {alphaCorrectGroupDorms,alphaRebalanceDorms,alphaPosition} from './mowerAlphaDorm'
 import {mergeMowerPlanOverlay,mergeMowerShiftTransition,coalesceMowerBackupTransition,stripMowerCurrent,type MowerShiftModel} from './mowerShiftCycle'
 export { actualRoom } from './backupExpression'
@@ -47,6 +47,8 @@ interface BackupPlan {
   usesCurrentMood:boolean
   usesMajorMaintenance:boolean
   usesMasteryPlan:boolean
+  usesInventory:boolean
+  usesFacilityProduct:boolean
   name: string; timing: BackupTiming; exitTiming: BackupTiming; condition: Expression
   slots: { room: MowerRoomId; index: number; agent: string; group: string | null; replacements: string[]; groupBindings?: MowerGroupBinding[] }[]
   products: Partial<Record<MowerRoomId, {product: MowerProduct; rawProduct: unknown}>>
@@ -63,9 +65,11 @@ function parsePlans(workspace: RosterWorkspace, participants: Set<string>, diagn
       const usesCurrentMood = compiledCondition.usesCurrentMood
       const usesMajorMaintenance = compiledCondition.usesMajorMaintenance
       const usesMasteryPlan = compiledCondition.usesMasteryPlan
+      const usesInventory = compiledCondition.usesInventory
+      const usesFacilityProduct = compiledCondition.usesFacilityProduct
       if (compiledCondition.skipped) {
         diagnostics.push({ code: 'BACKUP_EXTERNAL_CONDITION_SKIPPED', message: `副表 ${name}（#${index + 1}）：跳过依赖 ${compiledCondition.skipped} 的整张副表；未执行其岗位、策略与任务` })
-        return { name, timing: 'AFTER_PLANNING' as const, exitTiming: 'AFTER_PLANNING' as const, condition, usesCurrentMood, usesMajorMaintenance, usesMasteryPlan, rooms: {}, slots: [], products: {}, task: {},conf:{} }
+        return { name, timing: 'AFTER_PLANNING' as const, exitTiming: 'AFTER_PLANNING' as const, condition, usesCurrentMood, usesMajorMaintenance, usesMasteryPlan, usesInventory, usesFacilityProduct, rooms: {}, slots: [], products: {}, task: {},conf:{} }
       }
       const timing = typeof raw.trigger_timing === 'string' ? raw.trigger_timing.toUpperCase() : ''
       const slots: BackupPlan['slots'] = [], task: BackupPlan['task'] = {}, products: BackupPlan['products'] = {}, rooms: BackupPlan['rooms'] = {}
@@ -102,7 +106,7 @@ function parsePlans(workspace: RosterWorkspace, participants: Set<string>, diagn
       }
       const entry = timing in BACKUP_TIMINGS ? timing as BackupTiming : 'AFTER_PLANNING'
       const exit = typeof raw.exit_trigger_timing === 'string' && raw.exit_trigger_timing ? raw.exit_trigger_timing.toUpperCase() : undefined
-      return { name, timing: entry, exitTiming: exit ? exit in BACKUP_TIMINGS ? exit as BackupTiming : 'AFTER_PLANNING' : entry, condition, usesCurrentMood, usesMajorMaintenance, usesMasteryPlan, rooms, slots, products, task,conf:record(raw.conf)?raw.conf:{} }
+      return { name, timing: entry, exitTiming: exit ? exit in BACKUP_TIMINGS ? exit as BackupTiming : 'AFTER_PLANNING' : entry, condition, usesCurrentMood, usesMajorMaintenance, usesMasteryPlan, usesInventory, usesFacilityProduct, rooms, slots, products, task,conf:record(raw.conf)?raw.conf:{} }
     } catch (error) { return fail(`${name}：${error instanceof Error ? error.message : String(error)}`) }
   })
 }
@@ -118,6 +122,18 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
   const participants = new Set<string>(), plans = parsePlans(base.sourceWorkspace, participants, diagnostics)
   if(plans.some(plan=>plan.usesMajorMaintenance)&&base.assumptions.majorMaintenanceStartHours===undefined)diagnostics.push({code:'MOWER_MAINTENANCE_ASSUMPTION',message:'未提供维护时间，本次模拟没有停服窗口'})
   if(plans.some(plan=>plan.usesMasteryPlan)&&state.config.mowerMasteryPlanPresent!==undefined)diagnostics.push({code:'MOWER_MASTERY_PLAN_ASSUMPTION',message:`本次模拟固定为${state.config.mowerMasteryPlanPresent?'有':'无'}未完成的训练计划（包含失败但未清除的计划），不模拟训练进度或计划完成时刻`})
+  const observedPlans = plans.filter(plan=>plan.usesInventory||plan.usesFacilityProduct)
+  let observedConditions: string | undefined
+  const observationSignature = () => JSON.stringify(observedPlans.map(plan=>Boolean(plan.condition(state))))
+  const observationBlocked = () => {
+    const source=state.mowerSource
+    return source?.queue.tasks.some(task=>task.backupShiftActive||task.type===T.FIAMMETTA&&task.timeMicros<=toMowerMicros(state.time))||source?.activeTask?.type===T.FIAMMETTA
+  }
+  if(observedPlans.length)Object.defineProperty(state,'mowerBackupObservationWakeMicros',{
+    configurable:true,enumerable:false,
+    value:()=>observationBlocked()||observationSignature()===observedConditions?undefined:toMowerMicros(state.time),
+  })
+  else delete state.mowerBackupObservationWakeMicros
   const active = plans.map(() => false)
   for (const id of participants) {
     state.morale[id] ??= base.assumptions.operatorMorale[id] ?? base.assumptions.initialMorale
@@ -252,6 +268,8 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
     if (new Set(ids).size !== ids.length) fail('任务造成重复占岗')
   }
   function evaluate(timing: BackupTiming): boolean {
+    // Only real phase evaluations consume the observation edge; alpha previews are speculative.
+    if(observedPlans.length){if(observationBlocked())return false;observedConditions=observationSignature()}
     if(state.config.mowerAlpha)return evaluateAlpha(timing)
     if(state.mowerSource?.queue.tasks.some(task=>task.backupShiftActive))return false
     const next = plans.map((p, i) => {
