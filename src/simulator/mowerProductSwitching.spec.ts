@@ -25,6 +25,27 @@ function fixture(settings: Record<string, unknown> = {}, product = 'gold', initi
 }
 
 describe('alpha product switching on the production clock', () => {
+  it('shares stock between switching and later acceleration in the same room using the actual recipe', () => {
+    const f = fixture({ grandet_mode: false, waiting_seconds: 0 }, 'gold', 100, false, { droneTarget: 'gold', droneRoomId: 'room_1_1' })
+    f.frame.desiredProducts = { [f.roomId]: 'exp3' }; f.settle()
+    expect(f.timeline.actualProducts()[f.roomId]).toBe('exp3')
+    expect(f.timeline.report().drones.consumed).toBe(24)
+    expect(f.timeline.report().sample.completed).toMatchObject({ gold: 1, exp: 0 })
+    // Drone work is independent of the room's natural production efficiency.
+    f.frame.evaluations[f.roomId]!.efficiencyPercent = 300
+    f.timeline.nativeSpendManufacturingDrones(f.roomId, 60)
+    f.settle()
+    const report = f.timeline.report()
+    expect(report.sample.completed).toMatchObject({ gold: 1, exp: 1000 })
+    expect(report.drones).toMatchObject({ consumed: 84, stock: 16 })
+    expect(report.ledger.outflows.drone).toBe(84)
+    expect(report.ledger.balances.drone).toBe(16)
+    expect(report.events.filter(event => event.roomId && ['product-switch-drone', 'native-manufacture-drone'].includes(event.type))).toMatchObject([
+      { type: 'product-switch-drone', roomId: f.roomId, amount: 24 },
+      { type: 'native-manufacture-drone', roomId: f.roomId, amount: 60 },
+    ])
+  })
+
   it('finishes one existing manufacturing unit before switching and preserves product accounting', () => {
     const f = fixture({ grandet_mode: true, use_drones_when_leaving_orirock: false, waiting_seconds: 0 }, 'fragment')
     f.advance(.5)

@@ -152,7 +152,10 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
     const compiled=compileRosterSchedule(workspace,{...base.assumptions,dormOrder:''});compiled.assumptions.defaultsApplied=[...base.assumptions.defaultsApplied]
     if(compiled.diagnostics.some(d=>d.severity==='error'||d.code==='UNKNOWN_OPERATOR'))fail(compiled.diagnostics.map(d=>d.message).join('；'))
     const config=compiledScheduleToRuntimeConfig(compiled);config.mowerAlpha=true;config.mowerDormOrder=roomOrder;config.availableIdleOperators=state.config.availableIdleOperators
-    if(state.config.mowerTaskScheduling?.adjustForRunOrders!==undefined)config.mowerTaskScheduling={...config.mowerTaskScheduling,adjustForRunOrders:state.config.mowerTaskScheduling.adjustForRunOrders}
+    for(const key of ['adjustForRunOrders','maintenance','maintenanceEndMicros','firstDailyResetMicros'] as const){
+      const value=state.config.mowerTaskScheduling?.[key]
+      if(value!==undefined)config.mowerTaskScheduling={...config.mowerTaskScheduling,[key]:value}
+    }
     if(options.virtualRunners)config.runOrderPolicies=[]
     if(config.fiammetta&&options.canUseFiammetta&&!options.canUseFiammetta(config.fiammetta.operatorId))config.fiammetta=undefined
     const primaries=config.positions.map(p=>p.primary);if(new Set(primaries).size!==primaries.length)fail('副表生效组合重复主班')
@@ -162,6 +165,7 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
   }
   const alphaModel:MowerShiftModel={
     count:plans.length,
+    explicitSlots:(original,conditions)=>new Set(plans.flatMap((plan,i)=>!original[i]&&conditions[i]?Object.entries(plan.task).flatMap(([room,row])=>row.flatMap((name,index)=>name!=='Current'?[alphaPosition(room,index)]:[])):[])),
     // This preserves the source's one-second observation capability; it does
     // not claim exact roots for arbitrary imported comparison expressions.
     nextConditionWakeMicros:data=>plans.some(plan=>plan.usesCurrentMood||plan.usesMajorMaintenance&&base.assumptions.majorMaintenanceStartHours!==undefined)?data.nowMicros+1_000_000:undefined,
@@ -221,7 +225,10 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
         const merged=coalesceMowerBackupTransition(current,transition,queue.tasks)
         const generated:MowerTask[]=[]
         if(Object.keys(merged.plan).length){const task=new MowerTask({time:state.time,type:Object.keys(merged.plan).some(room=>room.startsWith('dorm'))?T.RE_ORDER:T.SELF_CORRECTION,plan:merged.plan,metadata:'副表内存收敛'});if(state.mowerBackupContext?.customTimeMicros!==undefined)task.timeMicros=state.mowerBackupContext.customTimeMicros;generated.push(task);queue.tasks.push(task);queue.tasks=queue.tasks.filter(t=>!merged.consumed.includes(t))}
-        if(generated[0])inheritMowerBackupRefreshRules(generated[0],merged.consumed)
+        if(generated[0]){
+          inheritMowerBackupRefreshRules(generated[0],merged.consumed)
+          generated[0].backupExplicitSlots=new Set([...(alphaModel.explicitSlots?.(original,conditions)??[]),...merged.consumed.flatMap(task=>[...task.backupExplicitSlots].filter(slot=>{const [room,index]=slot.split('\0');return merged.plan[room!]?.[Number(index)]===task.plan[room!]?.[Number(index)]}))])
+        }
         alphaModel.activate(conditions,generated[0]);getMowerSourceRuntime(state).data.dorms=current.dorms
         for(const event of state.events.slice(-plans.length))if(event.type==='backup-plan'&&event.time===state.time)event.timing=timing
         const followup=new MowerTask({time:state.time});if(state.mowerBackupContext?.customTimeMicros!==undefined)followup.timeMicros=state.mowerBackupContext.customTimeMicros;generated.push(followup)
@@ -274,7 +281,10 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
     compiled.assumptions.defaultsApplied = [...base.assumptions.defaultsApplied]
     if (compiled.diagnostics.some(d => d.severity === 'error' || d.code === 'UNKNOWN_OPERATOR')) fail(compiled.diagnostics.map(d => d.message).join('；'))
     const config = compiledScheduleToRuntimeConfig(compiled)
-    if(state.config.mowerTaskScheduling?.adjustForRunOrders!==undefined)config.mowerTaskScheduling={...config.mowerTaskScheduling,adjustForRunOrders:state.config.mowerTaskScheduling.adjustForRunOrders}
+    for(const key of ['adjustForRunOrders','maintenance','maintenanceEndMicros','firstDailyResetMicros'] as const){
+      const value=state.config.mowerTaskScheduling?.[key]
+      if(value!==undefined)config.mowerTaskScheduling={...config.mowerTaskScheduling,[key]:value}
+    }
     config.availableIdleOperators = state.config.availableIdleOperators
     // Default alpha init_and_validate(update=True) keeps the original recovery pool.
     // Newly exposed Free slots remain real idle positions, without a group timer.

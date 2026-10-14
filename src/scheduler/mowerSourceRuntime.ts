@@ -450,7 +450,7 @@ export function mowerRunOrderContext(s:RuntimeState):[RunOrderPlanningState,RunO
  const seam:RunOrderPlanningSeam={
   nowMicros:()=>toMowerMicros(s.time),
   currentDormOccupants:room=>getMowerSourceRuntime(s).data.currentRoom(room),
-  scheduling:{enableMastery:s.config.mowerTaskScheduling?.enableMastery,maintenance:s.config.mowerTaskScheduling?.maintenance,adjustForRunOrders:s.config.mowerTaskScheduling?.adjustForRunOrders},
+  scheduling:{...s.config.mowerTaskScheduling,alpha:source.data.alpha},
  }
  return [state,seam]
 }

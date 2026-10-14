@@ -1,4 +1,4 @@
-import {normalizeMowerSharedArrangement} from './mowerSharedGroups'
+import {commitMowerGroupShifts,mowerArrangementGroupTransitions,mowerRestingBindingGroups,normalizeMowerSharedArrangement} from './mowerSharedGroups'
 // Port of generate_plan_by_drom and merge_release_dorm, default Mower alpha.
 // Source: c6bdbb292fe7fcd84c6dfb66154a12a1a9bc5b88 (MIT, Copyright 2021 Nano).
 import {MOWER_TASK_TYPES as T,MowerTask,toMowerMicros,isMowerRunOrderTask,type MowerTaskPlan} from './mowerTaskQueue'
@@ -94,8 +94,13 @@ function generateAlphaDormTasks(batches:MowerDormBatch[],data:MowerSchedulingDat
    }
   }
   if(!Object.keys(plan).length)continue
-  if(batch.restInFull!==null&&!normalizeMowerSharedArrangement(shadow,plan))continue
-  if(batch.restInFull!==null)alphaRebalanceClosingDorms(shadow,plan,planned).forEach(n=>planned.add(n))
+  if(batch.restInFull!==null){
+   const transitions=mowerArrangementGroupTransitions(shadow,plan)
+   if(!normalizeMowerSharedArrangement(shadow,plan,transitions))continue
+   for(const op of Object.values(shadow.operators))if(op.multiGroup&&mowerRestingBindingGroups(shadow,op,transitions).length)planned.delete(op.name)
+   commitMowerGroupShifts(shadow,transitions)
+   alphaRebalanceClosingDorms(shadow,plan,planned).forEach(n=>planned.add(n))
+  }
   const earliest=mowerAfterPendingArrangements(plan,pending)
   if(batch.restInFull){add(plan,T.SHIFT_ON,Math.max(batch.timeMicros-(exhaust?0:toMowerMicros(8/60)),now,earliest));continue}
   if(batch.restInFull===null&&!shadow.freeRoom)continue

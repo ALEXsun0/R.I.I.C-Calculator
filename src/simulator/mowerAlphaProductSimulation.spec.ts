@@ -61,6 +61,24 @@ describe.each(['mower-default', 'mower-alpha'] as const)('backup product overlay
 })
 
 describe('alpha shift-preview product activation', () => {
+  it('keeps the selected station as the drone target after switching gold to experience', () => {
+    const schedule = scheduleForSwitch("op_data.operators['芬'].current_mood() < 23.5", 'gold', 'exp3')
+    const run = (droneTarget: 'gold' | 'none') => simulateSchedule(schedule, {
+      schedulingModel: 'mower-alpha', sampleHours: 24, consumptionOverrides: { char_123_fang: 1 },
+      production: { droneTarget, droneRoomId: 'room_1_1', initialResources: { drone: 235 } },
+    })
+    const natural = run('none'), accelerated = run('gold')
+    expect(natural.success, JSON.stringify(natural.diagnostics)).toBe(true)
+    expect(accelerated.success, JSON.stringify(accelerated.diagnostics)).toBe(true)
+    const production = accelerated.production!
+    const switched = production.events.find(event => event.type === 'product-switched')!
+    expect(switched).toMatchObject({ roomId: 'room_1_1', fromProduct: 'gold', toProduct: 'exp3' })
+    expect(production.events.some(event => event.type === 'native-manufacture-drone' && event.roomId === switched.roomId && event.time > switched.time)).toBe(true)
+    expect(production.sample.completed.exp).toBeGreaterThan(natural.production!.sample.completed.exp)
+    expect(production.drones.initial + production.drones.generated - production.drones.consumed - production.drones.overflow).toBeCloseTo(production.drones.stock, 7)
+    expect(production.ledger.outflows.drone).toBe(production.drones.consumed)
+  })
+
   it('projects a backup product activated by the planned rest state', () => {
     const workspace = createDefaultWorkspace()
     for (const room of Object.values(workspace.mainPlan.facilities)) { room.level = 0; room.slots = [] }

@@ -18,12 +18,12 @@ export function planMowerAlphaMetadata(actual:MowerSchedulingData,queue:MowerTas
  const pending=queue.tasks.filter(t=>[T.SELF_CORRECTION,T.RE_ORDER].includes(t.type)&&!t.productShiftLocked&&Object.keys(t.plan).length).sort((a,b)=>a.timeMicros-b.timeMicros)
  const data=projectMowerArrangements(actual,pending.map(t=>t.plan)),now=data.nowMicros
  let minimum=Infinity
- for(const op of Object.values(data.operators))if(op.isHigh()&&!op.room.startsWith('dorm')&&!op.isResting()&&!(op.group&&data.canStandby(op))&&!data.isStandby(op.name))minimum=Math.min(minimum,Math.max(op.predictExhaust(now),now+toMowerMicros(.5)))
+ for(const op of Object.values(data.operators))if(op.isHigh()&&!op.multiGroup&&(!op.group||data.isGroupShiftAnchor(op))&&!op.room.startsWith('dorm')&&!op.isResting()&&!data.isStandby(op.name))minimum=Math.min(minimum,Math.max(op.predictExhaust(now),now+toMowerMicros(.5)))
  const grouped=new Map<string,MowerDormState[]>(),free:MowerDormState[]=[]
  for(const bed of data.allDorms()){
   const op=data.operators[bed.name]
   if(!op||!data.groupDorms.includes(bed)&&!data.effectiveFreeSlot(bed)||names.has(op.name)||groups.has(op.group)||slots.has(alphaPosition(...bed.position)))continue
-  grouped.set(op.group,[...(grouped.get(op.group)??[]),bed])
+  if(!op.multiGroup&&(!op.group||data.isGroupShiftAnchor(op)))grouped.set(op.group,[...(grouped.get(op.group)??[]),bed])
   if(data.dorms.includes(bed)&&!op.restMoodLimit&&!data.skipIdleDormRelease(op.name))free.push(bed)
  }
  const batches=new Map<number,MowerDormBatch>(),releases=new Map<number,MowerDormBatch>()

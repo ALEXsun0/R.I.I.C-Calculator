@@ -84,7 +84,7 @@ export function alphaFindDormSlot(data:MowerSchedulingData,name:string,used:Set<
  const vip=Object.keys(data.plan).filter(room=>room.startsWith('dorm')).length,indices=orderMowerAlphaDormIndices(data,activeGroups)
  const order=alphaRestingTier(data,name)<=1||data.dormOrder.some(value=>value.endsWith('_low'))?indices:[...indices.slice(vip),...indices.slice(0,vip)]
  const candidates=order.filter(i=>!used.has(i)&&alphaSlotTakable(data,data.dorms[i]!,name,activeGroups))
- const cost=(i:number)=>{const bed=data.dorms[i]!,isolation=data.dormOrder.some(value=>value.endsWith('_low'))?0:mowerDormIsolationCost(data,name,...bed.position,plan);if(!bed.name)return [0,0,0,isolation];const [tier,mood]=alphaRestingKey(data,bed.name);return [1,-tier,-mood,isolation]}
+ const cost=(i:number)=>{const bed=data.dorms[i]!,isolation=mowerDormIsolationCost(data,name,...bed.position,plan);if(!bed.name)return [0,0,0,isolation];const [tier,mood]=alphaRestingKey(data,bed.name);return [1,-tier,isolation,-mood]}
  candidates.sort((a,b)=>{const x=cost(a),y=cost(b);return x[0]!-y[0]!||x[1]!-y[1]!||x[2]!-y[2]!||x[3]!-y[3]!})
  return candidates[0]
 }

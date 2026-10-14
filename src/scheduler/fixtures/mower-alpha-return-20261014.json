@@ -1,0 +1,481 @@
+{
+  "revision": "3de2b2ac6f1aeff6513b63faaeea4b2369cf8856",
+  "methods": {
+    "match_replacements": {
+      "path": "arknights_mower/utils/exhaust_replacement.py",
+      "line": 10,
+      "astSha256": "eddc9c6f2452b4ebb185ffb908d3e09ea5d2b43381eec455dd001588eadec5b4"
+    },
+    "_can_standby": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 1878,
+      "astSha256": "8ff05be7f89bdb899549d798e28301fca63ebaa19b782054fe75d3244b4691ab"
+    },
+    "is_group_shift_anchor": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 1889,
+      "astSha256": "b60301df0a2e4b5af8f5a6b055c8753794c7f695522c5322f6c9e42f7debb3fa"
+    },
+    "group_is_resting": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 1959,
+      "astSha256": "817fae133addb732a7a2abf74d61dcdc730b9f773354e410ba8deabdb1c1811a"
+    },
+    "shift_group_members": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 1030,
+      "astSha256": "6c89e0d725ab402c024bdbc08ca353d9a76de89a035871a612c44c8b0b28323d"
+    },
+    "select_group_binding": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 1052,
+      "astSha256": "86c11c7b20e3c8a4c590a5145583c9f7e95d6514ea9505baaa01bfa256539151"
+    },
+    "arrangement_group_transitions": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 1068,
+      "astSha256": "a63c8460a1e4df23e170e105aa63fe7451e01851dd5cd474987565c3cbb0d8a5"
+    },
+    "resting_binding_groups": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 1085,
+      "astSha256": "e8aa9a38d6544d186e2cc38fa33d839f8da5a12104bdedc2089f64803ea9d93c"
+    },
+    "shared_replacements": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 1095,
+      "astSha256": "4bb29bc16df06b4880862f747c4d44897d07a8c7b88f24cf78d6f0a1a705a3c7"
+    },
+    "commit_group_shifts": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 1107,
+      "astSha256": "40d0a26d0067ab66559c8fe8d1a3951ae1cc16a92cb3b2e894db3e1499c91855"
+    },
+    "working_replacement_blockers": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 1130,
+      "astSha256": "f6303dffb7ad994314882d7ac8b23fc6977da224c471235d01e7496ae6a60004"
+    },
+    "normalize_shared_arrangement": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 1168,
+      "astSha256": "0b6aaee12ffc509b2d3ff03fdb492716fa26de6896a14c6feaf26bb9754541de"
+    },
+    "is_same_group_primary_replacement": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 1969,
+      "astSha256": "0dd8121e80cd52193fcc15bec8c99658474a55948040213bc690dca7cc401fd6"
+    },
+    "generate_plan_by_drom": {
+      "path": "arknights_mower/utils/scheduler_task.py",
+      "line": 1586,
+      "astSha256": "c71326f2c22538f664f588108d1f350832c9fb06049b7a262458bc93b7eacfb6"
+    },
+    "plan_metadata": {
+      "path": "arknights_mower/utils/scheduler_task.py",
+      "line": 1796,
+      "astSha256": "2e2cb37ee522525e9e4f77a3fb84882b548ffd49d4733ff986971ad283413c39"
+    }
+  },
+  "sourceSha256": {
+    "arknights_mower/utils/operators.py": "607b3433afc187a44c531e0a614cea69f6df9668f578a37202930d64b3c250ce",
+    "arknights_mower/utils/scheduler_task.py": "1e6a233e12f4398e93ae7064d93cbddf94159e12dd2b6bd31ad985caf9a3c872",
+    "arknights_mower/utils/exhaust_replacement.py": "64d21e0a4e5ebfe0380d695d855bf83acdefb79a0d1b6c490984876397efd29d"
+  },
+  "scope": "Unchanged native metadata and return-generation AST with native group matching. Synthetic known occupancy, empty projections, no closing-dorm migration, release, reservations or busy operators.",
+  "metadataCases": [
+    {
+      "name": "fixed dormitory resident does not set the group return time",
+      "state": {
+        "plan": {
+          "work": [
+            "A"
+          ],
+          "dormitory_1": [
+            "Free",
+            "X"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "room": "work",
+            "index": 0,
+            "group": "G",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "X",
+            "group": "G",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1,
+            "room": "dormitory_1",
+            "index": 1
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              0
+            ],
+            "name": "A",
+            "hours": 2
+          },
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "X",
+            "hours": 0,
+            "fixed": true
+          }
+        ],
+        "groupShiftState": {
+          "G": true
+        }
+      },
+      "expected": [
+        {
+          "type": "SHIFT_ON",
+          "timeMicros": 6720000000,
+          "plan": {
+            "work": [
+              "A"
+            ],
+            "dormitory_1": [
+              "Current",
+              "X"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "workaholic resident does not set the group return time",
+      "state": {
+        "plan": {
+          "work": [
+            "A",
+            "X"
+          ],
+          "dormitory_1": [
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "room": "work",
+            "index": 0,
+            "group": "G",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "X",
+            "group": "G",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1,
+            "room": "work",
+            "index": 1,
+            "workaholic": true
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              0
+            ],
+            "name": "A",
+            "hours": 2
+          },
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "X",
+            "hours": 0
+          }
+        ],
+        "groupShiftState": {
+          "G": true
+        }
+      },
+      "expected": [
+        {
+          "type": "SHIFT_ON",
+          "timeMicros": 6720000000,
+          "plan": {
+            "work": [
+              "A",
+              "X"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "standby resident does not set the group return time",
+      "state": {
+        "plan": {
+          "work": [
+            "A",
+            "X"
+          ],
+          "dormitory_1": [
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "room": "work",
+            "index": 0,
+            "group": "G",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "X",
+            "group": "G",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1,
+            "room": "work",
+            "index": 1,
+            "restingPriority": "standby"
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              0
+            ],
+            "name": "A",
+            "hours": 2
+          },
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "X",
+            "hours": 0
+          }
+        ],
+        "groupShiftState": {
+          "G": true
+        }
+      },
+      "expected": [
+        {
+          "type": "SHIFT_ON",
+          "timeMicros": 6720000000,
+          "plan": {
+            "work": [
+              "A",
+              "X"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "shared worker does not shorten another group recovery",
+      "state": {
+        "plan": {
+          "work": [
+            "A",
+            "X"
+          ],
+          "dormitory_1": [
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "room": "work",
+            "index": 0,
+            "group": "G",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "X",
+            "room": "work",
+            "index": 1,
+            "group": "G",
+            "currentRoom": "work",
+            "currentIndex": 1,
+            "predictHours": 0,
+            "groupBindings": [
+              {
+                "group": "G",
+                "replacement": [
+                  "C"
+                ]
+              },
+              {
+                "group": "H",
+                "replacement": [
+                  "C"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "C",
+            "operatorType": "low"
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              0
+            ],
+            "name": "A",
+            "hours": 2
+          }
+        ],
+        "groupShiftState": {
+          "G": true,
+          "H": false
+        }
+      },
+      "expected": [
+        {
+          "type": "SHIFT_ON",
+          "timeMicros": 6720000000,
+          "plan": {
+            "work": [
+              "A",
+              "Current"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "sharedReturnCase": {
+    "name": "shared primary returns with the last dependent group",
+    "state": {
+      "plan": {
+        "work": [
+          "A",
+          "B",
+          "S"
+        ],
+        "dormitory_1": [
+          "Free",
+          "Free",
+          "Free"
+        ]
+      },
+      "groupShiftState": {
+        "G": true,
+        "H": true
+      },
+      "operators": [
+        {
+          "name": "A",
+          "room": "work",
+          "index": 0,
+          "group": "G",
+          "currentRoom": "dormitory_1",
+          "currentIndex": 0
+        },
+        {
+          "name": "B",
+          "room": "work",
+          "index": 1,
+          "group": "H",
+          "currentRoom": "dormitory_1",
+          "currentIndex": 1
+        },
+        {
+          "name": "S",
+          "room": "work",
+          "index": 2,
+          "group": "G",
+          "currentRoom": "dormitory_1",
+          "currentIndex": 2,
+          "replacement": [
+            "C"
+          ],
+          "groupBindings": [
+            {
+              "group": "G",
+              "replacement": [
+                "C"
+              ]
+            },
+            {
+              "group": "H",
+              "replacement": [
+                "C"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "C",
+          "operatorType": "low",
+          "currentRoom": "work",
+          "currentIndex": 2
+        }
+      ],
+      "beds": [
+        {
+          "position": [
+            "dormitory_1",
+            0
+          ],
+          "name": "A",
+          "hours": 1
+        },
+        {
+          "position": [
+            "dormitory_1",
+            1
+          ],
+          "name": "B",
+          "hours": 2
+        }
+      ]
+    },
+    "expected": [
+      {
+        "type": "SHIFT_ON",
+        "timeMicros": 3120000000,
+        "plan": {
+          "work": [
+            "A",
+            "Current",
+            "Current"
+          ]
+        }
+      },
+      {
+        "type": "SHIFT_ON",
+        "timeMicros": 6720000000,
+        "plan": {
+          "work": [
+            "Current",
+            "B",
+            "S"
+          ]
+        }
+      }
+    ]
+  }
+}

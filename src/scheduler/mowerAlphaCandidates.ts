@@ -1,5 +1,6 @@
-import {planMowerDormIsolation} from './mowerDormIsolation'
+import {mowerDormIsolationCost,planMowerDormIsolation} from './mowerDormIsolation'
 // Shared dorm candidates and observed-card estimates, Mower alpha b2d9ac8 (MIT).
+import {orderMowerAlphaDormIndices} from './mowerDormOrder'
 import {hasRestingMood,restingMood} from './mowerOperatorState'
 import {alphaRestingTier,compareAlphaKeys,alphaPosition,alphaSlotTakable,alphaPrioritizeRecovery,alphaRestoreDisplaced,alphaDormResidents} from './mowerAlphaDorm'
 import type {MowerSchedulingData} from './mowerSchedulingData'
@@ -46,7 +47,9 @@ function alphaFill(data:MowerSchedulingData,pending:MowerTask[],emptyOnly:boolea
  if(emptyOnly&&!vacancies.size)return {plan,residents,vacancies}
  const c=mowerAlphaDormCandidates(data,reserved.names),recovering=[...c.recovering],full=c.filling.filter(n=>!c.recovering.includes(n)&&!c.unknown.includes(n)),unknown=!!c.unknown.length,estimated=!!c.estimatedRecovering.length,search=estimated||unknown&&!data.idleDormSearchExhausted
  if(!recovering.length&&!c.filling.length)return {plan,residents,vacancies}
- for(const bed of data.dorms){
+ const beds=orderMowerAlphaDormIndices(data).map(index=>data.dorms[index]!)
+ for(const bed of beds){
+  if(plan[bed.position[0]]?.[bed.position[1]]!==undefined&&plan[bed.position[0]]![bed.position[1]]!=='Current')continue
   const position=alphaPosition(...bed.position);if(reserved.slots.has(position)||!data.effectiveFreeSlot(bed))continue
   let occupant=data.operators[bed.name]
   if(vacancies.size){if(!vacancies.has(position))continue;occupant=undefined}
@@ -59,17 +62,29 @@ function alphaFill(data:MowerSchedulingData,pending:MowerTask[],emptyOnly:boolea
   let incoming=recovering.shift()
   if(!incoming&&unknown){incoming='Free';if(occupant)residents.push(occupant.name)}
   if(!incoming){incoming=full.shift();if(!incoming)break;if(data.operators[incoming])data.operators[incoming]!.dormMoodFallback=bed.position[0];else incoming='Free'}
-  ;(plan[bed.position[0]]??=Array(data.plan[bed.position[0]]!.length).fill('Current'))[bed.position[1]]=incoming
+  let selected=bed
+  if(vacancies.size&&data.dormIsolation.length&&incoming!=='Free'){
+   const available=data.dorms.filter(candidate=>vacancies.has(alphaPosition(...candidate.position))&&(plan[candidate.position[0]]?.[candidate.position[1]]??'Current')==='Current')
+   selected=available.reduce((best,candidate)=>mowerDormIsolationCost(data,incoming!,...candidate.position,plan)<mowerDormIsolationCost(data,incoming!,...best.position,plan)?candidate:best,available[0]!)
+   if(selected!==bed)beds.push(bed)
+   if(!c.recovering.includes(incoming)&&data.operators[incoming])data.operators[incoming]!.dormMoodFallback=selected.position[0]
+  }
+  ;(plan[selected.position[0]]??=Array(data.plan[selected.position[0]]!.length).fill('Current'))[selected.position[1]]=incoming
  }
  if(Object.keys(plan).length)alphaRestoreDisplaced(data,alphaDormResidents(data),plan,pending)
  return {plan,residents,vacancies}
 }
-export function mowerAlphaFillPlan(data:MowerSchedulingData,pending:MowerTask[]):MowerTaskPlan{const reserved=mowerDormTaskReservations(data,pending).slots;return planMowerDormIsolation(data,alphaPrioritizeRecovery(data,alphaFill(data,pending,true).plan,{},reserved),reserved)}
+export function mowerAlphaFillPlan(data:MowerSchedulingData,pending:MowerTask[]):MowerTaskPlan{const reserved=mowerDormTaskReservations(data,pending);return planMowerDormIsolation(data,alphaPrioritizeRecovery(data,alphaFill(data,pending,true).plan,{},reserved.slots),reserved.slots,reserved.names)}
 export function planMowerAlphaDormFill(data:MowerSchedulingData,queue:MowerTaskQueue,emptyOnly=false,options:MowerTaskSchedulingOptions={}):MowerTask|undefined {
  const result=alphaFill(data,queue.tasks,emptyOnly||!data.freeRoom);if(!Object.keys(result.plan).length)return
  const task=new MowerTask({type:result.vacancies.size?T.FILL_DORM:T.NOT_SPECIFIC,plan:result.plan});task.timeMicros=data.nowMicros;task.dormFillPlan=structuredClone(result.plan);task.dormMoodResidents=result.residents
  if(result.vacancies.size)simplifyMowerAlphaDormFill(task,queue.tasks,data.nowMicros,options)
  if(!task.simpleDormFill)task.plan=alphaPrioritizeRecovery(data,task.plan,{},mowerDormTaskReservations(data,queue.tasks).slots)
- task.plan=planMowerDormIsolation(data,task.plan,mowerDormTaskReservations(data,queue.tasks).slots)
+ const reserved=mowerDormTaskReservations(data,queue.tasks),isolated=planMowerDormIsolation(data,task.plan,reserved.slots,reserved.names)
+ if(JSON.stringify(isolated)!==JSON.stringify(task.plan)){
+  const filling=new Set(Object.values(task.dormFillPlan).flat().filter(name=>!['Current','Free',''].includes(name)))
+  task.dormFillPlan=Object.fromEntries(Object.entries(isolated).filter(([room])=>room.startsWith('dorm')).map(([room,row])=>[room,row.map(name=>filling.has(name)||name==='Free'?name:'Current')]))
+ }
+ task.plan=isolated
  queue.tasks.push(task);return task
 }

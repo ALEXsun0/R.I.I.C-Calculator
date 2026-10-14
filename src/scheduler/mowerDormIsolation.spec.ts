@@ -1,4 +1,4 @@
-import nativeOracle from './fixtures/mower-dorm-isolation-20261013.json'
+import nativeOracle from './fixtures/mower-alpha-isolation-20261014.json'
 import {projectScheduleState} from '../simulator/scheduleSimulation'
 import {buildRiicGlobalContext} from '../engine/globalContext'
 import {evaluateOperators} from '../engine/operatorRules'
@@ -75,16 +75,16 @@ describe('Mower alpha dormitory isolation', () => {
     expect(mowerDormIsolationCost(data, 'B', 'dormitory_1', 2, {room_1_1: ['A']})).toBe(0)
   })
 
-  it('preserves recovery priority and admits same-group roommates when no equal option exists', () => {
+  it('allows same-group roommates when all alternatives are reserved, and keeps isolation under explicit order', () => {
     const data = fixture()
     Object.assign(data.operators.A!, {currentRoom: 'dormitory_1', currentIndex: 0})
     data.dorms[0]!.name = 'A'
     expect(alphaFindDormSlot(data, 'B', new Set([3, 4, 5]))).toBe(1)
     data.dormOrder = ['dormitory_1_low', 'dormitory_2']
-    expect(alphaFindDormSlot(data, 'B', new Set())).toBe(1)
+    expect(alphaFindDormSlot(data, 'B', new Set())).toBe(3)
   })
 
-  it('swaps equal-tier new arrivals while preserving established residents and first recovery beds', () => {
+  it('can exchange ordinary residents during a new admission while retaining established first recovery beds', () => {
     const data = fixture()
     Object.assign(data.operators.A!, {currentRoom: 'dormitory_1', currentIndex: 0})
     data.dorms[0]!.name = 'A'
@@ -97,10 +97,10 @@ describe('Mower alpha dormitory isolation', () => {
     expect(planMowerDormIsolation(data, {dormitory_1: ['B', 'Current', 'Current'], dormitory_2: ['Current', 'C', 'Current']})).toEqual({dormitory_1: ['B', 'Current', 'Current'], dormitory_2: ['Current', 'C', 'Current']})
     Object.assign(data.operators.B!, {currentRoom: 'dormitory_1', currentIndex: 1})
     data.dorms[1]!.name = 'B'
-    expect(planMowerDormIsolation(data, plan)).toEqual(plan)
+    expect(planMowerDormIsolation(data, plan)).toEqual(isolated)
   })
 
-  it('preserves reserved slots and does not exchange unequal tiers or explicit-order recovery keys', () => {
+  it('preserves reserved slots while allowing isolation across tiers and explicit-order recovery keys', () => {
     const data = fixture()
     Object.assign(data.operators.A!, {currentRoom: 'dormitory_1', currentIndex: 0})
     data.dorms[0]!.name = 'A'
@@ -111,11 +111,11 @@ describe('Mower alpha dormitory isolation', () => {
     data.reservedProductBeds.clear()
     data.operators.B!.operatorType = 'high'
     data.operators.B!.restingPriority = 'high'
-    expect(planMowerDormIsolation(data, plan)).toEqual(plan)
+    expect(planMowerDormIsolation(data, plan).dormitory_2?.[1]).toBe('B')
     data.operators.B!.operatorType = 'low'
     data.dormOrder = ['dormitory_1_low', 'dormitory_2_low']
     data.operators.C!.mood = 11
-    expect(planMowerDormIsolation(data, plan)).toEqual(plan)
+    expect(planMowerDormIsolation(data, plan).dormitory_2?.[1]).toBe('B')
     data.operators.C!.mood = 10
     expect(planMowerDormIsolation(data, plan).dormitory_2?.[1]).toBe('B')
   })
@@ -177,7 +177,7 @@ describe('Mower alpha dormitory isolation', () => {
     expect(evaluateDormitoryRecovery(after, 0, morale, 0).rates.has(id('逻各斯'))).toBe(false)
   })
 
-  it.each(nativeOracle.cases)('matches unchanged Python isolation: $name', test => {
+  it.each(nativeOracle.cases)('matches latest pinned Python isolation: $name', test => {
     const data = fixture()
     Object.assign(data.operators.A!, {currentRoom: 'dormitory_1', currentIndex: 0})
     data.dorms[0]!.name = 'A'

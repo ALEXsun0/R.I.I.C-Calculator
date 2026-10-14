@@ -27,7 +27,7 @@ export interface RunOrderIOObservation {
 export interface RunOrderPlanningSeam {
  nowMicros():number
  currentDormOccupants(room:string):readonly string[]|undefined
- scheduling:Pick<MowerTaskSchedulingOptions,'enableMastery'|'maintenance'|'adjustForRunOrders'>
+ scheduling:MowerTaskSchedulingOptions
  onScheduling?(conflict:[MowerTask,MowerTask]|undefined):void
 }
 export type RunOrderGenerator<T>=Generator<RunOrderIORequest,T,RunOrderIOObservation>

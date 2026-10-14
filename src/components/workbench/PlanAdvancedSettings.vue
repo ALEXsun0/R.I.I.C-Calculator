@@ -103,7 +103,7 @@ function updateIsolation(index: number, names: string[]): void {
               <n-button quaternary :aria-label="`删除宿舍隔离组 ${index + 1}`" @click="patch({ dorm_isolation: isolation.filter((_, i) => i !== index) })">删除</n-button>
             </div>
             <n-button size="small" data-test="add-isolation" @click="patch({ dorm_isolation: [...isolation, []] })">添加隔离组</n-button>
-            <small>同一干员可以属于多个隔离组。本地模拟在同等床位条件下优先分宿，床位不足时允许同宿。</small>
+            <small>入住前优先分开同组干员，可跨宿舍交换普通位住客，必要时让新入住者由单回位改住普通位。满足隔离后按恢复优先级分配单回位；固定驻员、已有单回位住客及预约保持保护。无法分开时允许同宿，入住后不另行纠错。同一干员可加入多个隔离组。</small>
           </div>
         </n-form-item>
       </template>
