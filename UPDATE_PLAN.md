@@ -1,3 +1,14 @@
+# 2026-10-15 响应式排班导入校验修复
+
+- 目标：修复导入排班进入 Vue 状态后，副表心情阈值触发 StructuredClone 失败的问题；Windows 与其他平台共用同一浏览器调用路径。
+- 边界与分工：主 agent 修改 `src/workbench/validateBackupPlans.ts` 和既有 `validate.spec.ts`，从已隔离排班读取副表配置，保留原始排班及已有校验规则。简单单点修复不拆分；Mower PR 文案由独立 agent 在另一个仓库整理。
+- 保护与备份：`artifacts/reactive-import-validation-20261015/source-before.zip`，逐文件 SHA-256 及 ZIP 哈希见同目录 `backup-manifest.json`；不修改干员库、浏览器数据或安装配置。
+- 验证：真实 JSON 导入后包装 Vue 响应式状态，覆盖两种心情阈值字段、原输入不变及无效副表仍阻断；先复现再修复。执行校验及相关组件的定向测试、类型检查、独立生产构建和结构索引检查。
+- 交付：提交并普通推送既有 RIIC PR；Windows 安装目录不在本机可访问范围，不宣称已同步或运行验证。仓库引用的 Windows 全局 workflow skill 本机缺失，沿用仓库内 DEVELOPMENT_WORKFLOW.md 和领域 skill 的适用步骤。
+- 状态：两种阈值字段在旧代码均复现克隆失败，修复后通过；3 个定向文件共 46 项测试、类型检查、独立生产构建、结构索引生成/校验与差异检查通过。构建保留既有大分包提示。备份、测试前后输出及构建日志保存在上述 artifacts 目录；源码交付沿用既有 PR 普通推送。未执行 Windows WebView 或安装同步。
+
+---
+
 # 2026-10-15 演算端宿舍预约与离宿观测同步
 
 - 目标：继续现有 RIIC 同步分支，将 Mower 本体演算已完成的宿舍预约、达标成员离宿及换人前观测修复同步到计算器；不修改本体源码，不新增游戏规则。

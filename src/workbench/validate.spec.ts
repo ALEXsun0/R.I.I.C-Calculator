@@ -1,9 +1,29 @@
 import { describe, it, expect } from 'vitest'
+import { reactive } from 'vue'
 import { createDefaultWorkspace } from './defaults'
 import { validateRosterWorkspace } from './validate'
 import { resolveOperatorCharId } from '../domain/operatorIdentifiers'
+import { exportMowerJson, importMowerJson } from './compat/mowerJson'
 
 describe('validateRosterWorkspace', () => {
+  it.each(['mood_limits', 'operator_mood_limits'])('validates imported reactive backup %s without changing the plan', field => {
+    const document = JSON.parse(exportMowerJson(createDefaultWorkspace()))
+    document.backup_plans = [{name: '心情阈值', trigger: 'True', plan: {}, conf: {
+      [field]: field === 'mood_limits' ? {lower_limit: 8, upper_limit: 24} : {芬: {lower_limit: 8, upper_limit: 24}},
+    }}]
+    const workspace = reactive(importMowerJson(JSON.stringify(document)))
+    const before = JSON.stringify(workspace)
+    const result = validateRosterWorkspace(workspace)
+    expect(result.criticalErrors).toEqual([])
+    expect(result.isValid).toBe(true)
+    expect(JSON.stringify(workspace)).toBe(before)
+
+    workspace.compatibility.backupPlans[0] = {...document.backup_plans[0], plan: {room_1_1: {plans: [{agent: 'Free'}]}}}
+    const invalid = validateRosterWorkspace(workspace)
+    expect(invalid.isValid).toBe(false)
+    expect(invalid.criticalErrors.some(issue => issue.message.includes('Free 只能用于宿舍'))).toBe(true)
+  })
+
   it.each(['但书','龙舌兰','可露希尔','佩佩','U-Official'])('allows an ideal trading candidate already stationed elsewhere (%s)', name => {
     const ws = createDefaultWorkspace()
     const operatorId = resolveOperatorCharId(name)
