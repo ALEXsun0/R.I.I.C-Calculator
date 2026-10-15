@@ -1,3 +1,22 @@
+# 2026-10-15 回收站挂件自动分配（进行中）
+
+- 目标：自动排班允许挂件进入已建回收站，与加工站、训练室同属辅助设施优先级，高于宿舍；同级保持加工站、训练室、回收站的稳定遍历顺序，宿舍继续兜底。办公室现有杜林辅助分配入口保留。
+- 基线与保护：独立 managed worktree，从 main a59b428 建立 codex/recycle-pendant-20261015；原目录 Release 修复及未跟踪资料不改动。已跟踪实际源码完整备份并逐文件重读 SHA256，见 artifacts/recycle-pendant-20261015/backup-manifest.json。无干员库、排班、配置或存储格式迁移。
+- 模式：主 agent 统筹本任务，其他会话继续 Release 工作，文件与分支隔离；主 agent 负责领域共享规则、计划、说明、结构、集成验证及 Git/PR/安装交付。
+- 接口与并行单写归属：领域 facilities.ts 新增辅助设施类型集合，供两条分配入口共用；pendant_test 独占 scheduler/smartDormitoryPolicy.spec.ts 和 optimizer/combinationEnumeration.spec.ts，先记录失败；pendant_impl 独占 scheduler/smartDormitoryPolicy.ts、optimizer/combinationEnumeration.ts 及 globalPerCapitaReplacement.ts 的相关注释。主 agent 先提供共享类型集合，测试与实现同批并行，生产变更前完成新增失败用例。
+- 影响与验收：直接挂件移位、杜林在岗挂件、莱茵 presence 枚举均按辅助设施优先；仅使用实际等级工位（回收站1/2/2），保护已占、Current、候补和锁定位置。覆盖未建、满位、一级多余槽位、锁定及宿舍兜底；无回收站布局保持确定性旧分配或用户要求的新辅助优先顺序。验证全局联动、实际练度与回收产出/心情回归，不变更技能数值、原生 Mower 时间策略或生产权重。
+- 验证：新增测试红绿、相关 scheduler/optimizer/engine/simulator 回归，必要全量测试（沿用60秒测试预算与既有个别显式预算）、vue-tsc、独立目录 Vite build、结构检查及 diff --check；最终候选独立审查。
+- 文档与交付：README 更新用户可感知规则，结构未新增路径时检查即可；既有领域 skill 的回收站等级、在岗计数和来源均继续适用，本次无新游戏数据导入或 skill 发布。仅本任务文件提交自己的 codex 分支；普通 PR 审查和验证后合并，核对实际 main；用户本次明确选择“暂不安装，只交付源码”，不写入 Tools 或结束程序。与并发 Release 的源码交付保持串行，禁止覆盖无关工作。
+- 审查补充：独立审查复现锁定空回收位导致莱茵 presence 整组被拒（P2）；测试 agent 在组合枚举 spec 补真实 pool→allocation 红绿用例；生产 agent 追加独占 combinationEvaluation.ts、molecularSynthesis.ts，将可选锁定位集合沿现有 pool→枚举调用传递，在选挂件工位前跳过锁定位置。原核心与候补分配锁约束不变。
+- 审查追加：同一锁定回退问题也影响直接挂件移位，生产 agent 负责 placePendantOperator 可选第5参数及两处全局调用传锁；测试 agent 独占 globalPerCapitaReplacement.spec.ts 新回归。枚举与实际分配之间另发现空位候补被重映射占用，主 agent 唯一负责 combinationAllocation.ts 的新主班位候补保护，测试 agent 在枚举 spec 补真实分配红绿用例；已有同干员原位保留路径不变。
+- 直接宿舍回退的实际诊断：候补齐全、锁与既有组合均保留，唯一失败是旧的宿舍挂件 groupId 形成没有工作主班的非法排班组。沿用现有 presence 的本地驻留语义（groupId=null、dormitoryResident=true）；第三个位置参数保留以兼容现有调用，不新增存储格式或游戏机制。真实全局移位回归同时检查 physical roster 与唯一占位。
+- 当前状态：原新增红阶段9失败/30通过，首轮集成定向5文件65项通过；vue-tsc 通过，Vite 独立目录构建成功（既有大 chunk 提示）。审查锁定位枚举4项已红绿验证；在候选修正后重跑完整回归，停止了已核实归属的审查前全量runner以免混用源码证据；PR 与源码交付待完成；Tools 按本次用户要求不执行。
+
+- 验证依赖：最终全量在主线旧 WorkbenchShell 单例用例上复现60秒超时（实测65.342秒），对应另一会话已提交的 PR15/d39faa6。为获得可正常检查的集成候选，保留该原提交合入本任务分支（不修改其源分支、不独立接管原安装/运行任务），仅涉及桌面 CI 路径与现有单项180秒预算；独立审查该固定依赖并重验受影响环境与测试。
+- 交付范围纠正：用户在本次安装运行状态询问中明确选择“暂不安装，只交付源码”；安装、原生程序启动及 Tools 哈希同步不再是本次待办，保留原安装程序和数据。
+
+---
+
 # 2026-10-15 固化自有仓库修复与 Tools 交付流程（文档已更新）
 
 - 目标与授权：按用户要求将长期流程写入 AGENTS.md 和 DEVELOPMENT_WORKFLOW.md：修复只提交到自己的仓库分支；不改外部贡献者源分支；完成审查和必要验证后再合并主线，拉取最终代码并备份同步 Tools。

@@ -103,6 +103,10 @@ describe('combination-first main and backup allocation', () => {
 
   it('retains low-stage Rhine presence through repeated dormitory finishing', () => {
     const base = createDefaultWorkspace(), owned = entries(['多萝西', '娜斯提', '伊芙利特'])
+    // This fixture exercises dormitory residency; auxiliary seats must already be unavailable.
+    base.mainPlan.facilities.factory.slots[0]!.occupant = { kind: 'operator', operatorId: id('芬') }
+    base.mainPlan.facilities.train.slots[0]!.occupant = { kind: 'operator', operatorId: id('香草') }
+    base.mainPlan.facilities.train.slots[1]!.occupant = { kind: 'operator', operatorId: id('翎羽') }
     Object.assign(owned.find(o => o.operator === id('伊芙利特'))!, { elitePhase: 0, level: 1 })
     const inventory = compileOperatorInventory(owned), pool = buildCombinationPool(base, inventory)
     const supported = pool.values.find(v => v.status === 'evaluated' && v.variant.definitionId === 'rhine_lab' && v.variant.optionalOperatorIds.includes(id('娜斯提')) && v.variant.optionalOperatorIds.includes(id('伊芙利特')))!

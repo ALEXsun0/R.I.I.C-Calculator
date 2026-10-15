@@ -5,6 +5,7 @@ import { createDefaultWorkspace } from '../workbench/defaults'
 import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
 import { runGlobalPerCapitaReplacement } from './globalPerCapitaReplacement'
 import * as runOrder from './configureRunOrder'
+import { validatePhysicalRoster } from './rosterDraft'
 
 const allOwned: OwnedOperatorInput[] = OPERATORS.map((o) => ({
   operator: o.name,
@@ -95,4 +96,33 @@ describe('Global Per-Capita Replacement (Rule 6)', () => {
       upgradedOps.includes(id('温蒂'))
     expect(hasAromaOrVermeil).toBe(true)
   })
+})
+
+
+it('relocates Minimalist past a locked recycling seat instead of rolling back the replacement', () => {
+  const ws = createDefaultWorkspace()
+  ws.mainPlan.facilities.room_1_1.slots[0]!.occupant = { kind: 'operator', operatorId: id('至简') }
+  ws.mainPlan.facilities.room_1_1.slots[0]!.groupId = '感知信息+鸿雪组'
+  ws.mainPlan.facilities.factory.slots[0]!.occupant = { kind: 'operator', operatorId: id('芬') }
+  ws.mainPlan.facilities.train.slots[0]!.occupant = { kind: 'operator', operatorId: id('香草') }
+  ws.mainPlan.facilities.train.slots[1]!.occupant = { kind: 'operator', operatorId: id('翎羽') }
+  ws.mainPlan.facilities.recycle.level = 1
+  ws.mainPlan.facilities.recycle.slots = [{ occupant: { kind: 'empty' }, groupId: null, replacements: [], metadata: { note: 'locked empty seat' } }]
+  for (const room of Object.values(ws.mainPlan.facilities).filter(room => room.type === 'dormitory')) {
+    for (const slot of room.slots) slot.occupant = { kind: 'free' }
+  }
+  const before = structuredClone(ws), lockedRecycle = JSON.stringify(ws.mainPlan.facilities.recycle)
+  const result = runGlobalPerCapitaReplacement(ws, inventory, { powerCount: 2, lockedPositions: new Set(['recycle:0']) })
+  expect(result.swappedCount, result.logs.join('；')).toBe(1)
+  expect(JSON.stringify(result.workspace.mainPlan.facilities.recycle)).toBe(lockedRecycle)
+  const locations = Object.values(result.workspace.mainPlan.facilities).flatMap(room => room.slots.flatMap((slot, slotIndex) =>
+    slot.occupant.kind === 'operator' && slot.occupant.operatorId === id('至简') ? [{ room, slotIndex }] : []))
+  expect(locations).toHaveLength(1)
+  expect(locations[0]!.room.type).toBe('dormitory')
+  expect(locations[0]!.room.slots[locations[0]!.slotIndex]!.groupId).toBeNull()
+  expect(locations[0]!.room.slots[locations[0]!.slotIndex]!.dormitoryResident).toBe(true)
+  expect(result.workspace.mainPlan.facilities.room_1_1.slots[0]!.occupant.kind).toBe('operator')
+  expect(result.workspace.mainPlan.facilities.room_1_1.slots[0]!.occupant).not.toEqual({ kind: 'operator', operatorId: id('至简') })
+  expect(validatePhysicalRoster(result.workspace)).toEqual([])
+  expect(ws).toEqual(before)
 })
