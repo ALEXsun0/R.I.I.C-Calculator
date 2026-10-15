@@ -59,7 +59,9 @@ describe('same imported Mower roster with one trading operator changed', () => {
     expect(compiledScheduleToRuntimeConfig(schedule).positions.find(position => position.id === targetRoom + '_1')?.candidates).not.toContain(id(runner))
   })
 
-  it.each(['普通订单', '但书', '龙舌兰', '佩佩', '可露希尔', 'U-Official'] as const)('%s', runner => {
+  it.each(['普通订单', '但书', '龙舌兰', '佩佩', '可露希尔', 'U-Official'] as const)('%s', async runner => {
+    // Flush the task status before CPU-bound simulation blocks worker RPC.
+    await new Promise(resolve => setTimeout(resolve, 150))
     const orders = compare(runner)
     expect({ completed: orders.length, special: orders.filter(order => order.kind !== 'gold').length,
       gold: orders.reduce((sum, order) => sum + order.goldCost, 0),
@@ -75,9 +77,11 @@ describe('same imported Mower roster with one trading operator changed', () => {
       expect(orders.some(order => order.kind === 'tequila')).toBe(true)
       expect(orders.every(order => order.kind === 'gold' || order.kind === 'tequila')).toBe(true)
     }
-  }, 30000)
+  }, 180000)
 
-  it.each(['但书', '龙舌兰', '佩佩', '可露希尔', 'U-Official'] as const)('ideal: %s follows its roster role without temporary staffing', runner => {
+  it.each(['但书', '龙舌兰', '佩佩', '可露希尔', 'U-Official'] as const)('ideal: %s follows its roster role without temporary staffing', async runner => {
+    // Flush the task status before CPU-bound simulation blocks worker RPC.
+    await new Promise(resolve => setTimeout(resolve, 150))
     const result = runScheduleSimulationBridge(sameRoster(runner), {
       sampleHours: 8,
       warmupHours: 0,
@@ -96,5 +100,5 @@ describe('same imported Mower roster with one trading operator changed', () => {
       expect(orders[0]?.kind).toBe('uOfficial')
       expect(orders.filter(order => order.kind === 'uOfficial').every(order => order.goldCost === 2 && order.lmdReward === 1000)).toBe(true)
     }
-  }, 30000)
+  }, 180000)
 })

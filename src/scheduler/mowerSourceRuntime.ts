@@ -392,7 +392,7 @@ function* arrangeRoomSteps(s:RuntimeState,rates:RuntimeRates,room:string,names:s
    rethrowMowerInfraFatal(error)
    if(error instanceof MowerShiftPreviewError)throw error
    const {data,queue}=getMowerSourceRuntime(s),queued=data.alpha&&![T.RUN_ORDER,T.FIAMMETTA,T.SKILL_UPGRADE,T.SWAP_SUPPORT].includes(task.type)&&queue.tasks.includes(task)
-   const urgent=queued&&!task.dormRecoveryRestore.length&&queue.tasks.some(t=>t!==task&&[T.FIAMMETTA,T.RUN_ORDER,T.SWAP_SUPPORT,T.SKILL_UPGRADE].includes(t.type)&&(t.type!==T.RUN_ORDER||s.config.mowerTaskScheduling?.adjustForRunOrders!==false)&&t.timeMicros<=data.nowMicros+toMowerMicros(1/60))
+   const urgent=queued&&!task.dormRecoveryRestore.length&&queue.tasks.some(t=>t!==task&&!t.executionFailure&&[T.FIAMMETTA,T.RUN_ORDER,T.SWAP_SUPPORT,T.SKILL_UPGRADE].includes(t.type)&&(t.type!==T.RUN_ORDER||s.config.mowerTaskScheduling?.adjustForRunOrders!==false)&&t.timeMicros<=data.nowMicros+toMowerMicros(1/60))
    if(queued&&(attempt>=3||urgent))throw new MowerRoomArrangementDeferred(room,error)
    if(attempt>=3)throw error
    yield {room,delayMicros:500_000}
@@ -473,8 +473,8 @@ export function settleMowerSource(s:RuntimeState,rates:RuntimeRates,onPhase?:(ph
   if(!s.diagnostics.some(d=>d.code==='group-blocked'&&d.message===message))s.diagnostics.push({code:'group-blocked',message})
  }})
   const backup=(phase:BackupTiming,_task?:MowerTask,context:MowerBackupContext={appendEmptyTask:true,restoreOnDeactivate:false}):MowerBackupResult=>{
-   if(queue.tasks.some(task=>task.backupShiftActive))return {changed:false,generated:[]}
-  if(_task?.type===T.FIAMMETTA||queue.tasks.some(t=>t.type===T.FIAMMETTA&&t.timeMicros<=toMowerMicros(s.time)))return {changed:false,generated:[]}
+   if(queue.tasks.some(task=>!task.executionFailure&&task.backupShiftActive))return {changed:false,generated:[]}
+  if(_task?.type===T.FIAMMETTA||queue.tasks.some(t=>!t.executionFailure&&t.type===T.FIAMMETTA&&t.timeMicros<=toMowerMicros(s.time)))return {changed:false,generated:[]}
   const previousConfig=s.config
   s.mowerBackupContext=context;s.mowerBackupGenerated=[]
   const changed=onPhase?.(phase)??false

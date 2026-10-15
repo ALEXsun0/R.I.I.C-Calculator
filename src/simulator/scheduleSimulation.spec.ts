@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest'
 import {createDefaultWorkspace} from '../workbench/defaults'
 import {compileRosterSchedule} from '../scheduler/compileRosterSchedule'
 import { resolveOperatorCharId as id } from '../domain/operatorIdentifiers'
-import {simulateSchedule, projectScheduleState} from './scheduleSimulation'
+import {simulateSchedule, projectScheduleState,type ScheduleSimulationReport} from './scheduleSimulation'
 import {createRosterRuntime} from '../scheduler/rosterRuntime'
 import {compiledScheduleToRuntimeConfig} from '../scheduler/scheduleAdapter'
 
@@ -16,6 +16,18 @@ function scenario(primary='砾',candidate?:string){
  return compileRosterSchedule(ws)
 }
 
+function expectRetainedFullCharge(report:ScheduleSimulationReport,hours:number){
+ expect(report.success,JSON.stringify(report.diagnostics.slice(-5))).toBe(false)
+ expect(report.production?.success).toBe(false)
+ expect(report.elapsedHours).toBeCloseTo(hours,8)
+ expect(report.observedHours).toBeCloseTo(hours,8)
+ expect(report.diagnostics).toContainEqual(expect.objectContaining({code:'MOWER_PENDING_TASK_FAILURE',message:expect.stringContaining('菲亚梅塔与实际充能目标均已满心情')}))
+ expect(report.diagnostics.some(d=>d.code==='SIMULATION_EVENT_LIMIT'||d.code==='SIMULATION_SAME_TIME_ACTION')).toBe(false)
+ expect(report.events.filter(e=>e.type==='fiammetta'&&e.moraleBefore?.[0]===24&&e.moraleBefore?.[1]===24)).toHaveLength(0)
+ expect(report.segments.length).toBeGreaterThan(0)
+ expect(report.segments.every(segment=>segment.end>segment.start)).toBe(true)
+ expect(report.segments.reduce((total,segment)=>total+segment.end-segment.start,0)).toBeCloseTo(hours,8)
+}
 describe('time-dependent Mower schedule simulation',()=>{
  it.each(['mower-default','mower-alpha'] as const)('records an explicitly selected %s model without changing caller options',schedulingModel=>{
   const options={sampleHours:.01,schedulingModel},before={...options}
@@ -126,39 +138,35 @@ describe('time-dependent Mower schedule simulation',()=>{
   expect(r.events[0]?.type).toBe('fiammetta');expect(r.rooms.find(x=>x.roomId==='room_1_1')!.averageEfficiencyPercent).toBeCloseTo(127,2)
  })
 
- it('does not spend the event budget on a full-to-full Fiammetta exchange with a stable idle target',()=>{
+ it('retains a full-to-full Fiammetta charge through the complete window without exhausting the event budget',()=>{
   const ws=createDefaultWorkspace()
   ws.mainPlan.facilities.dormitory_1.slots=[{occupant:{kind:'operator',operatorId:'菲亚梅塔'},groupId:null,replacements:['重岳']}]
   ws.mainPlan.facilities.dormitory_2.slots=[{occupant:{kind:'operator',operatorId:'重岳'},groupId:null,replacements:[]}]
   const s=compileRosterSchedule(ws,{fiammettaFool:false})
   const r=simulateSchedule(s,{sampleHours:.05,maxEvents:1000,recordSegments:true,production:{outputMode:'potential',runOrderMode:'ideal',droneTarget:'none'}})
-  expect(r.success,JSON.stringify(r.diagnostics.slice(-5))).toBe(true)
-  expect(r.diagnostics.some(d=>d.code==='mower-fia-full-noop-skipped')).toBe(true)
-  expect(r.events.filter(e=>e.type==='fiammetta'&&e.moraleBefore?.[0]===24&&e.moraleBefore?.[1]===24)).toHaveLength(0)
+  expectRetainedFullCharge(r,.05)
   expect(r.operators.find(o=>o.operatorId===id('菲亚梅塔'))?.finalMorale).toBe(24)
   expect(r.operators.find(o=>o.operatorId===id('重岳'))?.finalMorale).toBe(24)
  })
 
- it('does not replace a full working Fiammetta target with a full Free card',()=>{
+ it('retains the charge when a full working Fiammetta target resolves to a full Free card',()=>{
   const ws=createDefaultWorkspace()
   ws.mainPlan.facilities.room_1_1.slots=[{occupant:{kind:'operator',operatorId:'阿罗玛'},groupId:null,replacements:[]}]
   ws.mainPlan.facilities.dormitory_1.slots=[{occupant:{kind:'operator',operatorId:'菲亚梅塔'},groupId:null,replacements:['阿罗玛']}]
   const s=compileRosterSchedule(ws,{fiammettaFool:false,idleOperators:[id('重岳')]})
   const r=simulateSchedule(s,{sampleHours:.1,maxEvents:1000,recordSegments:true,production:{outputMode:'potential',runOrderMode:'ideal',droneTarget:'none'}})
-  expect(r.success,JSON.stringify(r.diagnostics.slice(-5))).toBe(true)
-  expect(r.diagnostics.some(d=>d.code==='mower-fia-full-noop-skipped')).toBe(true)
-  expect(r.events.filter(e=>e.type==='fiammetta'&&e.moraleBefore?.[0]===24&&e.moraleBefore?.[1]===24)).toHaveLength(0)
+  expectRetainedFullCharge(r,.1)
   expect(r.operators.find(o=>o.operatorId===id('重岳'))?.finalMorale).toBe(24)
   expect(r.operators.find(o=>o.operatorId===id('阿罗玛'))!.finalMorale).toBeLessThan(24)
  })
 
- it('rechecks a full target when Fiammetta recovers instead of reserving an empty charge',()=>{
+ it('retains a full-to-full charge after Fiammetta recovers and reports the unresolved window',()=>{
   const ws=createDefaultWorkspace()
   ws.mainPlan.facilities.dormitory_1.slots=[{occupant:{kind:'operator',operatorId:'菲亚梅塔'},groupId:null,replacements:['重岳']}]
   ws.mainPlan.facilities.dormitory_2.slots=[{occupant:{kind:'operator',operatorId:'重岳'},groupId:null,replacements:[]}]
   const s=compileRosterSchedule(ws,{fiammettaFool:false,operatorMorale:{[id('菲亚梅塔')]:23}})
   const r=simulateSchedule(s,{sampleHours:.6,maxEvents:1000,recordSegments:true,production:{outputMode:'potential',runOrderMode:'ideal',droneTarget:'none'}})
-  expect(r.success,JSON.stringify(r.diagnostics.slice(-5))).toBe(true)
+  expectRetainedFullCharge(r,.6)
   expect(r.events.filter(e=>e.type==='fiammetta')).toHaveLength(0)
   expect(r.operators.find(o=>o.operatorId===id('菲亚梅塔'))?.finalMorale).toBe(24)
  })

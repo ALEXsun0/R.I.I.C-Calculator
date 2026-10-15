@@ -6,6 +6,7 @@ import {MowerTask,MowerTaskQueue,MOWER_TASK_TYPES as T,toMowerMicros} from './mo
 import {retainMowerFailedTask,resumeMowerFailedTasks} from './mowerTaskFailure'
 import {prepareMowerRunEntry} from './mowerRunLifecycle'
 import {scheduleMowerTasks} from './mowerTaskScheduling'
+import {normalizeMowerSharedArrangement} from './mowerSharedGroups'
 
 function fixture(){
  const state=createRosterRuntime({positions:[],beds:[],mowerSourcePlan:{room_1_1:[{agent:'A',group:'',replacement:['R']}]}})
@@ -56,5 +57,55 @@ describe('native task failures retain work and release dispatch',()=>{
   expect(queue.find()).toBe(other)
   expect(queue.tasks).toContain(task);expect(task.plan).toEqual(plan);expect(task.timeMicros).toBe(0)
   queue.removeDerived();expect(queue.tasks).toContain(task)
+ })
+})
+
+function sharedFailureFixture(){
+ const {state,data,task,queue}=fixture()
+ data.operators.A!.operatorType='high';data.operators.A!.group='a';data.operators.A!.replacement=['R']
+ data.groupShiftState={a:false,b:false}
+ data.plan.room_1_3=['F']
+ data.operators.F=new MowerOperatorState({name:'F',room:'room_1_3',index:0,currentRoom:'room_1_3',currentIndex:0,group:'a',replacement:['C'],groupBindings:[{group:'a',replacement:['C']},{group:'b',replacement:['D']}],operatorType:'high',mood:10,timeStampMicros:0})
+ data.operators.C=new MowerOperatorState({name:'C',currentRoom:'train',currentIndex:0,mood:24,timeStampMicros:0})
+ data.operators.D=new MowerOperatorState({name:'D',currentRoom:'train',currentIndex:1,mood:24,timeStampMicros:0})
+ task.type=T.SHIFT_OFF
+ expect(normalizeMowerSharedArrangement(data,task.plan)).toBe(false)
+ expect(task.plan).toEqual({room_1_1:['R']})
+ retainMowerFailedTask(state,data,task,'implicit shared replacement busy')
+ return {state,data,task,queue}
+}
+
+describe('failed task dependencies from implicit shared followers',()=>{
+ it('resumes the same original task when another room releases its implicit shared replacement',()=>{
+  const {state,data,task,queue}=sharedFailureFixture(),plan=structuredClone(task.plan)
+  data.operators.C!.currentRoom='';data.operators.C!.currentIndex=-1;data.operators.C!.timeStampMicros=1
+  const feasible=structuredClone(task.plan)
+  expect(normalizeMowerSharedArrangement(data,feasible)).toBe(true)
+  expect(feasible).toEqual({room_1_1:['R'],room_1_3:['C']})
+  expect(resumeMowerFailedTasks(state,data,queue)).toBe(true)
+  expect(queue.tasks).toEqual([task]);expect(task.timeMicros).toBe(0);expect(task.plan).toEqual(plan)
+  expect(task.executionFailure).toBeUndefined()
+ })
+ it('resumes after a new actual measurement of the relevant shared replacement',()=>{
+  const {state,data,task,queue}=sharedFailureFixture()
+  data.operators.C!.timeStampMicros=1;data.operators.C!.mood=20;data.operators.C!.moodIsPrediction=false
+  expect(resumeMowerFailedTasks(state,data,queue)).toBe(true)
+  expect(task.executionFailure).toBeUndefined()
+ })
+ it.each(['inactive-binding','unrelated','prediction'])('keeps the failure suspended for %s changes',change=>{
+  const {state,data,task,queue}=sharedFailureFixture()
+  if(change==='inactive-binding'){data.operators.D!.currentRoom='';data.operators.D!.currentIndex=-1;data.operators.D!.timeStampMicros=1}
+  if(change==='unrelated')data.operators.Unrelated=new MowerOperatorState({name:'Unrelated',currentRoom:'room_3_3',currentIndex:0,mood:3,timeStampMicros:1})
+  if(change==='prediction'){data.operators.C!.timeStampMicros=1;data.operators.C!.mood=0;data.operators.C!.moodIsPrediction=true}
+  expect(resumeMowerFailedTasks(state,data,queue)).toBe(false)
+  expect(task.executionFailure).toBeDefined();expect(task.timeMicros).toBe(0)
+ })
+ it('resumes after the relevant shared binding selects a different replacement',()=>{
+  const {state,data,task,queue}=sharedFailureFixture()
+  data.operators.E=new MowerOperatorState({name:'E',mood:24,timeStampMicros:0})
+  data.operators.F!.groupBindings[0]!.replacement=['E']
+  expect(normalizeMowerSharedArrangement(data,structuredClone(task.plan))).toBe(true)
+  expect(resumeMowerFailedTasks(state,data,queue)).toBe(true)
+  expect(task.executionFailure).toBeUndefined()
  })
 })

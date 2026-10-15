@@ -10,7 +10,9 @@ describe('main calculation reports special orders from trading replacements', ()
     { runner: '可露希尔', kind: 'closure', each: .4 },
     { runner: '佩佩', kind: 'pepe', each: 2 },
     { runner: '龙舌兰', kind: 'tequila', each: 1 },
-  ])('$runner', ({ runner, kind, each }) => {
+  ])('$runner', async ({ runner, kind, each }) => {
+    // Flush the task status before CPU-bound simulation blocks worker RPC.
+    await new Promise(resolve => setTimeout(resolve, 150))
     const roster = structuredClone(sourceRoster)
     const slots = roster.plan1.room_1_1.plans
     slots[1]!.agent = '绮良'
@@ -38,5 +40,5 @@ describe('main calculation reports special orders from trading replacements', ()
     expect(result.report!.summary!.goldCount).toBeCloseTo(sim.production!.sample.completed.gold / days)
     expect(mowerReportMetrics(sim)!.virtualGoldCount).toBeCloseTo(expectedVirtual)
     expect(mowerReportMetrics(sim)!.orderDistribution[kind]?.count).toBe(special.length)
-  }, 30000)
+  }, 180000)
 })

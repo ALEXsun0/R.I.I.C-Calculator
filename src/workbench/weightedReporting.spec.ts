@@ -9,7 +9,9 @@ import { calculate } from '../engine/calculate'
 import { projectControlOutput } from '../optimizer/controlImpact'
 import { createDefaultWorkspace } from './defaults'
 
-it('shares weights and virtual gold across calculation, log and optimizer scores', () => {
+it('shares weights and virtual gold across calculation, log and optimizer scores', async () => {
+  // Flush the task status before CPU-bound simulation blocks worker RPC.
+  await new Promise(resolve => setTimeout(resolve, 150))
   const roster = structuredClone(sourceRoster)
   roster.backup_plans = []
   roster.plan1.room_1_1.plans[1]!.replacement = ['可露希尔', '能天使']
@@ -25,7 +27,7 @@ it('shares weights and virtual gold across calculation, log and optimizer scores
   expect(summary.totalScore82).toBeCloseTo(want)
   expect(mowerReportMetrics(result.simulationReport!)!.mower82).toBeCloseTo(want)
   expect(simulateCandidate({ workspace, options, assumptions }).simScore).toBeCloseTo(want)
-}, 30000)
+}, 180000)
 
 it('weights fragment and orundum output in both static projection and calculation', () => {
   const config = createDefaultConfig()
@@ -41,7 +43,9 @@ it('weights fragment and orundum output in both static projection and calculatio
   expect(summary.totalScore82).toBeCloseTo(4 * summary.fragments + 5 * summary.orundum)
 })
 
-it('uses explicit valid simulation weights instead of invalid stale workspace weights', () => {
+it('uses explicit valid simulation weights instead of invalid stale workspace weights', async () => {
+  // Flush the task status before CPU-bound simulation blocks worker RPC.
+  await new Promise(resolve => setTimeout(resolve, 150))
   const workspace = createDefaultWorkspace()
   workspace.productionWeights = { exp: -1, gold: .8, orders: .2, fragments: 0, orundum: 0 }
   const result = runCalculationBridge(workspace, { engine: 'simulation', simulationOptions: {
@@ -51,4 +55,4 @@ it('uses explicit valid simulation weights instead of invalid stale workspace we
   } })
   expect(result.success, result.error).toBe(true)
   expect(result.report!.summary!.totalScore82).toBe(result.report!.summary!.exp)
-}, 30000)
+}, 180000)

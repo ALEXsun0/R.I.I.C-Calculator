@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest'
 import {createRosterRuntime,settleRoster,advanceRoster,nextRosterActionHours,type RuntimeConfig} from './rosterRuntime'
-import {getMowerSourceRuntime,makeMowerSchedulingData} from './mowerSourceRuntime'
+import {getMowerSourceRuntime,makeMowerSchedulingData,settleMowerSource} from './mowerSourceRuntime'
 import {mowerUpdateDetail} from './mowerObservations'
 import {alphaRestingTier} from './mowerAlphaDorm'
 import {MowerTask,MOWER_TASK_TYPES as T} from './mowerTaskQueue'
@@ -231,7 +231,9 @@ describe('integrated Mower source scheduler',()=>{
   expect(state.occupants).toEqual(before)
   const traceCount=source.trace.filter(t=>t.type==='FIAMMETTA').length
   const independent=new MowerTask({time:.01});source.queue.tasks.push(independent)
-  state.time=.01;settleRoster(state,rates)
+  let independentPhases=0
+  state.time=.01;settleMowerSource(state,rates,()=>{independentPhases++;return false})
+  expect(independentPhases).toBeGreaterThan(0)
   expect(source.queue.tasks).not.toContain(independent)
   expect(source.queue.tasks.filter(task=>task.type===T.FIAMMETTA)).toEqual([retained])
   expect(source.trace.filter(t=>t.type==='FIAMMETTA')).toHaveLength(traceCount)

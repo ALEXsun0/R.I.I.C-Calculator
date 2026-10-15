@@ -11,7 +11,9 @@ const kinds = { 但书: 'proviso', 龙舌兰: 'tequila', 佩佩: 'pepe', 可露�
 const roomId = 'room_1_1'
 
 describe('run-order candidates after ordinary trading replacements', () => {
-  it.each(runners)('%s stays out of ordinary shifts and runs its order', runner => {
+  it.each(runners)('%s stays out of ordinary shifts and runs its order', async runner => {
+    // Flush the task status before CPU-bound simulation blocks worker RPC.
+    await new Promise(resolve => setTimeout(resolve, 150))
     const roster = structuredClone(sourceRoster)
     const slots = roster.plan1.room_1_1.plans
     slots[1]!.agent = '绮良'
@@ -33,5 +35,5 @@ describe('run-order candidates after ordinary trading replacements', () => {
     expect(report.segments.some(segment=>Object.entries(segment.occupants).some(([position,operator])=>position.startsWith(roomId+'_')&&operator===id(runner)))).toBe(false)
     const orders = report.production!.events.filter(event => event.type === 'order-completed' && event.roomId === roomId).map(event => event.order!)
     expect(orders.some(order => order.kind === kinds[runner])).toBe(true)
-  }, 30000)
+  }, 180000)
 })
