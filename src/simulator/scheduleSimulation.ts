@@ -2,6 +2,7 @@ import {createSimulationActivityMonitor, type SimulationActivity} from './simula
 import {resolveInventoryProduction} from './inventorySimulation'
 import { parseProduct, serializeProduct } from '../domain/mowerProducts'
 import {createMowerClueIO} from './mowerNativeClueIO'
+import {createReceptionClueTimeline, type ReceptionClueReport} from './receptionClueTimeline'
 import {createMowerProductionIO} from './mowerNativeProductionIO'
 import {mowerConfirmedRecoveryTargets} from '../scheduler/mowerDormRecovery'
 import { createBackupPlanController } from '../scheduler/backupPlans'
@@ -60,6 +61,7 @@ export interface ScheduleSimulationReport {
  inputs:{schedule:CompiledSchedule;options:ScheduleSimulationOptions}
  assumptions:{schedulingModel?:'mower-default'|'mower-alpha';sampleHours:number;warmupHours:number;maxStepHours:number;warmupModel:'continuous'|'hourly';restingThreshold:number;operationDurationHours:0;dormAtmosphere:string;singleRecoveryTarget:string}
  production?:ProductionReport
+ receptionClues?:ReceptionClueReport
  operators:SimulatedOperator[];rooms:SimulatedRoom[];events:RuntimeEvent[];segments:ScheduleSegment[]
  diagnostics:{code:string;message:string}[]
  shiftDeferrals?:{key:string;operatorIds:string[];blockedAt:number;resolvedAt?:number}[]
@@ -151,6 +153,9 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
  }
  if(schedule.assumptions.elitePhase!==2){diagnostic('SKILL_STAGE_UNSUPPORTED','当前动态模拟使用已校对的最高基建技能；较低精英阶段尚未编译');return report}
  if(schedule.assumptions.operationDurationHours!==0){diagnostic('OPERATION_DURATION_UNSUPPORTED','当前模拟仅支持忽略换人操作耗时');return report}
+ const receptionClues=createReceptionClueTimeline(warmupHours,inventory,options.initialWorkHours)
+ report.receptionClues=receptionClues.report()
+ diagnostic('RECEPTION_CLUE_PRODUCTION_MODEL','线索产量按20小时基准、宿舍等级上限氛围和实际在岗练度计算；产量固定开启交流，仅已解锁且正常工作的交流技能获得额外30%。暖机完成数剔除，未完成进度延续；不计信用或加权收益。')
  if(schedule.runOrderPolicies.length&&!options.production)diagnostic('ORDER_LIFECYCLE_NOT_SIMULATED','保留跑单配置；本报告统计日常班组效率，尚未模拟每单插入干员、收单与资源结算')
  diagnostic('TIME_INTEGRATION_MODEL',`使用${warmupModel==='hourly'?'整小时':'连续'}暖机，最大步长 ${maxStepHours} h；复制取整等非线性效率采用区间中点数值积分，可缩小步长检查敏感性`)
  diagnostic('SINGLE_RECOVERY_TARGET_ASSUMPTION','已按 Mower 确认流程固定的目标使用入驻顺序标记；未确认或目标已满时采用槽位顺序，后续游戏自动选取规则尚未实测')
@@ -381,7 +386,7 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
  production?.settle(()=>frameAt(0))
  if(production&&state.config.mowerSourcePlan){
   Object.assign(rates,createMowerClueIO(state))
-  diagnostic('MOWER_CLUE_OBSERVATION_MODEL','线索交流固定关闭，Party Time 为空，不执行线索待办及交流任务。')
+  diagnostic('MOWER_CLUE_OBSERVATION_MODEL','调度观察中的线索交流固定关闭，Party Time 为空，不执行线索待办及交流任务；独立线索产量按固定开启交流计算。')
   Object.assign(rates,createMowerProductionIO(state,production,()=>frameAt(0)))
   diagnostic('MOWER_ORDER_OBSERVATION_MODEL','理想跑单在新单开始时锁定佩佩/可露希尔模式，在普通订单完成时转换但书/龙舌兰收益；保留 Mower 订单读取、任务排序与唤醒，不执行临时换人；常规换班、收取及无人机任务仍按 Mower 时间线执行。')
  }
@@ -482,6 +487,8 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
    report.observedHours+=dt
    if(options.recordSegments)report.segments.push({start:state.time,end:state.time+dt,occupants:{...state.occupants},bedOccupants:{...state.bedOccupants},morale:{...state.morale},efficiencyPercent:eff})
   }
+  // The production frame shortcut can reuse start-of-interval morale; clues need the true midpoint.
+  receptionClues.observe(frameAt(dt/2).config,state.time,state.time+dt)
   production?.advance(dt,frame(dt/2))
   advanceRoster(state,dt,rates,derivativeRates())
   if(moraleStep&&Math.abs(state.time-moraleStep.end)<=EPS){
@@ -498,6 +505,7 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
  report.operators=[...stats.values()].map(s=>({...s,initialMorale:initial[s.operatorId]??s.initialMorale,finalMorale:state.morale[s.operatorId]!,workFraction:report.observedHours?s.workHours/report.observedHours:0,workRestRatio:s.restHours>EPS?s.workHours/s.restHours:null}))
  report.rooms=[...roomStats.values()].map(r=>({...r,averageEfficiencyPercent:report.observedHours?r.efficiencyPercentHours/report.observedHours:0,teams:r.teams.map(t=>({...t,fraction:report.observedHours?t.hours/report.observedHours:0}))}))
  if(production){report.production=production.report();report.production.success&&=report.success}
+ report.receptionClues=receptionClues.report()
  report.events=state.events.filter(e=>e.time>=warmupHours-EPS)
  report.shiftDeferrals=deferrals
  for(const d of state.diagnostics.filter(d=>d.code!=='group-blocked'))diagnostic(d.code,d.message)

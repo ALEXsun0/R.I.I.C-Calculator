@@ -38,7 +38,7 @@
 
 ## 纳入范围
 
-共 675 个索引文件，其中应用 TypeScript/Vue/CSS 文件 241 个，业务测试文件 289 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
+共 682 个索引文件，其中应用 TypeScript/Vue/CSS 文件 243 个，业务测试文件 294 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
 
 ### 根目录管理入口
 
@@ -280,6 +280,8 @@ src/
 │   ├── supportFacilities/
 │   │   ├── conditions.ts
 │   │   ├── contactAndClue.ts
+│   │   ├── receptionClues.spec.ts
+│   │   ├── receptionClues.ts
 │   │   ├── recycle.ts
 │   │   └── workshop.ts
 │   ├── calculate.spec.ts
@@ -534,6 +536,7 @@ src/
 │   ├── mowerDroneOperations.ts
 │   ├── mowerExhaustPlanning.ts
 │   ├── mowerExhaustSupport.spec.ts
+│   ├── mowerExhaustSupportDispatch.spec.ts
 │   ├── mowerExplicitSlots.spec.ts
 │   ├── mowerFiammetta.spec.ts
 │   ├── mowerFiammetta.ts
@@ -546,6 +549,7 @@ src/
 │   ├── mowerIdealRunEntry.spec.ts
 │   ├── mowerIdealTaskExecution.spec.ts
 │   ├── mowerIdealTaskScheduling.spec.ts
+│   ├── mowerIndependentRest.spec.ts
 │   ├── mowerIsolationReservations.spec.ts
 │   ├── mowerLatestSchedulingWiring.spec.ts
 │   ├── mowerLimitedRest.spec.ts
@@ -663,6 +667,8 @@ src/
 │   ├── productionScore.ts
 │   ├── productionTimeline.spec.ts
 │   ├── productionTimeline.ts
+│   ├── receptionClueTimeline.spec.ts
+│   ├── receptionClueTimeline.ts
 │   ├── recycleProduction.spec.ts
 │   ├── recycleTimeline.spec.ts
 │   ├── recycleTimeline.ts
@@ -671,6 +677,7 @@ src/
 │   ├── scheduleAbyssalFatigue.spec.ts
 │   ├── scheduleAdmission.spec.ts
 │   ├── scheduleRateCache.spec.ts
+│   ├── scheduleReceptionClues.spec.ts
 │   ├── scheduleSimulation.spec.ts
 │   ├── scheduleSimulation.ts
 │   ├── simulationActivity.spec.ts

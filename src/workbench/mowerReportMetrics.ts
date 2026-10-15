@@ -2,6 +2,20 @@ import type { ScheduleSimulationReport } from '../simulator/scheduleSimulation'
 import { scoreSimulationProduction, simulationOutputOrders } from '../simulator/productionScore'
 import { virtualGoldEquivalent } from '../rules/orderValue'
 
+export function receptionClueMetrics(report: Pick<ScheduleSimulationReport, 'observedHours' | 'receptionClues'>) {
+  const clues = report.receptionClues
+  if (!clues || !Number.isFinite(report.observedHours) || report.observedHours <= 0) return null
+  return {
+    clueCount: clues.completed * 24 / report.observedHours,
+    clueTotal: clues.completed,
+    progress: clues.progress,
+  }
+}
+
+export function formatClueCount(count: number): string {
+  return count.toLocaleString('zh-CN', { maximumFractionDigits: 2 })
+}
+
 /** Shared weighted report; the default 82 coefficients value order premiums at 0.8.
  * Virtual gold is a reporting convention, never a physical gold inventory inflow.
  */

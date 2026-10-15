@@ -33,7 +33,8 @@
         :value="slot.groupId ?? ''"
         class="group-input"
         size="small"
-        placeholder="组名"
+        placeholder="留空按自身心情换班"
+        title="多绑组最多保留一列空组名；其他组休息时优先使用对应替班。"
         :disabled="isEmpty"
         @update:value="onGroupChange"
       />

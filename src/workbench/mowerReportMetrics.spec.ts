@@ -3,7 +3,17 @@ import { readFileSync } from 'node:fs'
 import sourceRoster from '../../validation/mower-output-2026-09-27/roster.json'
 import { importMowerJson } from './compat/mowerJson'
 import { runScheduleSimulationBridge } from './scheduleSimulationBridge'
-import { mowerReportMetrics } from './mowerReportMetrics'
+import { mowerReportMetrics, receptionClueMetrics, formatClueCount } from './mowerReportMetrics'
+
+it('normalizes only completed clues by observed sampling hours and preserves missing reports', () => {
+  expect(receptionClueMetrics({ observedHours: 48 })).toBeNull()
+  const receptionClues = { completed: 7, progress: .9, exchangeMode: 'always-on' as const }
+  expect(receptionClueMetrics({ observedHours: 48, receptionClues })).toEqual({ clueCount: 3.5, clueTotal: 7, progress: .9 })
+  expect(receptionClueMetrics({ observedHours: 0, receptionClues })).toBeNull()
+  expect(receptionClueMetrics({ observedHours: 48, receptionClues: { ...receptionClues, completed: 0 } })?.clueCount).toBe(0)
+  expect(formatClueCount(7 / 3)).toBe('2.33')
+  expect(formatClueCount(0)).toBe('0')
+})
 
 it('reconstructs the screenshot seven-day total from its labelled components', () => {
   const observations = JSON.parse(readFileSync(new URL('../../validation/mower-backup-2026-09-22/screenshot-observations.json', import.meta.url), 'utf8'))

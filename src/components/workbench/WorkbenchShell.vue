@@ -2,6 +2,7 @@
 import { computed, nextTick, provide, ref, watch } from 'vue'
 import { useRosterWorkbenchStore } from '../../workbench/store'
 import { createWorkbenchSession } from '../../workbench/session'
+import { formatClueCount } from '../../workbench/mowerReportMetrics'
 import { useWorkbenchCalculation } from '../../workbench/composables/useWorkbenchCalculation'
 import { useSmartRosterGeneration } from '../../workbench/composables/useSmartRosterGeneration'
 import { useWorkbenchPersistence } from '../../workbench/composables/useWorkbenchPersistence'
@@ -471,6 +472,16 @@ defineExpose({
                 <span class="metric-num">{{ formatNumber(calculationReport.drones, 1) }}</span>
                 <span class="metric-unit">架/日</span>
               </div>
+            </div>
+
+            <div v-if="calculationReport.summary.clueCount !== undefined" class="metric-card" data-test="metric-clues">
+              <span class="metric-tag">线索产出</span>
+              <div class="metric-main">
+                <span class="metric-num">{{ formatClueCount(calculationReport.summary.clueCount) }}</span>
+                <span class="metric-unit">条/日</span>
+              </div>
+              <span v-if="calculationReport.summary.clueTotal !== undefined" class="metric-sub">采样完成 {{ formatNumber(calculationReport.summary.clueTotal) }} 条</span>
+              <span class="metric-sub">全程开启交流 · 不计信用和加权收入</span>
             </div>
 
             <!-- Orundum & Fragments (if present) -->

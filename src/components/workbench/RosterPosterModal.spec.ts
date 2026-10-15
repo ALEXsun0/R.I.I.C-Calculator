@@ -65,7 +65,7 @@ describe('RosterPosterModal.vue', () => {
     expect(wrapper.find('[data-test="copy-poster-btn"]').exists()).toBe(true)
   })
 
-  it('renders income metrics when calculationReport with summary is provided', () => {
+  it('renders income metrics and optional sampled clues without inventing old-report zeros', async () => {
     const workspace = createDefaultWorkspace()
     const mockReport: CalculationReport = {
       power: { generation: 810, consumption: 810, margin: 0, sufficient: true },
@@ -111,6 +111,19 @@ describe('RosterPosterModal.vue', () => {
     expect(incomeCard.text()).toContain('35,000')
     expect(incomeCard.text()).toContain('33,000')
     expect(incomeCard.text()).toContain('20.0')
+    expect(wrapper.find('[data-test="poster-clues"]').exists()).toBe(false)
+    await wrapper.setProps({ calculationReport: {
+      ...mockReport, summary: { ...mockReport.summary!, clueCount: 7 / 3, clueTotal: 7 },
+    } })
+    expect(wrapper.get('[data-test="poster-clues"]').text()).toContain('2.33')
+    expect(wrapper.get('[data-test="poster-clues"]').text()).toContain('采样完成 7 条')
+    expect(wrapper.get('.clue-assumption').text()).toContain('全程开启交流')
+    expect(wrapper.get('.clue-assumption').text()).toContain('不计信用和加权收入')
+    await wrapper.setProps({ calculationReport: {
+      ...mockReport, summary: { ...mockReport.summary!, clueCount: 0, clueTotal: 0 },
+    } })
+    expect(wrapper.get('[data-test="poster-clues"] .m-val').text()).toBe('0')
+    wrapper.unmount()
   })
 
   it('includes an actually built recycle room and its operator in the exported poster', async () => {

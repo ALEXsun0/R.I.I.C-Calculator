@@ -592,6 +592,24 @@ describe('WorkbenchShell.vue and App primary entry integration', () => {
     expect(trade.find('[data-test="metric-special-orders"]').exists()).toBe(false)
   }, 30000)
 
+  it('shows sampled clue metrics only when present in the calculation summary', async () => {
+    const wrapper = mountWithPinia(WorkbenchShell)
+    const report = calculate(createDefaultConfig())
+    wrapper.vm.calculationReport = report
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-test="metric-clues"]').exists()).toBe(false)
+    wrapper.vm.calculationReport = { ...report, summary: { ...report.summary!, clueCount: 7 / 3, clueTotal: 7 } }
+    await wrapper.vm.$nextTick()
+    const card = wrapper.get('[data-test="metric-clues"]')
+    expect(card.get('.metric-num').text()).toBe('2.33')
+    expect(card.text()).toContain('采样完成 7 条')
+    expect(card.text()).toContain('全程开启交流')
+    expect(card.text()).toContain('不计信用和加权收入')
+    wrapper.vm.calculationReport = { ...report, summary: { ...report.summary!, clueCount: 0, clueTotal: 0 } }
+    await wrapper.vm.$nextTick()
+    expect(card.get('.metric-num').text()).toBe('0')
+  })
+
   it('displays compact results panel with actual report fields and refreshes on repeat calculation', async () => {
     const wrapper = mountWithPinia(WorkbenchShell)
 

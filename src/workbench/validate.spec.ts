@@ -415,15 +415,37 @@ describe('alpha shared group validation', () => {
     expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.code === 'CONFLICTING_REPLACEMENT')).toBe(true)
   })
 
-  it('rejects empty or duplicate binding group names and missing shared replacements', () => {
+  it('rejects duplicate binding names, repeated empty columns and missing shared replacements', () => {
     const ws = createDefaultWorkspace()
     ws.mainPlan.facilities.dormitory_4.slots = Array.from({length: 5}, () => ({occupant: {kind: 'free' as const}, groupId: null, replacements: []}))
     const slot = ws.mainPlan.facilities.room_1_1.slots[0] = {occupant: {kind: 'operator' as const, operatorId: 'char_123_fang'}, groupId: 'A', replacements: ['char_240_wyvern'], groupBindings: [{groupId: 'A', replacements: ['char_192_falco']}]}
     expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.code === 'INVALID_CONFIG')).toBe(true)
     slot.groupBindings[0]!.groupId = ''
-    expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.code === 'INVALID_CONFIG')).toBe(true)
+    expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.message.includes('空组名最多一列'))).toBe(false)
+    slot.groupBindings.push({groupId: '', replacements: ['char_192_falco']})
+    expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.message.includes('空组名最多一列'))).toBe(true)
+    slot.groupBindings.pop()
     slot.groupBindings[0] = {groupId: 'B', replacements: []}
     expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.code === 'INVALID_CONFIG')).toBe(true)
+  })
+
+  it.each([false, true])('accepts one personal empty column in either position and round-trips main and backup plans: %s', emptyFirst => {
+    const ws = createDefaultWorkspace()
+    ws.mainPlan.facilities.dormitory_4.slots = Array.from({length: 5}, () => ({occupant: {kind: 'free' as const}, groupId: null, replacements: []}))
+    const named = {groupId: 'A', replacements: ['char_240_wyvern']}, personal = {groupId: null, replacements: ['char_192_falco']}
+    ws.mainPlan.facilities.room_1_1.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_123_fang'}, ...(emptyFirst ? personal : named), groupBindings: [emptyFirst ? named : personal]}
+    ws.mainPlan.facilities.room_1_2.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_286_cast3'}, groupId: 'A', replacements: ['char_500_noirc']}
+    expect(validateRosterWorkspace(ws).criticalErrors).toEqual([])
+    const document = JSON.parse(exportMowerJson(ws))
+    document.backup_plans = [{name: 'personal', trigger: 'True', plan: {room_1_1: document.plan1.room_1_1}}]
+    const imported = importMowerJson(JSON.stringify(document))
+    expect(validateRosterWorkspace(imported).criticalErrors).toEqual([])
+    const output = JSON.parse(exportMowerJson(imported))
+    expect(output.plan1.room_1_1).toEqual(document.plan1.room_1_1)
+    expect(output.backup_plans).toEqual(document.backup_plans)
+    const entry = imported.mainPlan.facilities.room_1_1.slots[0]!
+    entry.groupBindings!.push({...personal})
+    expect(validateRosterWorkspace(imported).criticalErrors.some(e => e.message.includes('空组名最多一列'))).toBe(true)
   })
 
   it('requires fixed working anchors for every shared group and grouped Free dorm', () => {

@@ -66,7 +66,7 @@
                 ⚡ 发电 {{ calculationReport.power.generation }} / 耗电 {{ calculationReport.power.consumption }} (余量 {{ calculationReport.power.margin >= 0 ? '+' : '' }}{{ calculationReport.power.margin }})
               </div>
             </div>
-            <div class="income-grid">
+            <div class="income-grid" :class="{ 'has-clues': calculationReport.summary.clueCount !== undefined }">
               <div class="income-metric highlight">
                 <span class="m-val">{{ formatNumber(calculationReport.summary.totalScore82, 1) }}</span>
                 <span class="m-sub">加权综合日产出</span>
@@ -87,7 +87,13 @@
                 <span class="m-val text-drone">{{ calculationReport.drones }}</span>
                 <span class="m-sub">无人机/日</span>
               </div>
+              <div v-if="calculationReport.summary.clueCount !== undefined" class="income-metric" data-test="poster-clues">
+                <span class="m-val">{{ formatClueCount(calculationReport.summary.clueCount) }}</span>
+                <span class="m-sub">线索/日</span>
+                <span v-if="calculationReport.summary.clueTotal !== undefined" class="m-sub">采样完成 {{ formatNumber(calculationReport.summary.clueTotal, 0) }} 条</span>
+              </div>
             </div>
+            <p v-if="calculationReport.summary.clueCount !== undefined" class="clue-assumption">线索按全程开启交流计算，不计信用和加权收入。</p>
           </div>
 
           <!-- Facilities Overview Matrix -->
@@ -329,6 +335,7 @@ import { NButton, NModal } from 'naive-ui'
 import { toPng, toBlob } from 'html-to-image'
 import type { RosterWorkspace, MowerFacility, MowerSlot } from '../../domain/roster'
 import type { CalculationReport } from '../../domain/types'
+import { formatClueCount } from '../../workbench/mowerReportMetrics'
 import { getOperatorAvatarUrl, getOperatorName, getRoomDisplayName } from '../../workbench/operatorHelpers'
 
 const props = defineProps<{
@@ -645,6 +652,16 @@ async function handleCopyPoster(): Promise<void> {
   display: grid;
   grid-template-columns: 1.2fr repeat(4, 1fr);
   gap: 8px;
+}
+
+.income-grid.has-clues {
+  grid-template-columns: 1.2fr repeat(5, 1fr);
+}
+
+.clue-assumption {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #8b9bb4;
 }
 
 .income-metric {
