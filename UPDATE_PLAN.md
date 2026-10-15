@@ -1,20 +1,19 @@
-# 2026-10-15 回收站挂件自动分配（进行中）
+# 2026-10-15 回收站挂件自动分配（开发与验收完成）
 
-- 目标：自动排班允许挂件进入已建回收站，与加工站、训练室同属辅助设施优先级，高于宿舍；同级保持加工站、训练室、回收站的稳定遍历顺序，宿舍继续兜底。办公室现有杜林辅助分配入口保留。
-- 基线与保护：独立 managed worktree，从 main a59b428 建立 codex/recycle-pendant-20261015；原目录 Release 修复及未跟踪资料不改动。已跟踪实际源码完整备份并逐文件重读 SHA256，见 artifacts/recycle-pendant-20261015/backup-manifest.json。无干员库、排班、配置或存储格式迁移。
-- 模式：主 agent 统筹本任务，其他会话继续 Release 工作，文件与分支隔离；主 agent 负责领域共享规则、计划、说明、结构、集成验证及 Git/PR/安装交付。
-- 接口与并行单写归属：领域 facilities.ts 新增辅助设施类型集合，供两条分配入口共用；pendant_test 独占 scheduler/smartDormitoryPolicy.spec.ts 和 optimizer/combinationEnumeration.spec.ts，先记录失败；pendant_impl 独占 scheduler/smartDormitoryPolicy.ts、optimizer/combinationEnumeration.ts 及 globalPerCapitaReplacement.ts 的相关注释。主 agent 先提供共享类型集合，测试与实现同批并行，生产变更前完成新增失败用例。
-- 影响与验收：直接挂件移位、杜林在岗挂件、莱茵 presence 枚举均按辅助设施优先；仅使用实际等级工位（回收站1/2/2），保护已占、Current、候补和锁定位置。覆盖未建、满位、一级多余槽位、锁定及宿舍兜底；无回收站布局保持确定性旧分配或用户要求的新辅助优先顺序。验证全局联动、实际练度与回收产出/心情回归，不变更技能数值、原生 Mower 时间策略或生产权重。
-- 验证：新增测试红绿、相关 scheduler/optimizer/engine/simulator 回归，必要全量测试（沿用60秒测试预算与既有个别显式预算）、vue-tsc、独立目录 Vite build、结构检查及 diff --check；最终候选独立审查。
-- 文档与交付：README 更新用户可感知规则，结构未新增路径时检查即可；既有领域 skill 的回收站等级、在岗计数和来源均继续适用，本次无新游戏数据导入或 skill 发布。仅本任务文件提交自己的 codex 分支；普通 PR 审查和验证后合并，核对实际 main；用户本次明确选择“暂不安装，只交付源码”，不写入 Tools 或结束程序。与并发 Release 的源码交付保持串行，禁止覆盖无关工作。
-- 审查补充：独立审查复现锁定空回收位导致莱茵 presence 整组被拒（P2）；测试 agent 在组合枚举 spec 补真实 pool→allocation 红绿用例；生产 agent 追加独占 combinationEvaluation.ts、molecularSynthesis.ts，将可选锁定位集合沿现有 pool→枚举调用传递，在选挂件工位前跳过锁定位置。原核心与候补分配锁约束不变。
-- 审查追加：同一锁定回退问题也影响直接挂件移位，生产 agent 负责 placePendantOperator 可选第5参数及两处全局调用传锁；测试 agent 独占 globalPerCapitaReplacement.spec.ts 新回归。枚举与实际分配之间另发现空位候补被重映射占用，主 agent 唯一负责 combinationAllocation.ts 的新主班位候补保护，测试 agent 在枚举 spec 补真实分配红绿用例；已有同干员原位保留路径不变。
-- 直接宿舍回退的实际诊断：候补齐全、锁与既有组合均保留，唯一失败是旧的宿舍挂件 groupId 形成没有工作主班的非法排班组。沿用现有 presence 的本地驻留语义（groupId=null、dormitoryResident=true）；第三个位置参数保留以兼容现有调用，不新增存储格式或游戏机制。真实全局移位回归同时检查 physical roster 与唯一占位。
-- 当前状态：原新增红阶段9失败/30通过，首轮集成定向5文件65项通过；vue-tsc 通过，Vite 独立目录构建成功（既有大 chunk 提示）。审查锁定位枚举4项已红绿验证；在候选修正后重跑完整回归，停止了已核实归属的审查前全量runner以免混用源码证据；PR 与源码交付待完成；Tools 按本次用户要求不执行。
-
-- 验证依赖：最终全量在主线旧 WorkbenchShell 单例用例上复现60秒超时（实测65.342秒），对应另一会话已提交的 PR15/d39faa6。为获得可正常检查的集成候选，保留该原提交合入本任务分支（不修改其源分支、不独立接管原安装/运行任务），仅涉及桌面 CI 路径与现有单项180秒预算；独立审查该固定依赖并重验受影响环境与测试。
-- 实际主线更新：PR15 后续以 fb35c076 合入，并包含087af55的技能说明/头像修复；正常 merge 保留最新主线，未覆盖并发成果。新增主线相关21项测试、Release环境完整Workbench37项及20项资源检查通过，集成类型与构建成功；当前 full run 仍运行，除已修正60秒预算外又记录原120秒端到端场景超时，待所有重算结束后按原预算隔离复测，不修改断言或擅自扩张测试预算。
-- 交付范围纠正：用户在本次安装运行状态询问中明确选择“暂不安装，只交付源码”；安装、原生程序启动及 Tools 哈希同步不再是本次待办，保留原安装程序和数据。
+- 目标与结果：已建回收站与加工站、训练室同属辅助设施优先级，均先于宿舍；同级保持加工站→训练室→回收站的稳定遍历。直接挂件移位、杜林在岗挂件及组合在岗挂件均接入；办公室既有杜林分配顺序保留。
+- 边界：仅使用实际建造等级的工位，回收站容量1／2／2；保护已占、Current、候补预留和锁定位，锁定辅助位后继续寻找合法辅助位或宿舍。直接宿舍回退沿用现有驻留语义 groupId=null、dormitoryResident=true，保留第3位置参数调用兼容性。
+- 基线与隔离：从 main a59b428 建立独立 managed worktree 的 codex/recycle-pendant-20261015，原目录的 Release 工作、未跟踪资料、干员库、排班和配置未覆盖。后续正常合并保留 PR15 原提交d39faa6及实际主线fb35c076（含087af55技能说明修复），不改写其他分支。
+- 模式与并行：主 agent 负责共享领域集合、计划／文档、combinationAllocation.ts 候补保护、集成和Git交付；pendant_impl 独占 smartDormitoryPolicy.ts、combinationEnumeration.ts、combinationEvaluation.ts、molecularSynthesis.ts、globalPerCapitaReplacement.ts；pendant_test 独占对应4个现有spec；两者在红例确认后同批并行，pendant_review 独立复审。共享接口为 PENDANT_AUXILIARY_FACILITIES 和可选 ReadonlySet<string> 锁集合，无数据迁移。
+- 审查修复：真实复现并修复锁定位使整组／整次移位被拒、重映射占用候补预留，以及宿舍挂件错误形成排班组；候补完整、锁和既有组合保留后，以物理排班检查确认直接回退有效。复审未发现剩余可操作问题。
+- 验证绑定：程序候选 f0d80ae429c8de9e81eb47a812de467e538b05b7，src树 a7782635ed18c449a9a0208cd831d8e3e12316cc；599项程序／测试输入哈希零差异，末尾交付记录只改本计划。完整输入、产物1006文件哈希及结果见 artifacts/recycle-pendant-20261015/verification-summary.json 和 verification-inputs-main.json。
+- 最终全量：BASE_URL=/，node node_modules/vitest/vitest.mjs run --maxWorkers=1 --reporter=default --reporter=json --outputFile.json=artifacts/recycle-pendant-20261015/full-serial.json；289文件通过、1文件按既有外部审计开关跳过，3137项通过、1项跳过、0失败、0未处理错误，退出0，耗时3200.62秒。跳过项为 scripts/test-audit.spec.ts 的 RUN_MOWER_LAYOUT_AUDIT=1 外部资料审计，本次未修改默认开关。
+- 失败与复测证据：新增机制先记录9项红例及锁定／候补红例；首轮默认双worker全量3120通过、4项超时、2项Vitest进度RPC错误，未作为最终通过证据。Workbench旧60秒用例预算修正来自已合入主线的PR15；其完整37项在Release环境通过。另3项原120／180／60秒预算隔离复测全部通过，随后固定源码单worker整轮复测无错误通过；未修改其fixture、seed、调用和断言。日志分别见 tests-red.log、locks-red.log、direct-lock-red.log、reservation-red.log、full-tests-final.log、timeouts-isolated.log、full-serial.log。
+- 影响验证：含实际等级、未建／满位／额外无效槽、锁、Current、候补预留、真实pool→分配→宿舍整理、低练度伊芙利特在回收站使娜斯提生产效率实际增加3个百分点；还覆盖旧黄金场景、243／252、低练度、跑单、主副表、资源守恒、深海疲劳和长期产出。未变更技能数值、游戏数据、原生Mower时间策略或产出权重；实际游戏／设备及安装运行不作为本次已验证内容。
+- 其他检查：vue-tsc在最终主线集成后通过；Vite前端构建通过（既有大chunk提示），build-main.exit.txt=0；新增主线技能说明相关21项、Release环境资源路径20项通过；源码结构、既有后勤skill离线完整性及diff --check通过。README已说明用户可感知的分配规则，结构索引保留主线新增路径；本次无新游戏数据导入或独立skill发布。
+- 源码交付：自有工作分支已同步，普通PR入口为 https://github.com/Panda-Panta/R.I.I.C-Calculator/pull/16，最终head与实际合并状态以该PR记录为准；本机实际远端／合并提交核对另存 artifacts/recycle-pendant-20261015/source-delivery.json。遵守平台保护，不强推，不使用管理员绕过。
+- 安装范围：用户在本次明确选择“暂不安装，只交付源码”；未运行Tools同步、未结束安装程序、未写入用户配置／干员库／主副排班／WebView2档案，安装不属于本次剩余待办。
+- 备份与保留：1811个已跟踪实际源码文件完整ZIP备份，逐项重读SHA256校验；source-before.zip的SHA256为421a5044c1043b90227959a16eef5ac3a8fd195c20f8b070c7a058ac3108b677，backup-manifest.json可核对。本次保留源码回退、最新dist、红绿与全量日志及哈希；未生成安装包，不清理其他会话／用户资料。
+- 当前状态：实现、最终候选审查、验收、文档及工作分支同步完成；源码主线交付通过PR16记录，Tools按本次要求不执行。
 
 ---
 
