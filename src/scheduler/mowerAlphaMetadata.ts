@@ -1,3 +1,4 @@
+import {mowerRestingBindingGroups} from './mowerSharedGroups'
 import {admitMowerDerivedTasks} from './mowerTaskDerivation'
 // Mower b2d9ac8 scheduler_task.plan_metadata; recovery gap updated to ab0a4e5 (MIT, Copyright 2021 Nano).
 import {hasObservedFullMood,hasRestingMood} from './mowerOperatorState'
@@ -24,14 +25,14 @@ export function planMowerAlphaMetadata(actual:MowerSchedulingData,queue:MowerTas
  for(const bed of data.allDorms()){
   const op=data.operators[bed.name]
   if(!op||!data.groupDorms.includes(bed)&&!data.effectiveFreeSlot(bed)||names.has(op.name)||groups.has(op.group)||slots.has(alphaPosition(...bed.position)))continue
-  if(!op.multiGroup&&(!op.group||data.isGroupShiftAnchor(op)))grouped.set(op.group,[...(grouped.get(op.group)??[]),bed])
+  if((!op.multiGroup||op.independentRest)&&(!op.group||data.isGroupShiftAnchor(op)))grouped.set(op.group,[...(grouped.get(op.group)??[]),bed])
   if(data.dorms.includes(bed)&&!op.restMoodLimit&&!data.skipIdleDormRelease(op.name))free.push(bed)
  }
  const batches=new Map<number,MowerDormBatch>(),releases=new Map<number,MowerDormBatch>()
  const add=(time:number,beds:MowerDormState[],full:boolean)=>{const previous=batches.get(time);if(previous){previous.dorms.push(...beds);previous.restInFull=!!(previous.restInFull||full)}else batches.set(time,{timeMicros:time,dorms:[...beds],restInFull:full})}
  for(const [group,beds] of grouped){
-  const priority=beds.filter(b=>!data.operators[b.name]!.multiGroup&&data.operators[b.name]!.isHigh()&&data.operators[b.name]!.restingPriority==='high'),ordinary=beds.filter(b=>!data.operators[b.name]!.multiGroup&&data.operators[b.name]!.isHigh()&&data.operators[b.name]!.restingPriority!=='standby')
-  const high=priority.length?priority:ordinary.length?ordinary:beds.filter(b=>!data.operators[b.name]!.multiGroup&&data.operators[b.name]!.isHigh()&&!(group&&data.canStandby(data.operators[b.name]!))),full=high.filter(b=>data.operators[b.name]!.restInFull)
+  const priority=beds.filter(b=>(!data.operators[b.name]!.multiGroup||data.operators[b.name]!.independentRest)&&data.operators[b.name]!.isHigh()&&data.operators[b.name]!.restingPriority==='high'),ordinary=beds.filter(b=>(!data.operators[b.name]!.multiGroup||data.operators[b.name]!.independentRest)&&data.operators[b.name]!.isHigh()&&data.operators[b.name]!.restingPriority!=='standby')
+  const high=priority.length?priority:ordinary.length?ordinary:beds.filter(b=>(!data.operators[b.name]!.multiGroup||data.operators[b.name]!.independentRest)&&data.operators[b.name]!.isHigh()&&!(group&&data.canStandby(data.operators[b.name]!))),full=high.filter(b=>data.operators[b.name]!.restInFull)
   if(high.length&&group){
    let maximum:number|undefined,moodGap=false;const early=!data.operators[high[0]!.name]!.exhaustRequire
    const recoveryTimes=high.flatMap(b=>b.timeMicros===undefined?[]:[b.timeMicros])
@@ -53,7 +54,7 @@ export function planMowerAlphaMetadata(actual:MowerSchedulingData,queue:MowerTas
  const generated=admitMowerDerivedTasks(actual,queue.tasks,generateMowerDormTasks([...batches.values(),...releases.values()],data,existing,pending));queue.tasks.push(...generated)
  const returning=new Set(generated.flatMap(t=>Object.values(t.plan).flat()))
  for(const op of Object.values(data.operators)){
-  if(!op.isHigh()||op.multiGroup||op.room.startsWith('dorm')||op.currentRoom||op.group&&data.canStandby(op)||!data.restMoodComplete(op.name))continue
+  if(!op.isHigh()||op.multiGroup&&(!op.independentRest||mowerRestingBindingGroups(data,op).length)||op.room.startsWith('dorm')||op.currentRoom||op.group&&data.canStandby(op)||!(data.restMoodComplete(op.name)||op.independentRest&&hasRestingMood(op,now)&&op.currentMood(now)>=op.upperLimit))continue
   const members=op.group?data.group(op.group):[op.name]
   if(groups.has(op.group)||members.some(n=>returning.has(n)||names.has(n)||data.busyRestingNames.has(n)))continue
   const workers=members.map(n=>data.operators[n]!).filter(o=>!o.room.startsWith('dorm')&&!o.workaholic&&!(o.group&&data.canStandby(o)))

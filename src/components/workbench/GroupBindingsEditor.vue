@@ -3,7 +3,7 @@
     <td class="select-label">组</td>
     <td class="group">
       <div class="binding-group">
-        <n-input :value="binding.groupId ?? ''" placeholder="组名" size="small" :aria-label="`关联组 ${index + 2}`" @update:value="update(index, { groupId: $event || null })" />
+        <n-input :value="binding.groupId ?? ''" placeholder="留空按自身心情换班" title="最多一列空绑组；其他组休息时优先使用该组替班，个人休息仍按宿舍优先级安排。" size="small" :aria-label="`关联组 ${index + 2}`" @update:value="update(index, { groupId: $event || null })" />
         <n-button size="small" :aria-label="`移除关联组 ${index + 2}`" title="移除绑组" @click="remove(index)">−</n-button>
       </div>
     </td>

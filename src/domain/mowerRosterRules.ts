@@ -46,7 +46,7 @@ export function validateMowerRosterRules(workspace: RosterWorkspace): MowerRoste
     if (fiammetta && (slot.groupId || slot.groupBindings?.length)) add(entry, '菲亚梅塔不能参与绑组换班。')
     if (slot.groupBindings?.length) {
       const groupNames = columns.map(binding => binding.groupId?.trim() ?? '')
-      if (groupNames.some(group => !group) || new Set(groupNames).size !== groupNames.length) add(entry, '多绑组需要互不重复的非空组名。')
+      if (new Set(groupNames).size !== groupNames.length) add(entry, '多绑组的组名不能重复，空组名最多一列。')
     }
     for (const binding of columns) {
       const seen = new Set<string>()
