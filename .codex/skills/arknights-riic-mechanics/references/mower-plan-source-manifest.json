@@ -323,5 +323,24 @@
       "nativeMinimalRestingOracleLog": "/tmp/mower-shared-standby-oracle.log"
     },
     "knownLimits": "243 baseline gold-equivalent LMD 69607.14/day; post-fix full horizon not replayed. Rainbow short diagnostic reached only 6.776h in 55s. Plan10 high-priority early return / low-priority resting oscillation identified but unresolved; no full-window income recovery or all-slow-plan fix claim."
+  },
+  "exhaustSupportDispatchCompatibility": {
+    "repository": "https://github.com/ALEXsun0/arknights-mower",
+    "commit": "acd54324d549eec34ef1a0bb9910de4c92cfb7d1",
+    "pullRequest": "https://github.com/ArkMowers/arknights-mower/pull/1442",
+    "files": [
+      {
+        "path": "arknights_mower/solvers/base_schedule.py",
+        "sha256": "a0b521a2d0a4cfd379650416d38803e7acc6e87868ba920aa0ecb44b52cfab17",
+        "bytes": 589566
+      },
+      {
+        "path": "arknights_mower/tests/exhaust_replacement_tests.py",
+        "sha256": "a06aa911b71fde7b87d3283fb9d5f30c70083522ddb326e2701a609c024da6b4",
+        "bytes": 29464
+      }
+    ],
+    "scope": "Preserve exhaustion support as a prerequisite: prepare required backup actions without ordinary recovery expansion, exclude support tasks from ordinary and backup coalescing, retain the role across task clones. No complete native parity or full-window income claim.",
+    "gameRuntimeVerified": false
   }
 }
