@@ -403,6 +403,9 @@ export function exportMowerJson(workspace: RosterWorkspace): string {
     planObj[roomId] = facilityData
   }
 
+  // Infer levels from structured rooms without parsing preserved opaque values.
+  const inferencePlanObj = { ...planObj }
+
   // Include any unrecognized rooms preserved from import
   if (workspace.compatibility.unrecognizedRooms) {
     for (const [uRoomId, uRoomData] of Object.entries(workspace.compatibility.unrecognizedRooms)) {
@@ -443,7 +446,7 @@ export function exportMowerJson(workspace: RosterWorkspace): string {
     if (facility) exportedLevels[room] = facility.level
   }
   // Save edited levels that the exported legacy layout would infer differently.
-  const inferred = importMowerJson(JSON.stringify({ default: defaultKey, [defaultKey]: planObj })).mainPlan.facilities
+  const inferred = importMowerJson(JSON.stringify({ default: defaultKey, [defaultKey]: inferencePlanObj })).mainPlan.facilities
   for (const room of MOWER_ROOM_IDS) {
     if (room.startsWith('gaming_')) continue
     const facility = facilities[room]
