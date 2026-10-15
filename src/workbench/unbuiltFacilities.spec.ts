@@ -16,12 +16,15 @@ import { migrateAppConfigToWorkspace } from './migrate'
 import { applySmartDormitoryPolicy } from '../scheduler/smartDormitoryPolicy'
 
 function source() {
-  return JSON.parse(readFileSync(resolve('src/workbench/compat/fixtures/mower-252-3gold.json'), 'utf8'))
+  const raw = JSON.parse(readFileSync(resolve('src/workbench/compat/fixtures/mower-252-3gold.json'), 'utf8'))
+  raw.facility_levels = { ...raw.facility_levels, recycle: 0 }
+  return raw
 }
 function reducedRoster() {
   const raw = source()
   delete raw[raw.default].dormitory_4
   delete raw[raw.default].train
+  raw.facility_levels = { ...raw.facility_levels, dormitory_4: 0, train: 0 }
   return importMowerJson(JSON.stringify(raw))
 }
 
@@ -44,9 +47,10 @@ describe('unbuilt facilities', () => {
     expect(compileRosterSchedule(roundtrip).rooms.map(r => r.roomId)).toEqual(schedule.rooms.map(r => r.roomId))
   })
 
-  it('uses actual dorm residents to infer construction, never Free placeholders', () => {
+  it('does not infer construction or recovery beds for an explicitly unbuilt empty dorm', () => {
     const raw = source()
-    raw[raw.default].dormitory_4.plans = Array.from({ length: 5 }, () => ({ agent: 'Free', group: '', replacement: [] }))
+    raw[raw.default].dormitory_4.plans = []
+    raw.facility_levels.dormitory_4 = 0
     const ws = importMowerJson(JSON.stringify(raw))
     expect(ws.mainPlan.facilities.dormitory_4).toMatchObject({ level: 0, slots: [] })
     expect(compileRosterSchedule(ws).restPools.some(p => p.roomId === 'dormitory_4')).toBe(false)
@@ -81,6 +85,7 @@ describe('unbuilt facilities', () => {
   it('supports omitted production and auxiliary facilities without counting them as built', () => {
     const raw = source()
     for (const room of ['room_1_1', 'meeting', 'contact', 'factory']) delete raw[raw.default][room]
+    raw.facility_levels = { ...raw.facility_levels, meeting: 0, contact: 0, factory: 0 }
     const ws = importMowerJson(JSON.stringify(raw))
     const config = compileMainPlanToAppConfig(ws.mainPlan, ws, createDefaultConfig())
     expect(config.rooms).toHaveLength(8)

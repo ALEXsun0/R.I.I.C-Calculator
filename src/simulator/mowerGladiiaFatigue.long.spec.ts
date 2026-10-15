@@ -3,7 +3,7 @@ import {expect,it} from 'vitest'
 import {importMowerJson} from '../workbench/compat/mowerJson'
 import {runCalculationBridge} from '../workbench/calculationBridge'
 
-it('matches fixed PR10 legacy statistics in the unchanged nine-backup roster',async()=>{
+it('keeps the nine-backup legacy roster complete after fatigue recovery stacking is corrected',async()=>{
  // Let Vitest publish the task before entering the synchronous long simulation.
  await new Promise(resolve=>setTimeout(resolve,150))
  const workspace=importMowerJson(readFileSync(new URL('../../validation/mower-backup-2026-09-22/roster.json',import.meta.url),'utf8'))
@@ -18,12 +18,13 @@ it('matches fixed PR10 legacy statistics in the unchanged nine-backup roster',as
  expect(result.simulationReport?.elapsedHours).toBe(240)
  const gladiia=result.simulationReport!.operators.find(op=>op.operatorId==='char_474_glady')
  expect(gladiia).toBeDefined()
- // Fixed PR10 779275494fc3890ef248e88b4f1550c4d295f151 produces this exact
- // legacy sample statistic. Candidate replay has identical events and morale
- // segments. This roster can wait for candidates/beds, and backup #8 only
- // activates once Gladiia is resting; it does not guarantee zero fatigue.
+ // The recovery stacking correction in e58cc77 changes this legacy sample:
+ // 刺玫's extra 0.1/h at mood <=18 now stacks with other group recovery.
+ // Replacing only dormitoryRecovery.ts with its pre-fix version restores
+ // PR10's 2.1964869858310814 exhausted hours within 1e-8. This snapshot
+ // records the corrected rule; the roster still does not guarantee zero fatigue.
  // The healthy-provider grant to fatigued hunters has separate boundary tests.
- expect(gladiia!.exhaustedHours).toBeCloseTo(2.1964869858310814,8)
+ expect(gladiia!.exhaustedHours).toBeCloseTo(0.007896864444444445,8)
  expect(workspace).toEqual(before)
  expect(workspace.compatibility.backupPlans).toHaveLength(9)
  // Preserve all nine conditions; recovery changes can legitimately prevent a

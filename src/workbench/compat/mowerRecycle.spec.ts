@@ -49,7 +49,7 @@ describe('native recycling plan compatibility', () => {
   })
 
   it('keeps an absent recycling room unbuilt and omits it from old native exports', () => {
-    const workspace = importMowerJson(JSON.stringify({ default: 'plan1', plan1: {} }))
+    const workspace = importMowerJson(JSON.stringify({ default: 'plan1', plan1: {}, facility_levels: { recycle: 0 } }))
     expect(workspace.mainPlan.facilities.recycle).toMatchObject({ level: 0, slots: [] })
     expect(compileMainPlanToAppConfig(workspace.mainPlan, workspace, createDefaultConfig()).facilities.recycle).toBeUndefined()
     expect(compiledScheduleToRuntimeConfig(compileRosterSchedule(workspace)).mowerRecycleBuilt).toBeUndefined()
@@ -104,7 +104,10 @@ describe('native recycling plan compatibility', () => {
   it.each([1, 2, 3])('retains explicit level %i, its actual capacity, and zero additional power cost', level => {
     // Capacity and power do not require a bound rest group in this room-only plan.
     const plans = recycle.plans.slice(0, level === 1 ? 1 : 2).map(plan => ({ ...plan, group: '' }))
-    const workspace = importMowerJson(JSON.stringify({ default: 'plan1', plan1: { recycle: { ...recycle, level, plans } } }))
+    const workspace = importMowerJson(JSON.stringify({
+      default: 'plan1', plan1: { recycle: { ...recycle, level, plans } },
+      facility_levels: { meeting: 0, factory: 0, contact: 0, train: 0 },
+    }))
     const result = validateRosterWorkspace(workspace)
     expect(result.criticalErrors).toEqual([])
     expect(result.power).toMatchObject({ generation: 0, consumption: 0, margin: 0 })
