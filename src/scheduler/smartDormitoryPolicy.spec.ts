@@ -6,8 +6,10 @@ import {
   findLowestRecoveryDormitorySlot,
   isAoeDormKeeper,
   isSingleDormKeeper,
+  placePendantOperator,
 } from './smartDormitoryPolicy'
 import { OPERATOR_MAP, OPERATORS } from '../domain/operators'
+import type { MowerSlot } from '../domain/roster'
 
 import { validateRosterWorkspace } from '../workbench/validate'
 
@@ -179,5 +181,105 @@ describe('smartDormitoryPolicy', () => {
     const lowest = findLowestRecoveryDormitorySlot(ws, false)
     expect(lowest).not.toBeNull()
     expect(lowest?.roomId).toBe('dormitory_4')
+  })
+})
+
+
+const emptyPendantSlot = (): MowerSlot => ({ occupant: { kind: 'empty' }, groupId: null, replacements: [] })
+const occupiedPendantSlot = (name: string): MowerSlot => ({ occupant: { kind: 'operator', operatorId: id(name) }, groupId: null, replacements: [] })
+
+function pendantWorkspace(level = 1) {
+  const ws = createDefaultWorkspace()
+  ws.mainPlan.facilities.factory.slots = [occupiedPendantSlot('芬')]
+  ws.mainPlan.facilities.train.slots = [occupiedPendantSlot('香草'), occupiedPendantSlot('翎羽')]
+  ws.mainPlan.facilities.recycle.level = level
+  ws.mainPlan.facilities.recycle.slots = Array.from({ length: level === 1 ? 1 : 2 }, emptyPendantSlot)
+  ws.mainPlan.facilities.dormitory_4.level = 1
+  return ws
+}
+
+describe('recycling station pendant priority', () => {
+  it.each([1, 2, 3])('uses a legal level %i recycling seat before any free dorm bed', level => {
+    const ws = pendantWorkspace(level), recycle = ws.mainPlan.facilities.recycle
+    const target = level === 1 ? 0 : 1
+    if (target === 1) recycle.slots[0] = occupiedPendantSlot('旅骨')
+    const dorms = Object.values(ws.mainPlan.facilities).filter(room => room.type === 'dormitory').map(room => structuredClone(room))
+
+    expect(placePendantOperator(ws, '至简')).toEqual({ placed: true, roomId: 'recycle', slotIndex: target })
+    expect(recycle.slots[target]).toEqual(occupiedPendantSlot('至简'))
+    if (target === 1) expect(recycle.slots[0]).toEqual(occupiedPendantSlot('旅骨'))
+    expect(Object.values(ws.mainPlan.facilities).filter(room => room.type === 'dormitory')).toEqual(dorms)
+    expect(validateRosterWorkspace(ws).criticalErrors).toEqual([])
+  })
+
+  it('retains factory then training as the stable order within the same auxiliary tier', () => {
+    const ws = pendantWorkspace()
+    ws.mainPlan.facilities.factory.slots = [emptyPendantSlot()]
+    ws.mainPlan.facilities.train.slots = [emptyPendantSlot(), emptyPendantSlot()]
+    expect(placePendantOperator(ws, '至简')).toEqual({ placed: true, roomId: 'factory', slotIndex: 0 })
+    expect(placePendantOperator(ws, '褐果')).toEqual({ placed: true, roomId: 'train', slotIndex: 0 })
+    expect(ws.mainPlan.facilities.recycle.slots).toEqual([emptyPendantSlot()])
+  })
+
+  it.each(['unbuilt', 'occupied', 'current', 'replacement', 'over-capacity'] as const)(
+    'preserves a %s recycling seat and falls back to the slowest free dorm bed', reason => {
+      const ws = pendantWorkspace(), recycle = ws.mainPlan.facilities.recycle
+      if (reason === 'unbuilt') recycle.level = 0
+      if (reason === 'occupied' || reason === 'over-capacity') recycle.slots[0] = occupiedPendantSlot('旅骨')
+      if (reason === 'current') recycle.slots[0]!.occupant = { kind: 'current' }
+      if (reason === 'replacement') recycle.slots[0]!.replacements = [id('砾')]
+      if (reason === 'over-capacity') recycle.slots.push(emptyPendantSlot())
+      const before = structuredClone(recycle)
+      expect(placePendantOperator(ws, '至简')).toEqual({ placed: true, roomId: 'dormitory_4', slotIndex: 0 })
+      expect(recycle).toEqual(before)
+    },
+  )
+
+  it('preserves Current and reserved replacements in earlier auxiliary rooms', () => {
+    const ws = pendantWorkspace()
+    ws.mainPlan.facilities.factory.slots[0]!.occupant = { kind: 'current' }
+    ws.mainPlan.facilities.train.slots[0] = { ...emptyPendantSlot(), replacements: [id('砾')] }
+    ws.mainPlan.facilities.train.slots[1]!.occupant = { kind: 'current' }
+    const factory = structuredClone(ws.mainPlan.facilities.factory), train = structuredClone(ws.mainPlan.facilities.train)
+    expect(placePendantOperator(ws, '至简')).toEqual({ placed: true, roomId: 'recycle', slotIndex: 0 })
+    expect(ws.mainPlan.facilities.factory).toEqual(factory)
+    expect(ws.mainPlan.facilities.train).toEqual(train)
+  })
+
+  it.each([false, true])('places automatic Durin presence in recycle before dorms, respecting locks (%s)', locked => {
+    const ws = pendantWorkspace()
+    ws.mainPlan.facilities.contact.slots = [occupiedPendantSlot('砾')]
+    ws.mainPlan.facilities.room_3_1.slots[0] = occupiedPendantSlot('鸿雪')
+    const recycleBefore = structuredClone(ws.mainPlan.facilities.recycle)
+    const report = applySmartDormitoryPolicy(ws, {
+      candidateOperatorIds: ['至简'], lockedPositions: locked ? new Set(['recycle:0']) : undefined,
+    })
+    expect(report.synergyPlaced).toEqual([{ operatorId: id('至简'), roomId: locked ? 'dormitory_4' : 'recycle', slotIndex: 0 }])
+    if (locked) expect(ws.mainPlan.facilities.recycle).toEqual(recycleBefore)
+    else expect(ws.mainPlan.facilities.recycle.slots[0]).toEqual(occupiedPendantSlot('至简'))
+    expect(validateRosterWorkspace(ws).criticalErrors).toEqual([])
+  })
+})
+
+
+describe('pendant fallback preserves reserved dormitory beds', () => {
+  it('searches beyond a Current dormitory occupant when auxiliary seats are unavailable', () => {
+    const ws = pendantWorkspace()
+    ws.mainPlan.facilities.recycle.slots[0] = occupiedPendantSlot('旅骨')
+    ws.mainPlan.facilities.dormitory_4.slots[0]!.occupant = { kind: 'current' }
+    const before = structuredClone(ws.mainPlan.facilities.dormitory_4.slots[0])
+    expect(placePendantOperator(ws, '至简')).toEqual({ placed: true, roomId: 'dormitory_4', slotIndex: 1 })
+    expect(ws.mainPlan.facilities.dormitory_4.slots[0]).toEqual(before)
+  })
+
+  it('continues past the locked slowest bed for automatic Durin presence', () => {
+    const ws = pendantWorkspace()
+    ws.mainPlan.facilities.contact.slots = [occupiedPendantSlot('砾')]
+    ws.mainPlan.facilities.recycle.slots[0] = occupiedPendantSlot('旅骨')
+    ws.mainPlan.facilities.room_3_1.slots[0] = occupiedPendantSlot('鸿雪')
+    const before = structuredClone(ws.mainPlan.facilities.dormitory_4.slots[0])
+    const report = applySmartDormitoryPolicy(ws, { candidateOperatorIds: ['至简'], lockedPositions: new Set(['dormitory_4:0']) })
+    expect(report.synergyPlaced).toEqual([{ operatorId: id('至简'), roomId: 'dormitory_4', slotIndex: 1 }])
+    expect(ws.mainPlan.facilities.dormitory_4.slots[0]).toEqual(before)
   })
 })

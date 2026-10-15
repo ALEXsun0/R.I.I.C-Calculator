@@ -46,8 +46,8 @@ export function evaluateCombinationVariant(base: RosterWorkspace, inventory: Ope
   return result
 }
 
-export function buildCombinationPool(base: RosterWorkspace, inventory: OperatorInventory): CombinationPool {
-  const variants = enumerateCombinationVariants(base, inventory)
+export function buildCombinationPool(base: RosterWorkspace, inventory: OperatorInventory, lockedPositions?: ReadonlySet<string>): CombinationPool {
+  const variants = enumerateCombinationVariants(base, inventory, lockedPositions)
   const config = projectRosterConfig(base)
   config.operatorRecords = inventoryOperatorRecords(inventory)
   const projection = projectControlOutput(config)

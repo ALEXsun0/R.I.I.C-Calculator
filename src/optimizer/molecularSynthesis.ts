@@ -142,7 +142,7 @@ export function generateMolecularCandidates(base: RosterWorkspace, entries: read
     while (room.slots.length < cap) room.slots.push({ occupant: { kind: 'empty' }, groupId: null, replacements: [] })
     room.slots.length = cap
   }
-  const pool = buildCombinationPool(base, inventory)
+  const pool = buildCombinationPool(base, inventory, options.lockedPositions)
   const allocationOptions = { ...options, enforceRecoveryCapacity: true }
   const count = Math.max(1, options.branchCount ?? 8)
   const candidates: MolecularCandidate[] = [], seen = new Set<string>(), skeletons = new Set<string>()

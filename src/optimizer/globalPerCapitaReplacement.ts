@@ -69,7 +69,7 @@ function isPendantOperator(name: string, ws: RosterWorkspace): boolean {
  * 2. Globally inspect all units and singletons in production rooms (manufacture, trading).
  * 3. Match candidate replacements of the EXACT SAME HEADCOUNT (1-to-1, 2-to-2, 3-to-3).
  * 4. If any operator being swapped out is a pendant, relocate them to non-production facilities
- *    (factory -> train -> lowest-recovery dorm position).
+ *    (factory -> train -> recycle -> lowest-recovery dorm position).
  * 5. Verify dynamic simulation: only accept swaps where newScore > currentScore.
  *    If score degrades or does not improve, rollback immediately to guarantee monotonicity!
  * 6. Rebuild candidates after each accepted swap within the bounded search budget.
@@ -128,7 +128,7 @@ export function runGlobalPerCapitaReplacement(
           slot.replacements = []
           repairPositions.add(`${rId}:${sIdx}`)
           logs.push(`[挂件移位] 2电站限制：检测到至简入驻制造站 ${getRoomDisplayName(rId)}，移出制造站并安置于非生产设施。`)
-          const pendantResult = placePendantOperator(ws, '至简', '感知信息挂件', inventory)
+          const pendantResult = placePendantOperator(ws, '至简', '感知信息挂件', inventory, lockedPositions)
           if (pendantResult.placed) {
             logs.push(`[挂件落位] 至简成功安置于 ${getRoomDisplayName(pendantResult.roomId!)} 槽位 ${pendantResult.slotIndex}。`)
           }
@@ -362,7 +362,7 @@ export function runGlobalPerCapitaReplacement(
       // Relocate only after clearing the previous assignment; otherwise the helper
       // sees an already-stationed pendant and the subsequent clear loses that support.
       for (const name of pendantNames) {
-        const result = placePendantOperator(draftWs, name, `${name}_挂件`, inventory)
+        const result = placePendantOperator(draftWs, name, `${name}_挂件`, inventory, lockedPositions)
         if (result.placed) pendantLogs.push(`[挂件转移] ${name} 已安置于 ${getRoomDisplayName(result.roomId!)}。`)
       }
 

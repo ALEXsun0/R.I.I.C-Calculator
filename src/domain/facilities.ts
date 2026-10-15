@@ -1,3 +1,6 @@
+/** Pendant seats share one auxiliary tier, ahead of dormitory beds. */
+export const PENDANT_AUXILIARY_FACILITIES = ['factory', 'train', 'recycle'] as const
+
 /** Physical staffing capacity, independent of output scoring or UI layout. */
 export function facilityCapacity(type: string, level: number): number {
   if (level <= 0) return 0

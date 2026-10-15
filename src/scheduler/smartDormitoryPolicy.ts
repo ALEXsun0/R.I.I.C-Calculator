@@ -3,6 +3,7 @@ import { compileOperatorInventory, type OwnedOperatorInput, type OperatorInvento
 import { resolveOperatorCharId as resolveId } from '../domain/operatorIdentifiers'
 import { hasRiicTag } from '../domain/riicTags'
 import { inventoryOperatorRecords } from '../domain/operatorContext'
+import { facilityCapacity, PENDANT_AUXILIARY_FACILITIES } from '../domain/facilities'
 import type { MowerRoomId, RosterWorkspace } from '../domain/roster'
 
 export interface SmartDormitoryOptions {
@@ -123,6 +124,7 @@ export function calculateSlotRecoveryRate(
 export function findLowestRecoveryDormitorySlot(
   workspace: RosterWorkspace,
   excludeOccupied = true,
+  lockedPositions?: ReadonlySet<string>,
 ): { roomId: MowerRoomId; slotIndex: number; rate: number } | null {
   const dormIds = (['dormitory_1', 'dormitory_2', 'dormitory_3', 'dormitory_4'] as MowerRoomId[])
     .filter(id => (workspace.mainPlan.facilities[id]?.level ?? 0) > 0)
@@ -133,8 +135,8 @@ export function findLowestRecoveryDormitorySlot(
     if (!fac) continue
     for (let sIdx = 0; sIdx < fac.slots.length; sIdx++) {
       const slot = fac.slots[sIdx]
-      if (!slot) continue
-      if (excludeOccupied && slot.occupant.kind === 'operator') continue
+      if (!slot || lockedPositions?.has(`${dId}:${sIdx}`)) continue
+      if (excludeOccupied && ((slot.occupant.kind !== 'empty' && slot.occupant.kind !== 'free') || slot.replacements.length > 0)) continue
       if (slot.occupant.kind === 'operator' && resolveId(slot.occupant.operatorId) === 'char_300_phenxi') continue
 
       const rate = calculateSlotRecoveryRate(workspace, dId, sIdx)
@@ -149,15 +151,15 @@ export function findLowestRecoveryDormitorySlot(
 
 /**
  * Place a pendant operator into non-production facilities:
- * 1. Factory (Workshop), with replacement if available
- * 2. Train (Training Room), with replacement if available
- * 3. Dormitory slot with the LOWEST mood recovery rate
+ * 1. Auxiliary facilities (Workshop, Training Room, Recycling Station), in stable order.
+ * 2. Dormitory slot with the LOWEST mood recovery rate.
  */
 export function placePendantOperator(
   workspace: RosterWorkspace,
   operatorName: string,
-  groupId: string = '挂件干员',
+  _groupId: string = '挂件干员', // Retain the legacy positional label; dormitory presence is local residency.
   inventory?: OperatorInventory,
+  lockedPositions?: ReadonlySet<string>,
 ): { placed: boolean; roomId?: MowerRoomId; slotIndex?: number } {
   const charId = resolveId(operatorName)
   const facs = workspace.mainPlan.facilities
@@ -165,46 +167,36 @@ export function placePendantOperator(
     ...(slot.occupant.kind === 'operator' ? [resolveId(slot.occupant.operatorId)] : []), ...slot.replacements.map(resolveId),
   ])))
 
-  // 1. Try factory (Workshop)
-  const factory = facs.factory
-  if (factory && factory.slots.length > 0 && factory.slots[0]!.occupant.kind !== 'operator') {
-    const slot = factory.slots[0]!
+  // Auxiliary facilities share a priority tier above dormitory beds.
+  for (const roomId of PENDANT_AUXILIARY_FACILITIES) {
+    const room = facs[roomId]
+    if (!room || room.level <= 0) continue
+    const capacity = facilityCapacity(room.type, room.level)
+    const slotIndex = room.slots.findIndex((slot, index) => index < capacity && !lockedPositions?.has(`${roomId}:${index}`) &&
+      (slot.occupant.kind === 'empty' || slot.occupant.kind === 'free') && !slot.replacements.length)
+    if (slotIndex < 0) continue
+    const slot = room.slots[slotIndex]!
     slot.occupant = { kind: 'operator', operatorId: charId }
     slot.groupId = null
-    const backup = inventory?.operators.find(
+    // Retain the established workshop/training relief choices. Recycling relief
+    // is completed by the ordinary backup allocator and needs no RECYCLE skill.
+    const backup = roomId === 'factory' ? inventory?.operators.find(
       (o) => o.skills.some(s => s.roomType === 'WORKSHOP') && !reserved.has(o.charId) && o.name !== operatorName && (o.name === '特克诺' || o.name === '年' || o.name === '锡兰'),
-    )
-    if (backup) {
-      slot.replacements = [backup.charId]
-    }
-    return { placed: true, roomId: 'factory', slotIndex: 0 }
+    ) : roomId === 'train' ? inventory?.operators.find(
+      (o) => o.skills.some(s => s.roomType === 'TRAINING') && !reserved.has(o.charId) && o.name !== operatorName && (o.name === '达利尔' || o.name === '艾丽妮' || o.name === '左乐'),
+    ) : undefined
+    if (backup) slot.replacements = [backup.charId]
+    return { placed: true, roomId, slotIndex }
   }
 
-  // 2. Try train (Training Room)
-  const train = facs.train
-  if (train && train.slots.length > 0) {
-    const emptySlotIdx = train.slots.findIndex((s) => s.occupant.kind !== 'operator')
-    if (emptySlotIdx !== -1) {
-      const slot = train.slots[emptySlotIdx]!
-      slot.occupant = { kind: 'operator', operatorId: charId }
-      slot.groupId = null
-      const backup = inventory?.operators.find(
-        (o) => o.skills.some(s => s.roomType === 'TRAINING') && !reserved.has(o.charId) && o.name !== operatorName && (o.name === '达利尔' || o.name === '艾丽妮' || o.name === '左乐'),
-      )
-      if (backup) {
-        slot.replacements = [backup.charId]
-      }
-      return { placed: true, roomId: 'train', slotIndex: emptySlotIdx }
-    }
-  }
-
-  // 3. Dormitory slot with LOWEST recovery rate
-  const lowest = findLowestRecoveryDormitorySlot(workspace, true)
+  // Dormitory slot with LOWEST recovery rate.
+  const lowest = findLowestRecoveryDormitorySlot(workspace, true, lockedPositions)
   if (lowest) {
     const targetRoom = facs[lowest.roomId]!
     const targetSlot = targetRoom.slots[lowest.slotIndex]!
     targetSlot.occupant = { kind: 'operator', operatorId: charId }
-    targetSlot.groupId = groupId
+    targetSlot.groupId = null
+    targetSlot.dormitoryResident = true
     targetSlot.replacements = []
     return { placed: true, roomId: lowest.roomId, slotIndex: lowest.slotIndex }
   }
@@ -216,7 +208,7 @@ export function placePendantOperator(
  * Automatically applies smart dormitory keepers and synergy placements:
  * 1. Default 2 dorm keepers per dormitory: 1 AOE + 1 Single.
  * 2. If Fiammetta is in roster, places her in the slowest recovery dormitory.
- * 3. Synergy operators without recovery skills (e.g. Durin race) placed in Workshop/Training first, then Dormitory.
+ * 3. Synergy operators without recovery skills (e.g. Durin race) placed in Workshop/Training/Recycling first, then Dormitory.
  * 4. Honors user override: if conf.disable_auto_dorm_keeper is true and not force, skips auto assignment.
  * 5. Fills remaining unassigned slots in dormitories with 'free' so resting operators can rest.
  */
@@ -252,7 +244,7 @@ function removeOperatorEverywhere(
  * Automatically applies smart dormitory keepers and synergy placements:
  * 1. Default 2 dorm keepers per dormitory: 1 AOE + 1 Single.
  * 2. If Fiammetta is in roster, places her in the slowest recovery dormitory.
- * 3. Synergy operators without recovery skills (e.g. Durin race) placed in Workshop/Training first, then Dormitory.
+ * 3. Synergy operators without recovery skills (e.g. Durin race) placed in Workshop/Training/Recycling first, then Dormitory.
  * 4. Honors user override: if conf.disable_auto_dorm_keeper is true and not force, skips auto assignment.
  * 5. Fills remaining unassigned slots in dormitories with 'free' so resting operators can rest.
  */
@@ -669,8 +661,8 @@ export function applySmartDormitoryPolicy(
       return true
     })
 
-    // Auxiliary rooms: contact (office), factory (workshop), train (training)
-    const auxiliaryRooms: MowerRoomId[] = ['contact', 'factory', 'train']
+    // Preserve the existing office priority, then use the shared auxiliary tier.
+    const auxiliaryRooms: readonly MowerRoomId[] = ['contact', ...PENDANT_AUXILIARY_FACILITIES]
     for (const op of durinSynergyOps) {
       if (durinCountInBase >= 4) break
       let placed = false
@@ -678,10 +670,11 @@ export function applySmartDormitoryPolicy(
       // Try auxiliary rooms first
       for (const auxId of auxiliaryRooms) {
         const fac = facilities[auxId]
-        if (!fac) continue
-        for (let sIdx = 0; sIdx < fac.slots.length; sIdx++) {
+        if (!fac || fac.level <= 0) continue
+        const capacity = facilityCapacity(fac.type, fac.level)
+        for (let sIdx = 0; sIdx < Math.min(fac.slots.length, capacity); sIdx++) {
           const slot = fac.slots[sIdx]
-          if (slot && !locked(auxId, sIdx) && (slot.occupant.kind === 'empty' || slot.occupant.kind === 'free')) {
+          if (slot && !locked(auxId, sIdx) && !slot.replacements.length && (slot.occupant.kind === 'empty' || slot.occupant.kind === 'free')) {
             removeOperatorEverywhere(workspace, op.charId, auxId, sIdx)
             slot.occupant = { kind: 'operator', operatorId: op.charId }
             usedKeepers.add(op.charId)
@@ -697,7 +690,7 @@ export function applySmartDormitoryPolicy(
 
       // If auxiliary rooms full, place into dormitory slot with LOWEST recovery rate
       if (!placed && currentPermanentCount < maxPermanentAllowed) {
-        const lowestSlot = findLowestRecoveryDormitorySlot(workspace, true)
+        const lowestSlot = findLowestRecoveryDormitorySlot(workspace, true, options.lockedPositions)
         if (lowestSlot) {
           const fac = facilities[lowestSlot.roomId]
           if (fac) {

@@ -85,7 +85,7 @@ function remapFree(ws: RosterWorkspace, original: CombinationVariant, role: Rost
       original.policy.workaholic?.some(ref => id(ref) === p.operatorId))) return null
     const index = existing?.slotIndex ?? room.slots.findIndex((slot, index) => {
       if (locks.lockedPositions?.has(`${room.roomId}:${index}`) || placements.some(a => a.roomId === room.roomId && a.slotIndex === index && a.role === actualRole)) return false
-      if (actualRole === 'main') return ['empty', 'free'].includes(slot.occupant.kind)
+      if (actualRole === 'main') return ['empty', 'free'].includes(slot.occupant.kind) && !slot.replacements.length
       return !slot.replacements.length && slot.occupant.kind !== 'current' &&
         !(slot.occupant.kind === 'operator' && ws.mainPlan.conf.workaholic.some(ref => id(ref) === id(slot.occupant.kind === 'operator' ? slot.occupant.operatorId : '')))
     })
