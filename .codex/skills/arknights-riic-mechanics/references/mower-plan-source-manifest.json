@@ -449,7 +449,8 @@
     "scope": [
       "Reception clue production includes unlocked, working control-center and office providers from the existing catalog, including highest-value and independent additive rules.",
       "Reception monster-cuisine synergy requires the provider's unlocked dormitory skill, preserving explicit resource overrides and the existing production-resource implementation.",
-      "Personal empty binding columns apply only to non-dormitory working primaries; main and backup plans reject dormitory personal empty columns."
+      "Personal empty binding columns apply only to non-dormitory working primaries; main and backup plans reject dormitory personal empty columns.",
+      "The known reception-clue production assumption remains eligible for resource-income comparisons; unknown diagnostics retain the existing rejection guard."
     ],
     "provenance": "Local review corrections; not claimed as byte-identical upstream behavior. Existing GameData catalog and upstream source hashes are unchanged.",
     "gameRuntimeVerified": false

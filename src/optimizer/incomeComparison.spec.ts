@@ -7,6 +7,21 @@ const report=()=>runScheduleSimulationBridge(createDefaultWorkspace(),{sampleHou
 const cases=():IncomeCase[]=>[1,2].flatMap(seed=>[.25,.125].map(step=>{const c=summarizeIncome(report());return {...c,seed,step,key:`${seed}:${step}`}}))
 const improved=()=>{const c=cases();c.forEach(x=>{x.daily.lmd+=100;x.closing.lmd+=100});return c}
 describe('actual net income comparison',()=>{
+ it('records the clue-only production assumption without changing income eligibility or allowing unknown mechanics',()=>{
+  const r=report()
+  const clueAssumption=r.diagnostics.find(d=>d.code==='RECEPTION_CLUE_PRODUCTION_MODEL')!
+  expect(clueAssumption).toBeDefined()
+  const withoutClues=summarizeIncome({...r,diagnostics:r.diagnostics.filter(d=>d!==clueAssumption)})
+  const withClues=summarizeIncome(r)
+  expect(withClues.eligible,JSON.stringify(withClues.issues)).toBe(true)
+  expect(withClues.assumptions).toContainEqual(clueAssumption)
+  expect(withClues.daily).toEqual(withoutClues.daily)
+  expect(withClues.opening).toEqual(withoutClues.opening)
+  expect(withClues.closing).toEqual(withoutClues.closing)
+  expect(withClues.output).toEqual(withoutClues.output)
+  r.diagnostics.push({code:'UNKNOWN_NEW_MECHANIC',message:'pending'})
+  expect(summarizeIncome(r)).toMatchObject({eligible:false,issues:['UNKNOWN_NEW_MECHANIC：pending']})
+ })
  it('accepts finite inventory assumptions for net resource comparisons while composite remains potential-only',()=>{
   const workspace=createDefaultWorkspace()
   workspace.compatibility.backupPlans=[{name:'inventory',trigger:"op_data.inventory_count('赤金') > 999999",plan:{}}]
