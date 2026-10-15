@@ -5,6 +5,7 @@ import { ATOMIC_UNITS, type AtomicMember, type AtomicUnit } from './riicAtomicUn
 import { availableCoreVariants, availableOptionalMembers, facilityCapacity, physicalBackupOperatorIds, type CombinationPlacement, type CombinationVariant } from './combinationModel'
 import { isProductionSingletonCandidate } from './productionSingletons'
 import { isShiftRunOperator } from '../scheduler/scheduleAdapter'
+import { PENDANT_AUXILIARY_FACILITIES } from '../domain/facilities'
 
 function subsets<T>(items: readonly T[], maximum = items.length): T[][] {
   const result: T[][] = [[]]
@@ -36,9 +37,12 @@ function matches(member: AtomicMember, room: MowerFacility): boolean {
 }
 
 /** Enumerate logical optional subsets and legal footprints before globally reserving anyone. */
-export function enumerateCombinationVariants(base: RosterWorkspace, inventory: OperatorInventory): CombinationVariant[] {
+export function enumerateCombinationVariants(base: RosterWorkspace, inventory: OperatorInventory, lockedPositions?: ReadonlySet<string>): CombinationVariant[] {
   if (!inventory.valid) return []
   const rooms = Object.values(base.mainPlan.facilities)
+  const presenceRoomTypes: readonly string[] = [...PENDANT_AUXILIARY_FACILITIES, 'dormitory']
+  const presenceRooms = rooms.filter(room => presenceRoomTypes.includes(room.type) && room.level > 0)
+    .sort((a, b) => presenceRoomTypes.indexOf(a.type) - presenceRoomTypes.indexOf(b.type) || a.roomId.localeCompare(b.roomId))
   const powerCount = rooms.filter(r => r.type === 'power' && r.level > 0).length
   const owned = new Set(inventory.operators.map(o => o.name))
   const stationed = new Set(rooms.flatMap(r => r.slots.flatMap(s => s.occupant.kind === 'operator' ? [resolveId(s.occupant.operatorId)] : [])))
@@ -88,13 +92,13 @@ export function enumerateCombinationVariants(base: RosterWorkspace, inventory: O
               const start = placed.length
               for (const name of presence) {
                 // Presence is a real station, never an extraWorkplace/ownership-only credit.
-                const candidates = rooms.filter(r => ['dormitory', 'factory', 'train'].includes(r.type) && r.level > 0)
-                  .sort((a, b) => (a.type === 'dormitory' ? 0 : 1) - (b.type === 'dormitory' ? 0 : 1) || a.roomId.localeCompare(b.roomId))
                 let found = false
-                for (const room of candidates) {
-                  const index = Array.from({ length: facilityCapacity(room.type, room.level) }, (_, i) => i).find(i =>
-                    !occupiedPositions.has(`${room.roomId}:${i}`) && room.slots[i]?.occupant.kind !== 'operator' && room.slots[i]?.occupant.kind !== 'current' && !room.slots[i]?.replacements.length)
-                  if (index === undefined) continue
+                for (const room of presenceRooms) {
+                  const capacity = facilityCapacity(room.type, room.level)
+                  const index = room.slots.findIndex((slot, i) => i < capacity &&
+                    !occupiedPositions.has(`${room.roomId}:${i}`) && !lockedPositions?.has(`${room.roomId}:${i}`) &&
+                    (slot.occupant.kind === 'empty' || slot.occupant.kind === 'free') && !slot.replacements.length)
+                  if (index < 0) continue
                   placed.push({ roomId: room.roomId, slotIndex: index, operatorId: resolveId(name), role: 'main' })
                   occupiedPositions.add(`${room.roomId}:${index}`)
                   found = true
