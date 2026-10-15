@@ -33,6 +33,20 @@ describe.each([false,true])('inventory observation wakes for alpha=%s',alpha=>{
   expect(wake()).toBeUndefined();state.mowerFacilityProducts={room_1_1:'orirock'}
   expect(wake()).toBe(0);controller.evaluate('END');expect(controller.active).toEqual([true]);expect(wake()).toBeUndefined()
  })
+
+ it.each([
+  ["op_data.facility_product_count('gold') == 2",'gold'],
+  ['op_data.facility_product_type_count() == 2','exp3'],
+ ])('wakes on an observed product count edge for %s',(trigger,product)=>{
+  const {state,controller,wake}=fixture(alpha,trigger)
+  expect(wake()).toBeUndefined()
+  state.mowerFacilityProducts={room_1_1:'gold',room_1_2:product!}
+  expect(wake()).toBe(0);controller.evaluate('END')
+  expect(controller.active).toEqual([true]);expect(wake()).toBeUndefined()
+  state.mowerFacilityProducts={room_1_1:'gold',room_1_2:null}
+  expect(wake()).toBe(0);controller.evaluate('END')
+  expect(controller.active).toEqual([false]);expect(wake()).toBeUndefined()
+ })
  it('does not consume an edge during a protected in-flight backup',()=>{
   const {state,controller,source,wake}=fixture(alpha),locked=new MowerTask();locked.backupShiftActive=true;source.queue.tasks.push(locked)
   state.mowerInventoryCounts={'赤金':10};expect(wake()).toBeUndefined()

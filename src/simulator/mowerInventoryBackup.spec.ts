@@ -72,6 +72,33 @@ describe('inventory backup conditions on the shared alpha production clock', () 
     expect(report.events.some(event => event.type === 'backup-plan' && event.active)).toBe(true)
   })
 
+
+  it('runs composite product counts with finite inventory and observes actual switched products over the original main plan', () => {
+    const workspace = inventorySchedule("(op_data.inventory_count('赤金') == 0 and op_data.facility_product_count('gold') == 1) or op_data.facility_product_count('exp3') == 1", 'gold', 'exp3').sourceWorkspace
+    for (const room of Object.values(workspace.mainPlan.facilities)) if (room.roomId !== 'room_1_1') room.product = undefined
+    const report = simulateSchedule(compileRosterSchedule(workspace, { idleOperators: [] }), {
+      schedulingModel: 'mower-alpha', sampleHours: 2, maxEvents: 10000,
+      production: { outputMode: 'potential', inventoryMode: 'unlimited', droneTarget: 'none' },
+    })
+    expectConserved(report)
+    expect(report.production!.assumptions).toMatchObject({ outputMode: 'settled', inventoryMode: 'finite' })
+    expect(report.production!.events.filter(event => event.type === 'product-switched').map(event => [event.fromProduct, event.toProduct])).toEqual([['gold', 'exp3']])
+    expect(report.events.filter(event => event.type === 'backup-plan').map(event => event.active)).toEqual([true])
+  })
+
+  it('initializes production for a count-only condition and counts unobserved main-plan types with live actual products', () => {
+    const workspace = inventorySchedule("op_data.facility_product_count('gold') == 1 and op_data.facility_product_count('orirock_device') == 1 and op_data.facility_product_type_count() == 2", 'gold', 'gold').sourceWorkspace
+    for (const room of Object.values(workspace.mainPlan.facilities)) if (room.roomId !== 'room_1_1') room.product = undefined
+    workspace.mainPlan.facilities.room_2_1.product = 'fragment'
+    workspace.compatibility.facilityMetadata = { room_2_1: { rawProduct: 'orirock_device' } }
+    const report = simulateSchedule(compileRosterSchedule(workspace, { idleOperators: [] }), {
+      schedulingModel: 'mower-alpha', sampleHours: .01,
+    })
+    expectConserved(report)
+    expect(report.production!.manufacturing.some(room => room.roomId === 'room_2_1')).toBe(false)
+    expect(report.events.some(event => event.type === 'backup-plan' && event.active)).toBe(true)
+  })
+
   it('blocks a rock recipe without partially charging rocks when LMD is absent', () => {
     const report = simulateSchedule(inventorySchedule("op_data.inventory_count('固源岩') > 0", 'fragment'), {
       schedulingModel: 'mower-alpha', sampleHours: 2.5,
