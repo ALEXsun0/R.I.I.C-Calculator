@@ -31,6 +31,41 @@ describe('recoverable Mower preview failure',()=>{
   expect(state.occupants).toEqual(before)
  })
 
+ it('retains an exhausted preview at its original deadline and dispatches independent due work',()=>{
+  const {state,source,task}=previewFixture()
+  let calls=0
+  state.mowerShiftModel!.evaluate=()=>{calls++;throw new MowerShiftPreviewError('unchanged failed preview')}
+  const independent=new MowerTask({time:.01,type:T.NOT_SPECIFIC})
+  source.queue.tasks.push(independent)
+  settleRoster(state,rates)
+  const initialCalls=calls
+  expect(initialCalls).toBeGreaterThan(0)
+  state.time=.01;settleRoster(state,rates)
+  expect(calls).toBe(initialCalls)
+  expect(source.queue.tasks).not.toContain(independent)
+  expect(source.queue.tasks).toContain(task)
+  expect(task.timeMicros).toBe(0)
+  state.time=.5;settleRoster(state,rates)
+  expect(source.queue.tasks).toContain(task)
+  expect(task.timeMicros).toBe(0)
+ })
+
+ it('allows a retained preview after a new measured observation and preserves its identity',()=>{
+  const {state,source,task}=previewFixture()
+  let failed=true,calls=0
+  state.mowerShiftModel!.evaluate=d=>{calls++;if(failed)throw new MowerShiftPreviewError('failed preview');return d.planConditions}
+  settleRoster(state,rates)
+  const initialCalls=calls
+  failed=false
+  state.time=.01
+  const observed=source.data.operators.A!
+  observed.timeStampMicros=36_000_000;observed.mood=23;observed.moodIsPrediction=false
+  settleRoster(state,rates)
+  expect(calls).toBeGreaterThan(initialCalls)
+  expect(task.timeMicros).toBe(0)
+  expect(source.queue.tasks.some(t=>t===task&&t.plan.room_1_1?.includes('R'))).toBe(false)
+ })
+
  it('finishes the original first-day roster with the September compatibility strategy and a bounded event budget',()=>{
   const json=readFileSync(new URL('../../validation/mower-backup-2026-09-22/roster.json',import.meta.url),'utf8')
   const workspace=importMowerJson(json)
@@ -46,7 +81,7 @@ describe('recoverable Mower preview failure',()=>{
   expect(workspace.compatibility.backupPlans).toHaveLength(9)
  },90000)
 
- it('keeps a rejected arrangement and physical occupants until the native stale-task rebuild boundary',()=>{
+ it('keeps a rejected arrangement and physical occupants beyond ordinary stale-task cleanup',()=>{
   const {state,source,task}=previewFixture(),plan=structuredClone(task.plan),occupants={...state.occupants}
   expect(()=>settleRoster(state,rates)).not.toThrow()
   expect(source.queue.tasks).toContain(task)
@@ -55,7 +90,9 @@ describe('recoverable Mower preview failure',()=>{
   expect(state.occupants).toEqual(occupants)
   expect(state.bedOccupants).toEqual({})
   expect(source.activeTask).toBeUndefined()
-  expect(nextRosterActionHours(state,rates)).toBe(900_000_001/3_600_000_000)
+  expect(nextRosterActionHours(state,rates)).toBe(2.5)
+  state.time=.5;settleRoster(state,rates)
+  expect(source.queue.tasks).toContain(task);expect(task.timeMicros).toBe(0)
  })
 
  it('wakes for an earlier explicit task without changing either task deadline',()=>{
@@ -68,11 +105,15 @@ describe('recoverable Mower preview failure',()=>{
   expect(source.queue.tasks).toEqual(expect.arrayContaining([task,fia]))
  })
 
- it('rechecks a rejected preview at an earlier morale boundary',()=>{
+ it('does not recheck an exhausted preview at an unrelated predicted morale boundary',()=>{
   const {state,source,task}=previewFixture()
   const boundaryRates={...rates,thresholds:()=>[23.9]}
   settleRoster(state,boundaryRates)
-  expect(nextRosterActionHours(state,boundaryRates)).toBeCloseTo(.1,8)
+  expect(nextRosterActionHours(state,boundaryRates)).toBeGreaterThan(.1)
+  expect(task.executionFailure).toBeDefined()
+  state.time=.1;source.data.operators.A!.mood=23.9;source.data.operators.A!.moodIsPrediction=true
+  settleRoster(state,boundaryRates)
+  expect(task.executionFailure).toBeDefined()
   expect(source.queue.tasks).toContain(task);expect(task.timeMicros).toBe(0)
  })
 

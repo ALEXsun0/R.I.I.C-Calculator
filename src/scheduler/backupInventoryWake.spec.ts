@@ -5,7 +5,8 @@ import {compiledScheduleToRuntimeConfig} from './scheduleAdapter'
 import {createRosterRuntime} from './rosterRuntime'
 import {createBackupPlanController} from './backupPlans'
 import {getMowerSourceRuntime,nextMowerSourceActionHours,settleMowerSource} from './mowerSourceRuntime'
-import {MowerTask,toMowerMicros} from './mowerTaskQueue'
+import {MowerTask,MOWER_TASK_TYPES as T,toMowerMicros} from './mowerTaskQueue'
+import {retainMowerFailedTask} from './mowerTaskFailure'
 
 function fixture(alpha:boolean,trigger="op_data.inventory_count('赤金') >= 10"){
  const workspace=createDefaultWorkspace();workspace.compatibility.backupPlans=[{trigger}]
@@ -33,12 +34,38 @@ describe.each([false,true])('inventory observation wakes for alpha=%s',alpha=>{
   expect(wake()).toBeUndefined();state.mowerFacilityProducts={room_1_1:'orirock'}
   expect(wake()).toBe(0);controller.evaluate('END');expect(controller.active).toEqual([true]);expect(wake()).toBeUndefined()
  })
+
+ it.each([
+  ["op_data.facility_product_count('gold') == 2",'gold'],
+  ['op_data.facility_product_type_count() == 2','exp3'],
+ ])('wakes on an observed product count edge for %s',(trigger,product)=>{
+  const {state,controller,wake}=fixture(alpha,trigger)
+  expect(wake()).toBeUndefined()
+  state.mowerFacilityProducts={room_1_1:'gold',room_1_2:product!}
+  expect(wake()).toBe(0);controller.evaluate('END')
+  expect(controller.active).toEqual([true]);expect(wake()).toBeUndefined()
+  state.mowerFacilityProducts={room_1_1:'gold',room_1_2:null}
+  expect(wake()).toBe(0);controller.evaluate('END')
+  expect(controller.active).toEqual([false]);expect(wake()).toBeUndefined()
+ })
  it('does not consume an edge during a protected in-flight backup',()=>{
   const {state,controller,source,wake}=fixture(alpha),locked=new MowerTask();locked.backupShiftActive=true;source.queue.tasks.push(locked)
   state.mowerInventoryCounts={'赤金':10};expect(wake()).toBeUndefined()
   expect(controller.evaluate('END')).toBe(false);expect(controller.active).toEqual([false])
   source.queue.consume(locked);expect(wake()).toBe(0)
   controller.evaluate('END');expect(controller.active).toEqual([true]);expect(wake()).toBeUndefined()
+ })
+ it('allows independent product backups while a failed full-to-full charge is suspended',()=>{
+  const {state,controller,source,wake}=fixture(alpha,"op_data.facility_product('room_1_1') == orirock")
+  const charge=new MowerTask({type:T.FIAMMETTA,plan:{dormitory_1:['target','fia']}})
+  source.queue.tasks.push(charge)
+  retainMowerFailedTask(state,source.data,charge,'full-to-full charge')
+  state.mowerFacilityProducts={room_1_1:'orirock'}
+  expect(wake()).toBe(0)
+  controller.evaluate('END')
+  expect(controller.active).toEqual([true])
+  expect(charge.executionFailure).toBeDefined()
+  expect(source.queue.tasks).toContain(charge)
  })
  it('schedules a same-clock wake ahead of a future task and consumes it through the runtime',()=>{
   const {state,controller,source}=fixture(alpha)

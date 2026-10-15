@@ -220,5 +220,108 @@
         ]
       }
     ]
+  },
+  "facilityProductCountCompatibility": {
+    "checkedAt": "2026-10-15",
+    "sourceCommit": "3ad69f15bd95a7fbc0aec0bbd2265bd7230f767f",
+    "files": [
+      {
+        "path": "arknights_mower/utils/operators.py",
+        "url": "https://raw.githubusercontent.com/ArkMowers/arknights-mower/3ad69f15bd95a7fbc0aec0bbd2265bd7230f767f/arknights_mower/utils/operators.py",
+        "sha256": "aa84e9e8c51d2d0cf5030d179e51fa3503ef60dea7e709c62efd1dd5cb7e1705"
+      },
+      {
+        "path": "arknights_mower/utils/manufacture_product.py",
+        "url": "https://raw.githubusercontent.com/ArkMowers/arknights-mower/3ad69f15bd95a7fbc0aec0bbd2265bd7230f767f/arknights_mower/utils/manufacture_product.py",
+        "sha256": "062a183a580a521f4729ee84477c9864aa716e6e675d762e160e217322893161"
+      }
+    ],
+    "scope": "Local source inspection of exact product counts and distinct product types; not a broad upstream freshness check.",
+    "methods": [
+      "Operators.facility_product",
+      "Operators.facility_product_count",
+      "Operators.facility_product_type_count"
+    ],
+    "semantics": "Count rooms in original main-plan and actual-cache union; valid actual products take precedence. Exact native products only; orirock and orirock_device are distinct. Reuse product-observation edge wakes. Inventory compound conditions retain finite settled accounting.",
+    "tests": [
+      "src/scheduler/backupInventoryExpression.spec.ts",
+      "src/scheduler/backupInventoryWake.spec.ts",
+      "src/simulator/mowerInventoryBackup.spec.ts"
+    ],
+    "gameRuntimeVerified": false
+  },
+  "retainedTaskFailureCompatibility": {
+    "checkedAt": "2026-10-15",
+    "sourceCommit": "3ad69f15bd95a7fbc0aec0bbd2265bd7230f767f",
+    "sourceFiles": [
+      {
+        "path": "arknights_mower/solvers/base_schedule.py",
+        "sha256": "6a79fad5146efd102225047a45193e80a26dc255d7be94c51f0b70b20cec276b",
+        "bytes": 589175
+      },
+      {
+        "path": "arknights_mower/utils/scheduler_task.py",
+        "sha256": "1e6a233e12f4398e93ae7064d93cbddf94159e12dd2b6bd31ad985caf9a3c872",
+        "bytes": 129676
+      }
+    ],
+    "scope": "Exhausted shift-preview failures preserve task identity, remaining plan and original deadline; dispatch excludes suspended failures until relevant measured observations, product or effective plan changes. Predictions and elapsed time do not resume failures; incomplete retained failures make the final full-horizon report unsuccessful. No live-device or complete-scheduler parity claim.",
+    "implementationFiles": [
+      "src/scheduler/mowerTaskFailure.ts",
+      "src/scheduler/mowerTaskQueue.ts",
+      "src/scheduler/mowerRunLifecycle.ts",
+      "src/scheduler/mowerTaskScheduling.ts",
+      "src/scheduler/mowerShiftCycle.ts",
+      "src/scheduler/mowerSourceRuntime.ts",
+      "src/simulator/scheduleSimulation.ts"
+    ],
+    "runtimeVerified": false
+  },
+  "fiammettaSharedFollowerCompatibility": {
+    "checkedAt": "2026-10-15",
+    "sourceCommit": "3ad69f15bd95a7fbc0aec0bbd2265bd7230f767f",
+    "originChange": "e470bb9be1",
+    "scope": "Charging group-priority excludes multi-group shared followers; ordinary single-group priority and configured target order remain. Source plan_fia disabled-protection fallback can still select the first full target. Full-to-full simulated physical charge uses retained-task failure handling, released only by relevant observations or arrangements; no five-minute poll remains. This explicit simulation no-op guard is not claimed to exist in pinned native plan_fia.",
+    "implementationFiles": [
+      "src/scheduler/mowerFiammetta.ts",
+      "src/scheduler/mowerSourceRuntime.ts"
+    ],
+    "runtimeVerified": false
+  },
+  "sharedRestingGroupCompatibility": {
+    "checkedAt": "2026-10-15",
+    "sourceCommit": "3ad69f15bd95a7fbc0aec0bbd2265bd7230f767f",
+    "sourceFiles": [
+      {
+        "path": "arknights_mower/solvers/base_schedule.py",
+        "sha256": "6a79fad5146efd102225047a45193e80a26dc255d7be94c51f0b70b20cec276b",
+        "bytes": 589175
+      },
+      {
+        "path": "arknights_mower/utils/operators.py",
+        "sha256": "aa84e9e8c51d2d0cf5030d179e51fa3503ef60dea7e709c62efd1dd5cb7e1705",
+        "bytes": 132201
+      }
+    ],
+    "methods": [
+      "BaseSchedulerSolver.get_resting_plan",
+      "Operators.commit_group_shifts"
+    ],
+    "scope": "Before alpha resting-bed admission, combine existing arrangement transitions with planned resting groups, temporarily commit group state and shared bindings, then restore confirmed state and bindings in finally. Valid bed reservations survive successful admission. Corrects stale shared bindings treating legal covers as extra required beds.",
+    "implementationFiles": [
+      "src/scheduler/mowerOrdinaryPlanning.ts"
+    ],
+    "tests": [
+      "src/scheduler/mowerSharedRestingGroup.spec.ts"
+    ],
+    "verification": {
+      "focusedTestsPassed": 74,
+      "testLog": "/tmp/riic-shared-resting-focused-tests.log",
+      "fullHorizonIncomeRevalidated": false,
+      "gameRuntimeVerified": false,
+      "nativeMinimalRestingOraclePassed": true,
+      "nativeMinimalRestingOracleLog": "/tmp/mower-shared-standby-oracle.log"
+    },
+    "knownLimits": "243 baseline gold-equivalent LMD 69607.14/day; post-fix full horizon not replayed. Rainbow short diagnostic reached only 6.776h in 55s. Plan10 high-priority early return / low-priority resting oscillation identified but unresolved; no full-window income recovery or all-slow-plan fix claim."
   }
 }

@@ -8,7 +8,9 @@ const kinds = { 但书: 'proviso', 龙舌兰: 'tequila', 佩佩: 'pepe', 可露�
 const roomId = 'room_1_1'
 
 describe('ideal run-order mode recognizes every later trading replacement', () => {
-  it.each(Object.entries(kinds) as [keyof typeof kinds, string][])('%s', (runner, kind) => {
+  it.each(Object.entries(kinds) as [keyof typeof kinds, string][])('%s', async (runner, kind) => {
+    // Flush the task status before CPU-bound simulation blocks worker RPC.
+    await new Promise(resolve => setTimeout(resolve, 150))
     const roster = structuredClone(sourceRoster)
     const slots = roster.plan1.room_1_1.plans
     slots[1]!.agent = '绮良'
@@ -22,5 +24,5 @@ describe('ideal run-order mode recognizes every later trading replacement', () =
     expect(report.success, JSON.stringify(report.diagnostics)).toBe(true)
     expect(report.production!.events.some(event => event.type === 'order-completed' && event.roomId === roomId && event.order?.kind === kind)).toBe(true)
     expect(report.segments.some(segment => Object.entries(segment.occupants).some(([position, occupant]) => position.startsWith(roomId + '_') && occupant === id(runner)))).toBe(false)
-  }, 30000)
+  }, 180000)
 })

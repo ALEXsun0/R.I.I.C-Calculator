@@ -10,7 +10,8 @@ import {createBackupPlanController,evaluateBackupExpression} from './backupPlans
 import {advanceRoster,createRosterRuntime,nextRosterActionHours,settleRoster} from './rosterRuntime'
 import {getMowerSourceRuntime} from './mowerSourceRuntime'
 import {MowerShiftPreviewError} from './mowerNativeErrors'
-import {MowerTask,MOWER_TASK_TYPES as T} from './mowerTaskQueue'
+import {MowerTask,MOWER_TASK_TYPES as T,toMowerMicros} from './mowerTaskQueue'
+import {mowerUpdateDetail} from './mowerObservations'
 
 const aroma=resolveOperatorCharId('阿罗玛'),gravel=resolveOperatorCharId('砾')
 const residents=['闪灵','夜莺','杜林','安比尔','克洛丝'].map(resolveOperatorCharId)
@@ -66,7 +67,7 @@ describe('Mower simulation event boundaries',()=>{
   expect.soft(operator.finalMorale).toBeCloseTo(inertOperator.finalMorale,8)
  })
 
- it('rechecks a rejected preview inside an arbitrary cached-mood trigger window',()=>{
+ it('keeps a rejected preview suspended across a predicted mood window until a relevant measurement',()=>{
   const workspace=emptyWorkspace()
   workspace.mainPlan.facilities.dormitory_1.slots=[
    ...residents.slice(0,4).map(operatorId=>({occupant:{kind:'operator' as const,operatorId},groupId:null,replacements:[]})),
@@ -81,9 +82,15 @@ describe('Mower simulation event boundaries',()=>{
   for(const op of Object.values(source.data.operators))if(op.room){
    op.currentRoom=op.room;op.currentIndex=op.index;op.mood=24;op.timeStampMicros=0;op.depletionRate=op.room.startsWith('dorm')?0:1
   }
-  // Only the preview rejection is controlled; the controller, expression cache,
-  // physical advancement and recovery wake all use the actual runtime entry.
-  state.mowerShiftModel={...state.mowerShiftModel!,evaluate:()=>{throw new MowerShiftPreviewError('Controlled rejection to test the actual recovery wake')}}
+  // Only the first preview rejects. Its retry still needs relevant measured
+  // evidence even after the original cause is removed and the clock advances.
+  const originalModel=state.mowerShiftModel!
+  let rejectPreview=true,previewCalls=0
+  state.mowerShiftModel={...originalModel,evaluate:data=>{
+   previewCalls++
+   if(rejectPreview)throw new MowerShiftPreviewError('Controlled rejection to test measured-only recovery')
+   return originalModel.evaluate(data)
+  }}
   const task=new MowerTask({type:T.SHIFT_OFF,plan:{room_1_1:[gravel],dormitory_1:['Current','Current','Current','Current',aroma]}})
   source.queue.tasks=[task]
   const plan=structuredClone(task.plan),occupants={...state.occupants}
@@ -92,22 +99,46 @@ describe('Mower simulation event boundaries',()=>{
   expect(evaluateBackupExpression(windowCondition,{...state,time:.12})).toBe(true)
   expect(evaluateBackupExpression(windowCondition,{...state,time:.25})).toBe(false)
   settleRoster(state,rates,0,controller.evaluate)
+  const failedCalls=previewCalls
+  expect(failedCalls).toBeGreaterThan(0)
+  expect(task.executionFailure).toBeDefined()
   expect(source.queue.tasks).toContain(task)
-  expect(task.plan).toEqual(plan)
-  expect(task.timeMicros).toBe(0)
-  expect(state.occupants).toEqual(occupants)
-  expect(state.bedOccupants).toEqual({})
+  expect(task.plan).toEqual(plan);expect(task.timeMicros).toBe(0)
+  expect(state.occupants).toEqual(occupants);expect(state.bedOccupants).toEqual({})
 
-  const wake=nextRosterActionHours(state,rates)
-  expect.soft(wake).toBeLessThan(.15)
-  // Strict '<' can be false at the exact root. Follow the runtime's next wake
-  // again so a solver must enter the true interval instead of skipping it.
-  for(let attempt=0;attempt<600&&state.time<.15&&!state.events.some(e=>e.type==='backup-plan'&&e.active);attempt++){
+  rejectPreview=false
+  expect(nextRosterActionHours(state,rates)).toBeGreaterThan(.15)
+  advanceRoster(state,.12,rates)
+  expect(evaluateBackupExpression(windowCondition,state)).toBe(true)
+  expect(source.data.operators[aroma]!.timeStampMicros).toBe(0)
+  expect(source.data.operators[aroma]!.mood).toBe(24)
+  settleRoster(state,rates,0,controller.evaluate)
+  expect(previewCalls).toBe(failedCalls)
+  expect(task.executionFailure).toBeDefined()
+  expect(source.queue.tasks).toContain(task)
+  expect(task.plan).toEqual(plan);expect(task.timeMicros).toBe(0)
+  expect(state.occupants).toEqual(occupants);expect(state.bedOccupants).toEqual({})
+
+  // Read actual physical morale through the normal observation update seam.
+  mowerUpdateDetail(source.data,aroma,state.morale[aroma]!, 'room_1_1',0,true)
+  expect(source.data.operators[aroma]!.timeStampMicros).toBe(toMowerMicros(state.time))
+  expect(nextRosterActionHours(state,rates)).toBe(0)
+  expect(task.timeMicros).toBe(0)
+  settleRoster(state,rates,0,controller.evaluate)
+  expect(previewCalls).toBeGreaterThan(failedCalls)
+  expect(task.executionFailure).toBeUndefined()
+  expect(source.execution?.task).toBe(task)
+  // Finish the original room-return continuations without a prediction retry.
+  for(let step=0;step<8&&source.queue.tasks.includes(task);step++){
    const hours=nextRosterActionHours(state,rates)
    expect(Number.isFinite(hours)&&hours>0).toBe(true)
    advanceRoster(state,hours,rates)
    settleRoster(state,rates,0,controller.evaluate)
+   expect(task.executionFailure).toBeUndefined();expect(task.timeMicros).toBe(0)
   }
+  expect(source.queue.tasks).not.toContain(task)
+  expect(state.occupants.room_1_1_0).toBe(gravel)
+  expect(state.bedOccupants.dormitory_1_4).toBe(aroma)
   const activation=state.events.find(e=>e.type==='backup-plan'&&e.backupIndex===0&&e.active)
   expect(activation).toBeDefined()
   expect(activation!.time).toBeGreaterThan(.1)

@@ -80,3 +80,55 @@ describe('safe effective facility-product backup queries',()=>{
   `op_data.facility_product('room_1_1') == arbitrary_name`,
  ])('rejects unsupported syntax %s',source=>expect(()=>compile(source)).toThrow('副表：'))
 })
+
+
+describe('effective facility-product counts',()=>{
+ it.each(['gold','exp3','orirock','orirock_device','lmd','orundum'])('counts exact native product %s across different rooms',product=>{
+  const state=fixture();state.mowerFacilityProducts={room_1_1:product,room_1_2:product,room_1_3:null,room_2_1:'unsupported'}
+  const expression=compile(`op_data.facility_product_count('${product}')`)
+  expect(expression.evaluate(state)).toBe(2)
+  expect(expression).toMatchObject({usesFacilityProduct:true,usesInventory:false})
+  expect(compile(`op_data.facility_product_count(${product})`).evaluate(state)).toBe(2)
+ })
+ it('counts product types once and distinguishes each rock recipe',()=>{
+  const state=fixture();state.mowerFacilityProducts={room_1_1:'gold',room_1_2:'gold',room_1_3:'orirock',room_2_1:'orirock_device',room_2_2:'lmd',room_2_3:null,room_3_1:'unsupported'}
+  const expression=compile('op_data.facility_product_type_count()')
+  expect(expression.evaluate(state)).toBe(4)
+  expect(expression).toMatchObject({usesFacilityProduct:true,usesInventory:false})
+  state.mowerFacilityProducts={room_1_1:'gold',room_1_2:'gold'}
+  expect(expression.evaluate(state)).toBe(1)
+  state.mowerFacilityProducts={}
+  expect(expression.evaluate(state)).toBe(0)
+  expect(compile("op_data.facility_product_count('gold')").evaluate(state)).toBe(0)
+ })
+ it.each(["op_data.facility_product_count('gold')",'op_data.facility_product_type_count()'])('requires initialized products for %s',source=>{
+  expect(()=>compile(source).evaluate(fixture())).toThrow('缺少设施产物状态')
+ })
+ it('reads fresh own product entries without counting prototype values',()=>{
+  const state=fixture();state.mowerFacilityProducts=Object.assign(Object.create({room_1_1:'gold'}),{room_1_2:'exp3'}) as Record<string,string>
+  expect(compile("op_data.facility_product_count('gold')").evaluate(state)).toBe(0)
+  expect(compile('op_data.facility_product_type_count()').evaluate(state)).toBe(1)
+  state.mowerFacilityProducts={room_1_1:'gold',room_1_2:'gold'}
+  expect(compile("op_data.facility_product_count('gold')").evaluate(state)).toBe(2)
+ })
+ it('detects composite count and inventory dependencies even behind short-circuit',()=>{
+  const expression=compile("op_data.facility_product_count('gold') == 2 or (op_data.inventory_count('赤金') < 1000 and op_data.facility_product_count('gold') == 3)")
+  const state=fixture();state.mowerFacilityProducts={room_1_1:'gold',room_1_2:'gold'}
+  expect(expression).toMatchObject({usesFacilityProduct:true,usesInventory:true})
+  expect(expression.evaluate(state)).toBe(true)
+  state.mowerFacilityProducts={room_1_1:'gold',room_1_2:'gold',room_1_3:'gold'};state.mowerInventoryCounts={'赤金':999}
+  expect(expression.evaluate(state)).toBe(true)
+  state.mowerInventoryCounts={'赤金':1000}
+  expect(expression.evaluate(state)).toBe(false)
+  expect(compile('True or op_data.facility_product_type_count() > 0')).toMatchObject({usesFacilityProduct:true,usesInventory:false})
+ })
+ it.each(['unknown','exp','fragment','money','__proto__','constructor'])('rejects unsupported count product %s',name=>{
+  expect(()=>compile(`op_data.facility_product_count('${name}')`)).toThrow('不支持的产物或订单类型')
+ })
+ it.each([
+  'op_data.facility_product_count()', 'op_data.facility_product_count(1)', "op_data.facility_product_count('gold', 'exp3')",
+  'op_data.facility_product_count(op_data.party_time)', "op_data.facility_product_count('gold').constructor",
+  "op_data.facility_product_count('gold')()", "op_data.facility_product_type_count('gold')",
+  'op_data.facility_product_type_count(1)', 'op_data.facility_product_type_count().constructor',
+ ])('rejects unsupported count syntax %s',source=>expect(()=>compile(source)).toThrow('副表：'))
+})

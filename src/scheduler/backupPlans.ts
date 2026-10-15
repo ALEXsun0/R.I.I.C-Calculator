@@ -129,7 +129,7 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
   const observationSignature = () => JSON.stringify(observedPlans.map(plan=>Boolean(plan.condition(state))))
   const observationBlocked = () => {
     const source=state.mowerSource
-    return source?.queue.tasks.some(task=>task.backupShiftActive||task.type===T.FIAMMETTA&&task.timeMicros<=toMowerMicros(state.time))||source?.activeTask?.type===T.FIAMMETTA
+    return source?.queue.tasks.some(task=>!task.executionFailure&&(task.backupShiftActive||task.type===T.FIAMMETTA&&task.timeMicros<=toMowerMicros(state.time)))||source?.activeTask?.type===T.FIAMMETTA
   }
   if(observedPlans.length)Object.defineProperty(state,'mowerBackupObservationWakeMicros',{
     configurable:true,enumerable:false,
@@ -239,7 +239,7 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
   if(state.config.mowerAlpha){state.mowerShiftModel=alphaModel;getMowerSourceRuntime(state).data.planConditions=[...active]}
   function evaluateAlpha(timing:BackupTiming):boolean{
     const source=getMowerSourceRuntime(state),queue=source.queue,data=source.data
-    if(queue.tasks.some(t=>t.backupShiftActive||t.type===T.FIAMMETTA&&t.timeMicros<=data.nowMicros)||source.activeTask?.type===T.FIAMMETTA)return false
+    if(queue.tasks.some(t=>!t.executionFailure&&(t.backupShiftActive||t.type===T.FIAMMETTA&&t.timeMicros<=data.nowMicros))||source.activeTask?.type===T.FIAMMETTA)return false
     const original=[...active],seen=new Set([JSON.stringify(original)]);let current=data,conditions=alphaModel.evaluate(data)
     for(let pass=0;pass<64;pass++){
       if(conditions.every((v,i)=>v===current.planConditions[i])){
@@ -277,7 +277,7 @@ export function createBackupPlanController(base: CompiledSchedule, state: Runtim
     // Only real phase evaluations consume the observation edge; alpha previews are speculative.
     if(observedPlans.length){if(observationBlocked())return false;observedConditions=observationSignature()}
     if(state.config.mowerAlpha)return evaluateAlpha(timing)
-    if(state.mowerSource?.queue.tasks.some(task=>task.backupShiftActive))return false
+    if(state.mowerSource?.queue.tasks.some(task=>!task.executionFailure&&task.backupShiftActive))return false
     const next = plans.map((p, i) => {
       const enabled = Boolean(p.condition(state))
       return BACKUP_TIMINGS[enabled ? p.timing : p.exitTiming] <= BACKUP_TIMINGS[timing] ? enabled : active[i]!

@@ -3,7 +3,7 @@ import {expect,it} from 'vitest'
 import {importMowerJson} from '../workbench/compat/mowerJson'
 import {runCalculationBridge} from '../workbench/calculationBridge'
 
-it('keeps the nine-backup legacy roster complete after fatigue recovery stacking is corrected',async()=>{
+it('keeps the nine-backup legacy roster complete with PR11 recovery and PR12 retained-task scheduling',async()=>{
  // Let Vitest publish the task before entering the synchronous long simulation.
  await new Promise(resolve=>setTimeout(resolve,150))
  const workspace=importMowerJson(readFileSync(new URL('../../validation/mower-backup-2026-09-22/roster.json',import.meta.url),'utf8'))
@@ -18,13 +18,13 @@ it('keeps the nine-backup legacy roster complete after fatigue recovery stacking
  expect(result.simulationReport?.elapsedHours).toBe(240)
  const gladiia=result.simulationReport!.operators.find(op=>op.operatorId==='char_474_glady')
  expect(gladiia).toBeDefined()
- // The recovery stacking correction in e58cc77 changes this legacy sample:
- // 刺玫's extra 0.1/h at mood <=18 now stacks with other group recovery.
- // Replacing only dormitoryRecovery.ts with its pre-fix version restores
- // PR10's 2.1964869858310814 exhausted hours within 1e-8. This snapshot
- // records the corrected rule; the roster still does not guarantee zero fatigue.
- // The healthy-provider grant to fatigued hunters has separate boundary tests.
- expect(gladiia!.exhaustedHours).toBeCloseTo(0.007896864444444445,8)
+ // PR11 keeps additive dorm recovery; PR12 removes the extra five-minute
+ // Fiammetta polling and retains failures until new observations. With this
+ // pinned seed, restoring only the old polling planner in an isolated bundle
+ // exactly restores 0.007896864444444445h and the old 43-charge timeline.
+ // The current mechanism completes the same unchanged 240h input with 39
+ // charges; the healthy-provider grant has separate fatigue boundary tests.
+ expect(gladiia!.exhaustedHours).toBeCloseTo(1.4115031240458271,8)
  expect(workspace).toEqual(before)
  expect(workspace.compatibility.backupPlans).toHaveLength(9)
  // Preserve all nine conditions; recovery changes can legitimately prevent a
