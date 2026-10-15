@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "algorithm": "SHA-256",
-  "packageSha256": "de4936bf2b92a1c0db7528c8729f562fe421da718a122fa097ed1d4a9937af2d",
+  "packageSha256": "e28bf562cd1718894dcae170b8b71ded7af95a000cc11e56bea7e577f8cec7eb",
   "files": [
     {
       "path": "SKILL.md",
@@ -85,8 +85,8 @@
     },
     {
       "path": "references/simulation.md",
-      "bytes": 46143,
-      "sha256": "d9bad491ae8e162dc46fb13dbf7efa4d35dad15c1038c8e8a78997b1f648395a"
+      "bytes": 48101,
+      "sha256": "90d2ca3698074e6dc6ce73dd33b594910a8acbcec537911d3d333ea30744a602"
     },
     {
       "path": "references/taxonomy.md",
