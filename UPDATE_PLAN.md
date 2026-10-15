@@ -17,22 +17,22 @@
 
 ---
 
-# 2026-10-15 修复 Release 创建失败并检查实际程序（进行中）
+# 2026-10-15 修复 Release 创建失败并检查实际程序（已完成）
 
-- 授权与目标：用户要求解决 Release 创建失败并检查程序实际运行。沿用自有仓库修复、候选审查验证后普通 PR 合并、拉取实际主线再安全同步 Tools 的流程；不修改贡献者源分支，不回退 PR11/PR12 机制，不以删测试或吞异常求绿。
-- 固定基线与保护：本地 main a59b428ab6c342cbe254a22b02ecfe6fa6bdbc24，已跟踪状态干净；当前 Tools 软件来源 fe8c0632099c47697b7b38608cedfb665e83a084。完整已跟踪实际源码已 ZIP 备份并逐项重读验 SHA256，备份及逐文件清单见 artifacts/release-runtime-repair-20261015/backup-manifest.json；既有未跟踪资料不清理。
-- 初始故障证据：Release run38686559938(job116262634249)及run38677968191(job116235784132)在回归测试步骤失败，后续类型、打包和发布未执行；这次有已运行的 Windows runner，不能按历史分配失败盲目重跑。最新主线与文档提交的两个 Release 最后查询仍在测试，另记实际状态。
-- 已复现与修复归属：CI 的 GITHUB_ACTIONS 环境使三个根路径测试收到 Pages 前缀；20项定向检查在原环境3失败，仅加 BASE_URL=/ 后全部通过。单例原场景本机34.289秒且全部断言通过，真实CI两次同签名超出60000ms（记录68.399秒），邻近同类测试已有180000ms预算，无RPC异常。release_ci_diagnosis 现唯一负责 .github/workflows/release.yml 的桌面job根路径和 src/components/workbench/WorkbenchShell.spec.ts 的单项计算预算；保持原fixture、seed、annotate、调用及全部断言，不改生产资源解析、排班机制或全局测试准入。主agent统一复审及真实云端全流程验收。
-- 分工与接口：同批两个独立工作包，release_ci_diagnosis 先只读诊断 Release/测试配置并独占 artifacts/ci 证据，明确失败签名后再授权最小工程修复路径；installed_runtime_check 独占 artifacts/runtime 运行证据与本任务创建的诊断进程，检查实际已安装 EXE、页面渲染/导航/轻量计算与错误，不改源码或真实用户数据。主 agent 独占根计划、共享接口、Git/CI 调度、构建/发布资产核验、安装交付与统一复审；不递归派工或交叉写入。
-- 运行保护：刷新既有进程，保留用户正在运行的程序；保护干员库、主副表、localStorage/WebView2 profile和配置。实际原生窗口证据与浏览器静态页面、安装哈希证据分别记录；仅关闭本任务创建并确认归属的进程。
-- 验收与交付：先保留具体失败日志并构建能复现该失败的反馈入口，修复后对等复测、必要类型/构建/结构及安全脚本检查，记录与候选树一致的证据并独立审查。通过后自己的 PR 正常合并，实际 Release 工作流成功且发布 ZIP/SHA256/路径/资源完整性核验通过；存在相关程序改动时按现有安全脚本预览、备份、同步并核对哈希。最终记录实际程序运行结果、真实 Release/提交、备份、安装状态和未验证边界。
-- 候选本机验证：等效 Release 环境下20资源测试与原单例排班合计21项通过、进程退出0，另外36项仅被定向名称过滤；单例34.847秒，原输入/seed42/annotate/调用/全部断言保留。主agent核对实际两文件diff及patch-boundaries.json，强制类型检查、结构索引、既有领域skill完整性和差异检查均通过；实际云端整条Release与原生运行证据仍需核验，不能将定向通过当最终发布成功。
-- 用户追加skill同步：将自有仓库修复→最终候选审查验证→普通合并→拉取实际主线→备份/保留数据/哈希核验后同步软件目录的约定加入通用agent-dev-workflow skill，具体仓库与软件路径由各项目配置。workflow_skill_update 独占本任务 artifacts/skill/，先定位规范源并备份、stage供主agent审查，再按授权安全更新安装副本/ZIP并核验；不写RIIC源码/远程、其他用户工作或全局memories，最终结果单列在本次交付回执。
-- Skill交付已核验：规范源（Documents/Codex/2026-10-12/agent-skill-1-2-subagent-3-3/outputs/agent-dev-workflow）、全局 .agents/skills 安装副本及原ZIP已安全更新，仅改SKILL.md、references/delivery.md、references/development-modes.md，其他17文件字节/元数据未变。20文件源/安装/stage/ZIP哈希与CRC、源/安装quick_validate和各48相对引用检查通过，主agent独立重验一致；ZIP SHA256 d045a3b33b34867ad66b7dd46c274999b024e2a889fbff507ea3ee917d9765c3。旧源/安装/ZIP备份及receipt位于本次artifacts/skill。规范源无Git，未虚构远程发布；新独立会话自动加载尚未验证。
+- 最终范围：完成 Release 故障修复、实际程序检查及通用开发 skill 流程同步。等待期间另一个任务合并了 PR16；用户在本轮明确选择“同时升级 PR16 并检查新版”，因此本次安装包含 PR16，覆盖其先前任务“暂不安装”的交付范围。保留该任务原始记录，不改写已完成的历史选择。
+- 基线与保护：从 main a59b428ab6c342cbe254a22b02ecfe6fa6bdbc24 开始，初始 Tools 来源 fe8c0632099c47697b7b38608cedfb665e83a084。实际已跟踪源码1811文件完整ZIP备份并逐项重读SHA256，ZIP为2afd5ea56501b97101be78e323edea0323f9d5201f56c99fb5faffa0dd0f1820；备份清单在 artifacts/release-runtime-repair-20261015/backup-manifest.json。未清理既有未跟踪资料或用户数据；收尾前另备份含PR16的当前计划。
+- 已定位的 Release 原因：两次真实 Windows runner 在完整回归步骤出现同样四项失败，并非历史runner分配故障。GITHUB_ACTIONS默认Pages前缀使三个桌面根路径断言失败，20项定向检查原环境17通过/3失败，仅加BASE_URL=/后全部通过；单例排班场景两次在原60000ms预算下超时，实际记录68.399秒，隔离本机原输入通过。修复仅将Release job设为BASE_URL=/、该用例预算改为180000ms，保留fixture、seed42、annotate、调用、全部断言和完整CI准入。PR16真实云端该场景66.502秒通过，验证仍需要该预算。
+- 实际运行发现与修复：旧安装EXE能完成演算及草稿往返，但技能页出现FACTION占位符、破损头像HTML/URL。专职riicSkillDescription模块先匹配联动名称，再仅对剩余正文高亮数字并转义文本/属性；保持头像、浮窗、含数字的Lancet-2等名称。阿兰娜、温米和森蚺三条真实DOM红例由失败转为通过，组件11项加纯模块10项共21项通过；未改技能数据、搜索/分类/阶段、CSS或收益规则。
+- 分工与复审：release_ci_diagnosis独占CI/单例预算及随后技能显示模块，installed_runtime_check独占实际EXE诊断证据和本任务进程，workflow_skill_update独占通用skill的备份/stage/安装证据；主agent维护唯一计划、结构、Git、发布/安装核验。policy_agents对固定最终候选087af557a8bbf573aa1345efb50423e3f7a7f761独立复审无阻塞，并对929条真实技能描述做完整正文/链接/头像DOM审计。最终候选类型与生产构建、结构索引及既有领域skill完整性通过。
+- 源码交付：修复只推送Panda-Panta自有codex/release-runtime-repair-20261015分支，经PR15正常合并为fb35c076c843af0f0a2731d93dc3eaa6d8acb36b，与已测候选树90545d8d5b53f924eea99e12627f2fc328ed6bcf一致。随后快进实际main至PR16合并72ed61dfee9afa971ac43769b0df0edd6e2af319（树75de0477c553eca7e6292f4acbafa081a61e6176），保留上述修复。两PR实际head仓库/合并元数据另存review/pr15-merged-metadata.json、pr16-merged-metadata.json；本次没有向贡献者源分支提交，也未强推或使用管理员绕过。
+- 真实云端结果：PR15 Release run38693011585全20步成功，289文件通过/1既有跳过，3108项通过/1既有跳过/0失败，完整回归1427.35秒。最终PR16 Release run38703978190同样全20步成功，3137项通过/1既有跳过/0失败，完整回归1965.33秒；类型、打包、资源校验、上传、tag和GitHub发布均成功，两提交Pages部署也成功。原始job日志与核验摘要在本次artifacts/cloud，未以本机定向检查替代云端结果。
+- 已发布资产：分别下载两次真实GitHub Release的便携ZIP和SHA256SUMS，核对实际tag指向、来源提交、GitHub资产摘要、大小、SHA256、CRC、唯一安全路径、1008文件及1000公共资源。最终PR16 ZIP SHA256为2b676100af33cede0f5cf7fc6519543a6362aae2e056af23d17d7125dd746e17，实际入口为index-CWPj7H8l.js和index-DzLcwUyW.css；最终EXE SHA256为66cfcb7be535a161047f862f7dbaecb3b92bb85b7022ec756437f04bc24f6d75。发布包与源码构建证据分别记录，不将本机087包当云端包。
+- Tools同步：先完成PR15发布包同步及核验，再按用户追加选择升级PR16；两次均先ValidateOnly、完整备份并逐文件SHA256校验后安全同步。最终1009管理文件、1008云端包文件与安装完全对应，SourceCommit=72ed61d且SourceHadTrackedChanges=false；1036原文件备份重读核对，26既有非管理文件保持哈希，仅删除上次清单登记且未被修改的两项旧资源。完整原始安装回退在本次artifacts/install/backup，PR15中间版本回退在install-pr16/backup，独立复核为install-pr16-independent.json。
+- 最终安装运行：启动真实D:/Tools/R.I.I.C-Calculator/R.I.I.C-Calculator.exe，精确验证来源72ed61d/EXE哈希，使用本任务独立WebView2 profile；实际宿主加载上述JS/CSS均HTTP200。两次24小时/0预热后台演算均完成，完整workspace往返及reload保留通过；128条渲染描述无占位符/HTML/src泄漏，阿兰娜作业平台、温米与Lancet-2名称及两头像96x96实际解码正常，全程JS/console错误0、网络失败0。精确核对PID/路径/启动时间后关闭本任务进程，无遗留实例；真实profile397文件内容和写入时间未变，运行后1009管理文件及EXE哈希仍一致。报告与截图在runtime/final-installed-pr16。
+- 通用skill已同步：规范源Documents/Codex/2026-10-12/agent-skill-1-2-subagent-3-3/outputs/agent-dev-workflow、全局.agents/skills安装副本及ZIP均加入“自有仓库修复→最终候选审查验证→普通合并→实际主线核对→备份/保留数据/哈希核验后同步”流程，具体仓库/软件路径由项目配置。仅改SKILL.md、references/delivery.md、references/development-modes.md，其他17文件字节/元数据不变；20文件源/安装/stage/ZIP、CRC、源/安装quick_validate及各48相对引用通过，主agent独立重验一致。ZIP SHA256 d045a3b33b34867ad66b7dd46c274999b024e2a889fbff507ea3ee917d9765c3，旧源/安装/ZIP在本次artifacts/skill/backup；规范源无Git，未虚构远程发布。
+- 验证边界：原生检查是独立合成输入和实际桌面EXE内WebView2，真实用户profile未加载；PR16自动挂件分配机制采用其3137云端回归与原独立复审证据，本轮未运行原生长优化，也未做真实游戏/设备或新独立会话skill自动加载测试。不可将静态/安装哈希或该轻量运行场景扩张为所有实战结果证明。
+- 收尾状态：程序、Release、Tools及安装后运行均已完成。本次收尾仅更新本计划，通过自有文档分支独立复审后普通PR同步；程序安装来源固定72ed61d，后续文档提交不改变程序/测试/构建输入，无需重复构建或覆写Tools。最终文档head/实际主线与证据总索引记录在 artifacts/release-runtime-repair-20261015/delivery.json。
 
-- 原生运行新发现与修复边界：实际已安装EXE在独立WebView2 profile成功启动、两次worker演算及编辑器→收益→返回→再次演算的草稿保留；技能页真实DOM暴露FACTION占位符和被破坏的头像标签/URL。原因是formatRichDesc在插入HTML或含数字占位符后统一highlighStats，数字替换误伤标记与百分号编码。该显示缺陷纳入最终候选，尚不能声称全页正常；不代表排班收益规则有错。release_ci_diagnosis转为独占RiicSkillsBrowser.vue、其既有spec以及专职src/workbench/riicSkillDescription.ts/.spec.ts，先真实数据DOM回归红→绿，再保持数值/联动名称/头像/浮窗结构完整，不改源数据和计算。原组件与测试另存backup/ui-before并逐项核验；主agent独占结构索引/计划。新head使此前仅CI两文件的审查结论只对d39faa6有效，最终扩展候选需重新审查、构建、真实云端Release和安装后原生复测。
-
-- 技能显示修复与回归：原Vue组件8项通过、阿兰娜派系/温米头像/森蚺Lancet-2三项真实DOM红测失败。专职纯formatter先匹配最长联动词，仅对余下正文数值高亮，文本与属性转义，保留原class/浮窗/hover结构、含数字干员名和URL；数据、搜索/分类/阶段、排班与收益机制不变。组件11项与纯formatter10项最终合计21项通过、退出0，红测和中间断言定位日志保留在ui-fix；主agent已读全部实际diff及模块。新文件已纳入结构索引，接下来对最终固定树强制类型/生产构建和独立复审，再通过既有自有PR15正常合并并执行真实云端发布。
 
 ---
 
