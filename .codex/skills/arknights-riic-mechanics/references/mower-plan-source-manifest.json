@@ -342,5 +342,30 @@
     ],
     "scope": "Preserve exhaustion support as a prerequisite: prepare required backup actions without ordinary recovery expansion, exclude support tasks from ordinary and backup coalescing, retain the role across task clones. No complete native parity or full-window income claim.",
     "gameRuntimeVerified": false
+  },
+  "receptionClueProduction": {
+    "repository": "ALEXsun0/arknights-mower",
+    "commit": "e5e2f0c40aab69ab35df2102de627d7fb7755eb0",
+    "scope": "Reception clue production only; exchange always active for clue speed, native scheduling Party Time remains empty. No credit rewards or weighted-income changes.",
+    "files": [
+      {
+        "path": "ui/src/riic/incomeClues.js",
+        "url": "https://raw.githubusercontent.com/ALEXsun0/arknights-mower/e5e2f0c40aab69ab35df2102de627d7fb7755eb0/ui/src/riic/incomeClues.js",
+        "bytes": 6656,
+        "sha256": "ebbe23b66c557a074e19f280a99ec325a91250352104bdb875869d8c0a253677"
+      },
+      {
+        "path": "ui/src/riic/incomeClues.test.js",
+        "url": "https://raw.githubusercontent.com/ALEXsun0/arknights-mower/e5e2f0c40aab69ab35df2102de627d7fb7755eb0/ui/src/riic/incomeClues.test.js",
+        "bytes": 7600,
+        "sha256": "567c5821cec88754f9234d2580192388ed4e66ace927b31a8854f88c992f6821"
+      },
+      {
+        "path": "ui/src/riic/incomeWorker.js",
+        "url": "https://raw.githubusercontent.com/ALEXsun0/arknights-mower/e5e2f0c40aab69ab35df2102de627d7fb7755eb0/ui/src/riic/incomeWorker.js",
+        "bytes": 4646,
+        "sha256": "d60093c8730aa83c19d6a24c081f8d4387c287538e313766d42776f03e886f86"
+      }
+    ]
   }
 }

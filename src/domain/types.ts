@@ -161,6 +161,8 @@ export interface CalculationReport {
     orderLmd: number
     fragments: number
     orundum: number
+    clueCount?: number
+    clueTotal?: number
     goldConsumed: number
     fragmentsConsumed: number
     netGoldCount: number

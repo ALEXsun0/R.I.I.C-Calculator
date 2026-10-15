@@ -10,6 +10,7 @@ import { validateRosterWorkspace, type ValidationResult } from './validate'
 import { runScheduleSimulationBridge } from './scheduleSimulationBridge'
 import { scoreSimulationProduction, simulationOutputAmounts, simulationOutputOrders } from '../simulator/productionScore'
 import { normalizeProductionWeights } from '../domain/productionWeights'
+import { receptionClueMetrics } from './mowerReportMetrics'
 import type { ScheduleSimulationOptions, ScheduleSimulationReport, ScheduleSimulationProgress } from '../simulator/scheduleSimulation'
 
 export type CalculationEngineKind = 'legacy' | 'simulation'
@@ -69,6 +70,7 @@ export function simulationReportToCalculationReport(
   const fragments = (output.fragments ?? 0) / days
   const orundum = (output.orundum ?? 0) / days
   const drones = (inflows?.drone ?? 0) / days
+  const clues = receptionClueMetrics(simReport)
 
   const compiledConfig = compileMainPlanToAppConfig(workspace.mainPlan, workspace, baseConfig)
   compiledConfig.productionWeights = normalizeProductionWeights(simReport.inputs.options.productionWeights)
@@ -92,6 +94,7 @@ export function simulationReportToCalculationReport(
     totalScore82,
     scoreBreakdown,
     totalEquivalentLmd,
+    ...(clues ? { clueCount: clues.clueCount, clueTotal: clues.clueTotal } : {}),
   }
 
   return {

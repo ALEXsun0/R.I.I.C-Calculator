@@ -153,6 +153,23 @@ describe('SimulationLogView.vue', () => {
     expect(facilityTable?.text()).not.toContain('999')
   })
 
+  it('shows sampled clues and progress separately, including measured zero but not old-report zero', async () => {
+    const report = createSampleReport()
+    const wrapper = mount(SimulationLogView, { props: { report } })
+    expect(wrapper.find('[data-test="reception-clues"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('这份历史报告未统计线索，重新演算后可查看。')
+    const updated = { ...report, receptionClues: { completed: 7, progress: .9, exchangeMode: 'always-on' as const } }
+    await wrapper.setProps({ report: updated })
+    const section = wrapper.get('[data-test="reception-clues"]')
+    expect(section.text()).toContain('日均 3.5 条；采样完成 7 条；期末未完成进度 90%')
+    expect(section.text()).toContain('全程开启交流')
+    expect(wrapper.text()).not.toContain('这份历史报告未统计线索')
+    expect(section.text()).toContain('不计信用和加权收入')
+    await wrapper.setProps({ report: { ...updated, receptionClues: { ...updated.receptionClues, completed: 0 } } })
+    expect(section.text()).toContain('日均 0 条；采样完成 0 条')
+    wrapper.unmount()
+  })
+
   it('shows sampled recycle conversions separately from warmup completions and random material value', () => {
     const report = createSampleReport()
     report.rooms.push({ roomId: 'recycle', roomType: 'recycle', averageEfficiencyPercent: 120, efficiencyPercentHours: 5760, occupiedHours: 0, teams: [] })

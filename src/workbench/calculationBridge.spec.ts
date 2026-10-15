@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createDefaultWorkspace } from './defaults'
-import { runCalculationBridge } from './calculationBridge'
+import { runCalculationBridge, simulationReportToCalculationReport } from './calculationBridge'
 
 describe('runCalculationBridge engine options', () => {
   it('defaults to legacy engine and returns a valid report', () => {
@@ -11,6 +11,7 @@ describe('runCalculationBridge engine options', () => {
     expect(result.engine).toBe('legacy')
     expect(result.report).not.toBeNull()
     expect(result.report?.power.sufficient).toBe(true)
+    expect(result.report?.summary).not.toHaveProperty('clueCount')
   })
 
   it('runs legacy engine explicitly when options.engine is legacy', () => {
@@ -59,6 +60,22 @@ describe('runCalculationBridge engine options', () => {
     expect(result.report?.summary?.totalScore82).toBeGreaterThan(0)
     expect(result.report?.power.sufficient).toBe(true)
   })
+})
+
+it('adds sampled clue totals and daily output without changing weighted income', () => {
+  const workspace = createDefaultWorkspace()
+  const result = runCalculationBridge(workspace, { engine: 'simulation', simulationOptions: { warmupHours: 0, sampleHours: 1 } })
+  const report = result.simulationReport!
+  report.observedHours = 48
+  delete report.receptionClues
+  const oldSummary = simulationReportToCalculationReport(workspace, report).summary!
+  expect(oldSummary).not.toHaveProperty('clueCount')
+  report.receptionClues = { completed: 7, progress: .9, exchangeMode: 'always-on' }
+  const summary = simulationReportToCalculationReport(workspace, report).summary!
+  expect(summary.clueCount).toBe(3.5)
+  expect(summary.clueTotal).toBe(7)
+  const { clueCount, clueTotal, ...income } = summary
+  expect(income).toEqual(oldSummary)
 })
 
 it('does not convert an incomplete simulation into a successful zero output report',()=>{
