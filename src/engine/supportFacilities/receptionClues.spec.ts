@@ -177,3 +177,15 @@ it('sums unlocked Amoris slots before comparing with other control speed', () =>
   config.controlOperatorIds.push(byName('老鲤'))
   expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.87)
 })
+
+it('uses Sakiko presence for Amoris cooperation while requiring Amoris to work', () => {
+  const config = reception(byName('塞雷娅'))
+  config.controlOperatorIds = ['祐天寺若麦', '丰川祥子'].map(byName)
+  config.operatorMorale[byName('丰川祥子')] = 0
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.72)
+  config.operatorMorale[byName('祐天寺若麦')] = 0
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.62)
+  config.operatorMorale[byName('祐天寺若麦')] = 24
+  config.controlOperatorIds = [byName('祐天寺若麦')]
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.67)
+})

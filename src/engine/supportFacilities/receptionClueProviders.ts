@@ -23,7 +23,7 @@ export function receptionClueProviderBonus(
         case 'control_upMeetingSpeed[100]': providerMaximum += 15; break
         case 'control_meeting_spd&bd[000]': providerMaximum += 5; break
         case 'control_mp&meet_spd[000]':
-          if (controlAwake.includes('char_4182_oblvns')) providerMaximum += 5
+          if (control.includes('char_4182_oblvns')) providerMaximum += 5
           break
         case 'control_meeting&mp_cost[000]':
         case 'control_meeting&mp_cost[100]': {
