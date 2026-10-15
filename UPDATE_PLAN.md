@@ -1,9 +1,9 @@
-# 2026-10-15 PR17 合并与安装交付（进行中）
+# 2026-10-15 PR17 集成验收与交付记录（候选验收完成）
 
-- 授权与模式：用户明确要求合并 PR17；沿用 AGENTS.md / DEVELOPMENT_WORKFLOW.md 的审查、普通合并、实际主线核对及 Tools 安全同步流程。外部贡献分支只读，主 agent 负责合并与安装串行交付。
+- 授权与模式：用户明确要求合并 PR17；共同模式保留外部贡献与自有修复的责任边界，沿用 AGENTS.md / DEVELOPMENT_WORKFLOW.md 的审查、普通合并、实际主线核对及 Tools 安全同步流程。外部贡献分支只读，主 agent 负责合并与安装串行交付。
 - 固定输入：当前 main f7022cd40149e71def603844e6c9f1324e6fb5d9，PR17 head 51259b593d803b13a9c09d1d65c0f1155080b052；47 文件涉及多绑组个人轮休、用尽前置协调、会客室线索统计及制造无人机预留。当前 tracked 工作区干净；既有未跟踪资料保留。
 - 备份：artifacts/pr17-merge-20261015/source-before.zip，1813 个已跟踪实际文件逐项重读 SHA256 通过，ZIP SHA256=21ddd54aed7a1e609f498f990ab2a50745ddbc7d244cef9963f8931ed49ec26a；完整清单、原 Git 状态同目录保存。
-- 任务归属：主 agent 独占本计划、证据、候选快照、全量验证、Git 与安装；pr17_scheduler_review 独占 mowerRecoveryBeds.ts 与既有床位/规则回归；pr17_clues_review 独占新线索效率/外部加成模块及其回归；主 agent 独占计划、结构、skill文档、清单和交付。已确认问题后转入同批独立修复，不改外部贡献者分支。
+- 任务归属：主 agent 独占本计划、证据、候选快照、全量验证、Git 与安装；pr17_scheduler_review 独占 mowerRosterRules.ts 与 validate.spec.ts；pr17_clues_review 独占新线索效率/外部加成模块及其回归，随后独占 incomeComparison.ts 与其回归；主 agent 独占计划、结构、skill文档、清单及最终疲劳精度用例校准。两独立模块同批修复，完成后互相复审；不改外部贡献者分支。
 - 验收：审查最终 head 与主线合并结果，运行类型、源码结构、skill 完整性、完整回归及独立构建；候选变化则重验。确认实际主线源码树后，预览安装清单、备份并校验 Tools 管理文件及用户资料；真实游戏验证单独标未执行。
 - 当前外部状态：Vercel status 为 Authorization required to deploy；GitHub branch rules API 返回空，普通合并仍由平台保护准入决定，不改检查、不绕过保护。CLI gh 未认证，使用已连接 GitHub 工具与公开只读 API。
 
@@ -12,6 +12,10 @@
 - 候选与准入：自有集成PR为 https://github.com/Panda-Panta/R.I.I.C-Calculator/pull/19，保留原PR17原始提交。0f80ca2已通过类型与生产构建并启动完整回归；其后仅变更祥子条件与对应回归，最终候选补做受影响回归、类型与构建。结构索引、skill离线完整性、diff检查及15项安全同步测试通过。独立报告和全部日志保存在 artifacts/pr17-merge-20261015/。
 - 全量发现的集成回归：原PR新增的 RECEPTION_CLUE_PRODUCTION_MODEL 未进入 incomeComparison 已知诊断列表，真实一周 EXP 搜索将有效候选判为 ineligible；失败整轮已停止并保留 pre-eligibility-full-tests.log。pr17_clues_review 独占 incomeComparison.ts 与既有spec修复；保留未知诊断、账本、窗口和疲劳守卫，修复后再启动最终完整回归。
 - 搜索修复验收：原PR17快照中一周搜索可复现同一失败，仅剔除该诊断后同一报告即得到每天428.5714285714 EXP增益；精确添加已知诊断后6文件92项通过，未知诊断仍拒绝。新线索模块、宿舍校验、搜索修复均经另一agent交叉复核，无剩余可操作问题。GameData固定提交仍匹配；freshness报告保留既有工具箱character/Mower整体文件漂移，不宣称全快照最新或自动更新数据。
+- 最终测试集覆盖：生产代码固定在0197ddcc15a7df9307891b1b548e1e4e16f5bce7，BASE_URL=/，完整命令为 node node_modules/vitest/vitest.mjs run --maxWorkers=2 --reporter=default --reporter=json --outputFile.json=artifacts/pr17-merge-20261015/verified-full-tests.json。整轮耗时2347.40秒，3230项通过、1项精度断言失败、1项既有外部资料审计跳过，原退出码1和日志完整保留；该精度项修正后单worker单独复验1项通过、退出0（82.29秒）。最终覆盖3231项通过、1项跳过；不把原整轮退出1写成0。后续只修改本计划和该测试，生产代码、构建输入、fixture、seed及策略均未再改变，无需重复未受影响的整套场景。
+- 精度来源：原PR17与集成版的14881分段、458事件结构、资源及39次菲亚充能完全相同；仅还原旧无人机模块就精确恢复旧疲劳pin。新增点击时钟使疲劳累计差29.276微秒，小于既有MORALE_EPSILON=1e-8小时（36微秒）；保留原pin，使用显式绝对误差界限并新增39充能守卫。原窗口、收益范围、副表及输入不变等断言均保留，独立复审通过。新旧无人机净账本/事件时刻存在已记录的预期差异，不能称整份报告只是舍入变化。三组完整证据见 fatigue-drift-* 与 review-fatigue-precision-independent.md。
+- 构建与检查：0197ddc类型及独立生产构建通过（既有大chunk提示），1006个前端文件和1821个实际输入SHA256记录于 final-inputs.json；精度校准后类型、结构及diff检查再次通过，skill包离线检查及15项安全同步回归通过。集成分支Vercel部署成功；未以其替代本地回归。
+- 最终交付核验：实际PR19状态及 artifacts/pr17-merge-20261015/source-delivery.json 记录最终候选、合并提交与实际main树；install/ 保存同步预览、全目录备份、管理与保留文件哈希，runtime/installed/ 保存真实EXE及独立WebView2档案的启动、两次演算往返和线索展示证据。delivery-summary.json仅在这些环节全部实际核验后生成。无真实游戏验证，不将安装文件核对等同于游戏结果。
 
 # 2026-10-15 制造站无人机保留阈值修复（本地实现与验证完成）
 
