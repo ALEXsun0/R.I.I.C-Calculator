@@ -847,6 +847,7 @@ describe('WorkbenchShell.vue and App primary entry integration', () => {
     `${o.name},${o.rarity < 3 ? 0 : o.rarity === 3 ? 1 : 2},${o.rarity < 3 ? 30 : o.rarity === 3 ? 55 : o.rarity === 4 ? 70 : o.rarity === 5 ? 80 : 90}`,
   )
 
+  // This real roster simulation took 68.399s on CI; use the same budget as the other generation cases.
   it('applies singleton fallback for a limited mixed-level pool', async ({ annotate }) => {
     await annotate('同步排班前确认测试进度已送达')
     // Four built dorms also need keepers in addition to mains and independent relief staff.
@@ -863,7 +864,7 @@ describe('WorkbenchShell.vue and App primary entry integration', () => {
         expect(room.slots.some(slot => slot.occupant.kind === 'operator')).toBe(true)
       }
     }
-  }, 60000)
+  }, 180000)
 
   it('keeps the workspace unchanged when the owned pool truly lacks enough people', async () => {
     localStorage.setItem('arcinc-operator-inventory-v1', JSON.stringify({ enabled: true, text: LIMITED_TEST_OPS.slice(0,5).join('\n') }))
