@@ -25,6 +25,9 @@ permissions:
 jobs:
   build-and-release:
     runs-on: windows-latest
+    env:
+      # Regression tests and packaging use the desktop root path.
+      BASE_URL: '/'
 
     steps:
       - name: Checkout repository
