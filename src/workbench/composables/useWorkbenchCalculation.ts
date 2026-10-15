@@ -2,11 +2,14 @@ import { mowerAdvancedAssumptions } from '../../scheduler/mowerAdvancedSettings'
 import { computed, onBeforeUnmount, ref, toRaw, watch, type ComputedRef } from 'vue'
 import { parseOperatorInventory, type OwnedOperatorInput } from '../../domain/operatorInventory'
 import { normalizeProductionWeights } from '../../domain/productionWeights'
+import { normalizeSimulationInventory } from '../../domain/simulationInventory'
+import { workspaceUsesInventoryConditions } from '../../scheduler/backupInventory'
 import type { CalculationWorkerMessage, CalculationProgress } from '../calculationWorker'
 import type { CalculationConfig } from '../settings'
 import type { WorkbenchSession } from '../session'
 import type { useRosterWorkbenchStore } from '../store'
 import type { ValidationResult } from '../validate'
+import { createCalculationBottleneckTracker, type CalculationBottleneckSummary, type CalculationOutcome } from '../calculationBottlenecks'
 import type { SimulationActivity } from '../../simulator/simulationActivity'
 
 export interface CalculationSilence {
@@ -22,6 +25,9 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
   const calculationProgress = ref<CalculationProgress | null>(null)
   const calculationElapsed = ref(0)
   const calculationSilence = ref<CalculationSilence | null>(null)
+  const calculationBottleneckSummary = ref<CalculationBottleneckSummary | null>(null)
+  let bottleneckTracker: ReturnType<typeof createCalculationBottleneckTracker> | undefined
+  let calculationStarted = 0
   let calculationWorker: Worker | null = null
   let calculationTimer: ReturnType<typeof setInterval> | undefined
   const calculationTiming = computed(() => {
@@ -35,7 +41,14 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
     return `已用 ${elapsed} · 约剩余 ${remaining < 60 ? `${remaining} 秒` : `${Math.ceil(remaining / 60)} 分钟`}`
   })
 
-  function stopCalculation(): void {
+  function stopCalculation(outcome?: CalculationOutcome): void {
+    if (outcome && bottleneckTracker) {
+      calculationBottleneckSummary.value = bottleneckTracker.finish({
+        outcome, elapsedSeconds: (performance.now() - calculationStarted) / 1000,
+        error: calculationError.value ?? undefined, diagnostics: simulationReport.value?.diagnostics,
+      })
+    }
+    bottleneckTracker = undefined
     const worker = calculationWorker
     calculationWorker = null
     worker?.terminate()
@@ -46,12 +59,12 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
     calculationSilence.value = null
   }
   function handleAbortCalculation(): void {
-    stopCalculation()
+    stopCalculation('cancelled')
     calculationStatus.value = '已中止产出计算，可重新开始。'
   }
   watch(() => store.workspace, () => {
     if (isCalculating.value) {
-      stopCalculation()
+      stopCalculation('changed')
       calculationStatus.value = '排班已变更，本次产出计算已中止，请重新计算。'
     }
   }, { deep: true, flush: 'sync' })
@@ -68,9 +81,12 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
   }
 
   function handleConfirmCalculation(config: CalculationConfig): void {
-    calculationConfigOpen.value = false
     if (isCalculating.value || isGeneratingRoster.value) return
-    simSettings.value = { ...simSettings.value, ...config }
+    let initialInventory
+    try { initialInventory = normalizeSimulationInventory(config.initialInventory === undefined && workspaceUsesInventoryConditions(store.workspace) ? {} : config.initialInventory) }
+    catch (error) { calculationError.value = error instanceof Error ? error.message : String(error); return }
+    calculationConfigOpen.value = false
+    simSettings.value = { ...simSettings.value, ...config, initialInventory }
     executeCalculation()
   }
 
@@ -89,7 +105,10 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
     calculationElapsed.value = 0
     calculationSilence.value = null
     calculationProgress.value = { label: '正在准备计算…', fraction: 0 }
+    calculationBottleneckSummary.value = null
+    bottleneckTracker = createCalculationBottleneckTracker()
     const started = performance.now()
+    calculationStarted = started
     let lastProgressAt = started
     let receivedProgress = false
     let lastObservation: CalculationSilence['observation']
@@ -102,6 +121,7 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
         : null
     }, 1000)
     try {
+      const initialInventory = normalizeSimulationInventory(simSettings.value.initialInventory === undefined && workspaceUsesInventoryConditions(store.workspace) ? {} : simSettings.value.initialInventory)
       let inventoryEntries: OwnedOperatorInput[] | undefined
       if (simSettings.value.useOperatorInventory !== false) {
         let inventory = operatorInventory.value
@@ -144,7 +164,11 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
           jayeElite0: simSettings.value.jayeElite0 ?? false,
           operatorInventory: inventoryEntries,
           production: {
-            outputMode: 'potential' as const,
+            ...(initialInventory === undefined ? { outputMode: 'potential' as const } : {
+              outputMode: 'settled' as const,
+              inventoryMode: 'finite' as const,
+              initialResources: initialInventory,
+            }),
             runOrderMode: 'ideal' as const,
             seed: simSettings.value.seed < 0
               ? (typeof process !== 'undefined' && Boolean(process.env?.VITEST) ? 42 : Math.floor(Math.random() * 0xffffffff))
@@ -164,6 +188,7 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
         if (message.type === 'progress') {
           lastProgressAt = performance.now()
           receivedProgress = true
+          bottleneckTracker?.observe(message.progress, (lastProgressAt - started) / 1000)
           if (message.progress.activity) lastObservation = { activity: message.progress.activity, receivedSeconds: Math.floor((lastProgressAt - started) / 1000) }
           calculationSilence.value = null
           calculationProgress.value = message.progress
@@ -173,25 +198,25 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
           timelineData.value = message.timelineData
           if (result.success && result.report) calculationReport.value = result.report
           else calculationError.value = result.error ?? '收益计算未成功完成'
-          stopCalculation()
+          stopCalculation(result.success && result.report ? 'completed' : 'failed')
         } else if (message.type === 'error') {
           calculationError.value = message.error
-          stopCalculation()
+          stopCalculation('failed')
         }
       }
       const fail = (message: string) => {
         if (calculationWorker !== worker) return
         calculationError.value = message
-        stopCalculation()
+        stopCalculation('failed')
       }
       worker.onerror = event => fail(`产出计算失败：${event.message || '后台任务执行失败'}`)
       worker.onmessageerror = () => fail('产出计算报告传输失败，请重试。')
       worker.postMessage(JSON.parse(JSON.stringify({ workspace: toRaw(store.workspace), options })))
     } catch (error) {
       calculationError.value = `无法启动后台计算：${error instanceof Error ? error.message : String(error)}`
-      stopCalculation()
+      stopCalculation('failed')
     }
   }
 
-  return { calculationConfigOpen, calculationProgress, calculationTiming, calculationSilence, handleCalculate, handleConfirmCalculation, handleAbortCalculation }
+  return { calculationBottleneckSummary, calculationConfigOpen, calculationProgress, calculationTiming, calculationSilence, handleCalculate, handleConfirmCalculation, handleAbortCalculation }
 }

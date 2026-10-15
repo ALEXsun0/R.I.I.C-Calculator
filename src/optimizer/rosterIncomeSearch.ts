@@ -1,3 +1,5 @@
+import {MOWER_INVENTORY_ITEMS,normalizeSimulationInventory} from '../domain/simulationInventory'
+import {workspaceUsesInventoryConditions} from '../scheduler/backupInventory'
 import {assertRunOrderMode} from '../simulator/productionTimeline'
 import {runMultiStartSearch,type MultiStartValidation} from './multiStartSearch'
 import {generateControlMainNeighbors,type ControlMainNeighbor} from './controlNeighborhood'
@@ -74,7 +76,12 @@ function normalize(request:IncomeSearchRequest):IncomeSearchSettings {
  assumptions.idleOperators=[...new Set(assumptions.idleOperators)]
  for(const [key,min,max] of [['sampleHours',1,2160],['warmupHours',0,2160],['maxEvents',1,200000]] as const){const n=options[key]!;if(!Number.isFinite(n)||n<min||n>max||(key==='maxEvents'&&!Number.isSafeInteger(n)))throw new Error(`无效的比较设置 ${key}`)}
  options.production={runOrderMode:'ideal',...options.production}
- if(objective==='composite'){options.production={...options.production,outputMode:'potential',collectionIntervalHours:0,initialResources:{drone:options.production.initialResources?.drone??0}};assumptions.initialGold=0;assumptions.initialFragments=0}
+ const usesInventory=[request.baseline,request.draft].some(workspace=>workspace&&workspaceUsesInventoryConditions(workspace))
+ if(options.production.inventoryMode==='finite'||usesInventory){
+  const supplied=options.production.initialResources??{}
+  const initial=normalizeSimulationInventory(Object.fromEntries(MOWER_INVENTORY_ITEMS.filter(item=>Object.prototype.hasOwnProperty.call(supplied,item.resource)).map(item=>[item.resource,supplied[item.resource]])))!
+  options.production={...options.production,outputMode:'settled',inventoryMode:'finite',initialResources:{...supplied,...initial}}
+ }else if(objective==='composite'){options.production={...options.production,outputMode:'potential',collectionIntervalHours:0,initialResources:{drone:options.production.initialResources?.drone??0}};assumptions.initialGold=0;assumptions.initialFragments=0}
  // Validate every supplied numeric setting before any expensive simulation.
  const finite=(value:unknown):void=>{if(typeof value==='number'&&!Number.isFinite(value))throw new Error('比较设置必须包含有限数值');if(value&&typeof value==='object')Object.values(value).forEach(finite)}
  finite(options);finite(assumptions)

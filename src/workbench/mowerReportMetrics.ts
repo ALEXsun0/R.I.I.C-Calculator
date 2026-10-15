@@ -1,5 +1,5 @@
 import type { ScheduleSimulationReport } from '../simulator/scheduleSimulation'
-import { scoreSimulationProduction } from '../simulator/productionScore'
+import { scoreSimulationProduction, simulationOutputOrders } from '../simulator/productionScore'
 import { virtualGoldEquivalent } from '../rules/orderValue'
 
 /** Shared weighted report; the default 82 coefficients value order premiums at 0.8.
@@ -9,9 +9,7 @@ export function mowerReportMetrics(report: ScheduleSimulationReport) {
   const production = report.production
   if (!report.success || !production?.success || report.observedHours <= 0) return null
   const factor = 24 / report.observedHours
-  const orders = production.events.filter(e => e.type === 'order-completed'
-    && e.time > report.assumptions.warmupHours && e.time <= report.elapsedHours
-    && e.order && e.order.kind !== 'orundum').map(e => e.order!)
+  const orders = simulationOutputOrders(report).filter(order => order.kind !== 'orundum')
   const virtualGoldCount = orders.reduce((n, o) => n + virtualGoldEquivalent(o), 0)
   const score = scoreSimulationProduction(report)
   return {

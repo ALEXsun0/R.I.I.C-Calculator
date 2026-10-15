@@ -1,0 +1,126 @@
+{
+  "repository": "https://github.com/ArkMowers/arknights-mower",
+  "revision": "48ae469895dd9a64fda8a565d2403c49f431cde8",
+  "checkedDate": "2026-10-14",
+  "baselinePreviouslyChecked": "3de2b2ac6f1aeff6513b63faaeea4b2369cf8856",
+  "behaviorReferences": {
+    "maintenance": "19a322969",
+    "measuredDormDeparture": "b9ec78a822099285a2e509630fce98f27afa6580",
+    "restoredRestingGroup": "80c97ee604375af144090656ef84b083acd6dc7f",
+    "builtInSimulationAndFacilityLevels": "c2cd17883"
+  },
+  "sources": [
+    {
+      "path": "arknights_mower/solvers/base_schedule.py",
+      "sha256": "cc4c47c6ea47b32c76b8e36f096a931c2d05c735684e17603db9c2f6d31bb41b"
+    },
+    {
+      "path": "arknights_mower/utils/operators.py",
+      "sha256": "607b3433afc187a44c531e0a614cea69f6df9668f578a37202930d64b3c250ce"
+    },
+    {
+      "path": "arknights_mower/tests/completed_group_departure_tests.py",
+      "sha256": "6b57d69a930fb748f1d5555c7d324e668ba90c7442badf4c1a6610832c10c537"
+    },
+    {
+      "path": "arknights_mower/tests/maintenance_run_order_tests.py",
+      "sha256": "e746bc3693e53e80e00f5aad615591d1c19f280b3373661d368ea502ed02d484"
+    },
+    {
+      "path": "arknights_mower/tests/backup_relocation_state_tests.py",
+      "sha256": "3e0a7a73ecf00a27b0b49f0fd54e011ae63f191f68f4cefa5b21982a60a7201d"
+    },
+    {
+      "path": "ui/src/riic/vendor/source.json",
+      "sha256": "ebb76c1db6977ffd7a8515dbb76b82a461663c4aec7312f172179b6db1dd65ff"
+    }
+  ],
+  "scope": [
+    "maintenance primary slots pause all ideal run-order policies until effective maintenance primaries are removed",
+    "ordinary completed dorm departures preserve measured mood and stop dorm recovery extrapolation",
+    "backup restoration keeps an already-resting group resting with matching covers and missing-bed admission",
+    "saved shared facility levels enter import, export, compilation, capacity and power checks",
+    "RIIC automatic candidate evaluation and native simulation share the simulation bridge",
+    "Mower built-in simulation pins the verified calculator source; Yituliu receives editor changes only"
+  ],
+  "limitations": [
+    "maintenance replacement Drone Acceleration and physical roster restoration are not simulated by the ideal run-order model",
+    "persistent return_windows and complete cross-dorm recovery prioritization remain outside the existing port",
+    "does not simulate live mastery progress or device training protection observations",
+    "does not claim a complete native scheduler port or live game verification",
+    "Yituliu simulation code is outside this update",
+    "Windows D:/Tools/R.I.I.C-Calculator installation is unavailable on this macOS host"
+  ],
+  "schedulerReviewFollowup": {
+    "checkedDate": "2026-10-15",
+    "sourceBaseRevision": "cba8c1ec9",
+    "sourceState": "Committed Mower simulation fixes; exact source and target bytes pinned below; PR publication handled by parent agent.",
+    "sourceFiles": [
+      {
+        "sourcePath": "ui/src/riic/vendor/scheduler/mowerAlphaDorm.ts",
+        "targetPath": "src/scheduler/mowerAlphaDorm.ts",
+        "sha256": "32c6fc3628d5efab181d94e00f3acb9a0859db19e42e9523c853ea80d4b4d264",
+        "targetSha256": "32c6fc3628d5efab181d94e00f3acb9a0859db19e42e9523c853ea80d4b4d264"
+      },
+      {
+        "sourcePath": "ui/src/riic/vendor/scheduler/mowerOrdinaryPlanning.ts",
+        "targetPath": "src/scheduler/mowerOrdinaryPlanning.ts",
+        "sha256": "4c8aecb9ab5bb09e3b66019802ab9c35f92109f51ccc12e1234a107be71e14b7",
+        "targetSha256": "4c8aecb9ab5bb09e3b66019802ab9c35f92109f51ccc12e1234a107be71e14b7"
+      },
+      {
+        "sourcePath": "ui/src/riic/vendor/scheduler/mowerSourceRuntime.ts",
+        "targetPath": "src/scheduler/mowerSourceRuntime.ts",
+        "sha256": "5e0754325dd4ff563d3921426cebb90736778c33141c3356f4e9b2277aec8064",
+        "targetSha256": "9ad9036020941e269032855e3d2f88fa431e2e7f07fa156ade1d4113f97fd822",
+        "retainedCalculatorAdaptation": "Preserves existing mowerMaintenanceRunOrderPaused room gating and queue cleanup; only departingPlan observation changes are synchronized."
+      },
+      {
+        "sourcePath": "ui/src/riic/vendor/scheduler/mowerCompletedDeparture.spec.ts",
+        "targetPath": "src/scheduler/mowerCompletedDeparture.spec.ts",
+        "sha256": "84ce808ec66ed5dce08056606dd74ed07b1e59f1f37a7939dec5735bc2ba000a",
+        "targetSha256": "84ce808ec66ed5dce08056606dd74ed07b1e59f1f37a7939dec5735bc2ba000a"
+      }
+    ],
+    "regressionSources": [
+      {
+        "path": "ui/src/riic/incomeDormReservations.test.js",
+        "sha256": "5f5b470b703b53ed23942d7bfd712312e1e92b087b4a4e559a25f1a3018c886a"
+      }
+    ],
+    "adaptedRegression": "src/scheduler/mowerDormAdmissions.spec.ts",
+    "scope": [
+      "retain earlier confirmed admissions across multiple groups and shared dorm slots in one ordinary planning round",
+      "completed departing members do not recall unfinished group members; explicit arrangements and shared bindings retain precedence",
+      "read ordinary departing residents before selection and preserve measured personal-limit completion; RUN_ORDER, FIAMMETTA and train exclusions remain"
+    ],
+    "limitations": [
+      "only syncs existing Mower built-in simulation fixes into RIIC; no native scheduler or new game rule changes",
+      "offline synthetic runtime tests only; no private schedules, live devices, Windows installation or remote publication used"
+    ],
+    "externalEvidence": {
+      "entry": "Mower built-in simulation only",
+      "source": "parent agent reported completed full 31-day plan2 replay",
+      "elapsedSeconds": 103.28,
+      "observedHours": 672.0000000000628,
+      "dailyEquivalentLmd": 101071.43,
+      "boundary": "External Mower entry evidence; RIIC entry is verified by focused offline behavior tests and typecheck in this follow-up. No real game/device validation."
+    },
+    "adaptedRegressionSha256": "fb6e88556eb47468896d873cb1871fa7160e81e0f413db1d4b38c32cce0dced2",
+    "validation": {
+      "focusedBehaviorTests": 18,
+      "adjacentSuiteFiles": 11,
+      "adjacentTests": 157,
+      "finalAdaptedRegressionTests": 7,
+      "typecheck": "passed",
+      "structure": "generated and check passed",
+      "diffCheck": "passed",
+      "baselineRedEvidence": "6 failures and 1 pass before synchronization in the 7-case adapted suite",
+      "evidenceDirectory": "artifacts/riic-dorm-observation-sync-20261015",
+      "productionBuild": "passed; /tmp/riic-dorm-observation-synced-build; existing large-chunk warning retained"
+    },
+    "sourceRevision": "ab624c727",
+    "sourceRepository": "https://github.com/ALEXsun0/arknights-mower",
+    "sourceBranch": "codex/income-validation-dorm-sync"
+  }
+}

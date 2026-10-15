@@ -8,8 +8,7 @@ import { compileMainPlanToAppConfig } from './adapter'
 import type { RosterWorkspace } from '../domain/roster'
 import { validateRosterWorkspace, type ValidationResult } from './validate'
 import { runScheduleSimulationBridge } from './scheduleSimulationBridge'
-import { virtualGoldEquivalent } from '../rules/orderValue'
-import { scoreSimulationProduction } from '../simulator/productionScore'
+import { scoreSimulationProduction, simulationOutputAmounts, simulationOutputOrders } from '../simulator/productionScore'
 import { normalizeProductionWeights } from '../domain/productionWeights'
 import type { ScheduleSimulationOptions, ScheduleSimulationReport, ScheduleSimulationProgress } from '../simulator/scheduleSimulation'
 
@@ -45,33 +44,30 @@ export function simulationReportToCalculationReport(
   baseConfig: AppConfig = createDefaultConfig(),
 ): CalculationReport {
   const days = simReport.observedHours > 0 ? simReport.observedHours / 24 : 1
-  const completed = simReport.production?.sample.completed
+  const output = simulationOutputAmounts(simReport)
+  const potential = simReport.production?.assumptions.outputMode === 'potential'
   const outflows = simReport.production?.sample.outflows
   const inflows = simReport.production?.sample.inflows
 
-  const exp = (completed?.exp ?? 0) / days
-  const goldCount = (completed?.gold ?? 0) / days
+  const exp = output.exp / days
+  const goldCount = output.gold / days
   const goldValue = goldCount * 500
-  const orderLmd = (completed?.orderLmd ?? 0) / days
+  const orderLmd = output.orderLmd / days
 
-  const warmupHours = simReport.assumptions?.warmupHours ?? 0
-  const sampleOrderEvents = simReport.production?.events.filter(
-    e => e.type === 'order-completed' && e.time > warmupHours && e.time <= simReport.elapsedHours
-  ) ?? []
-  const ordersGoldCost = sampleOrderEvents.reduce((n, e) => n + (e.order?.goldCost ?? 0), 0) / days
-  const goldConsumed = (outflows?.gold ?? 0) > 0 ? (outflows?.gold ?? 0) / days : ordersGoldCost
+  const ordersGoldCost = simulationOutputOrders(simReport).reduce((n, order) => n + order.goldCost, 0) / days
+  const goldConsumed = potential && !(outflows?.gold ?? 0) ? ordersGoldCost : (outflows?.gold ?? 0) / days
   const netGoldCount = goldCount - goldConsumed
 
   // A report equivalent, not a physical gold inflow. Closure and Pepe also have premiums.
-  const virtualGoldCount = sampleOrderEvents.reduce((sum, e) => sum + (e.order ? virtualGoldEquivalent(e.order) : 0), 0) / days
+  const virtualGoldCount = (output.virtualGold ?? 0) / days
   const virtualGoldValue = virtualGoldCount * 500
 
   const scoreBreakdown = scoreSimulationProduction(simReport)
   const totalScore82 = scoreBreakdown.total
   const totalEquivalentLmd = orderLmd + exp + (netGoldCount + virtualGoldCount) * 500
 
-  const fragments = (simReport.production?.manufacturing.filter(r => r.product === 'fragment').reduce((n,r) => n+r.sampleCompletedItems, 0) ?? 0) / days
-  const orundum = sampleOrderEvents.reduce((n,e) => n+(e.order?.orundumReward ?? 0), 0) / days
+  const fragments = (output.fragments ?? 0) / days
+  const orundum = (output.orundum ?? 0) / days
   const drones = (inflows?.drone ?? 0) / days
 
   const compiledConfig = compileMainPlanToAppConfig(workspace.mainPlan, workspace, baseConfig)
@@ -90,7 +86,7 @@ export function simulationReportToCalculationReport(
     fragments,
     orundum,
     goldConsumed,
-    fragmentsConsumed: 0,
+    fragmentsConsumed: potential ? 0 : (outflows?.fragment ?? 0) / days,
     netGoldCount,
     netGoldValue: netGoldCount * 500,
     totalScore82,

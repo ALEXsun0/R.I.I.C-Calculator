@@ -1,0 +1,2753 @@
+{
+  "revision": "3de2b2ac6f1aeff6513b63faaeea4b2369cf8856",
+  "scope": "Replay unmodified 3de2b2ac6 isolation and dorm assignment AST offline. Native isolation, ordering, tier, mood, slot eligibility and assignment functions; explicit synthetic occupancy/projection and unlimited capacity adapters. No automatic group beds, emergency residents, physical I/O or complete scheduler equivalence claim.",
+  "sourceSha256": {
+    "arknights_mower/utils/operators.py": "607b3433afc187a44c531e0a614cea69f6df9668f578a37202930d64b3c250ce",
+    "arknights_mower/utils/plan.py": "724030b1f2a33a3e84229898654dee5839c7cacf0ffd73fbfb884d93c46c1191",
+    "arknights_mower/utils/scheduler_task.py": "1e6a233e12f4398e93ae7064d93cbddf94159e12dd2b6bd31ad985caf9a3c872",
+    "arknights_mower/utils/resting_priority.py": "aa317803cf62bed8583cb6167a2ebd9cff018e6a4be5f03a73f3b2c45d6a5d18"
+  },
+  "methods": {
+    "RestingTier": {
+      "path": "arknights_mower/utils/resting_priority.py",
+      "line": 23,
+      "astSha256": "a80cbdc3144be8d63b2f32d2caf1c6bfcca8899ebe5551523aafb33cede30c1d"
+    },
+    "_replacement_tier": {
+      "path": "arknights_mower/utils/resting_priority.py",
+      "line": 34,
+      "astSha256": "cec8caab5bb15ee584f8c75e1f2f11fc5abc1eb5ef3ef123b760f0c66ea2f65e"
+    },
+    "resting_tier": {
+      "path": "arknights_mower/utils/resting_priority.py",
+      "line": 40,
+      "astSha256": "d36f0b977e8bc395bf8a70cb4f428b02c2b7a8597fc89d64b7e5f4664fad299c"
+    },
+    "has_resting_mood": {
+      "path": "arknights_mower/utils/resting_priority.py",
+      "line": 89,
+      "astSha256": "660568a656c4596343179f7b064edd740fb2dfde94663227fccd846fce2e0f41"
+    },
+    "resting_mood": {
+      "path": "arknights_mower/utils/resting_priority.py",
+      "line": 99,
+      "astSha256": "4be48a1f73c773710b9a20c70577c150c4f7fe10bbb699f0f9d233b54978b568"
+    },
+    "resting_key": {
+      "path": "arknights_mower/utils/resting_priority.py",
+      "line": 104,
+      "astSha256": "88b5665798e9f9b518ce0e212c527267b776b1349391a59207b69898575c139a"
+    },
+    "bed_takeover_allowed": {
+      "path": "arknights_mower/utils/resting_priority.py",
+      "line": 74,
+      "astSha256": "6acb451ba32c183a3905cb963ff853553be254fe6941dcc70a6969f25f127c2f"
+    },
+    "effective_dorm_order": {
+      "path": "arknights_mower/utils/plan.py",
+      "line": 29,
+      "astSha256": "5e4ffef57e4ec196cce5a590280ee0edc07e4d68587f2fd55f27557502866160"
+    },
+    "ordered_dorms": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 2592,
+      "astSha256": "69928ff8cc084a787a5f2aff48eddf5b0550d3ec4da21f0abc5e9f327632c4a7"
+    },
+    "dorm_roommates": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 2549,
+      "astSha256": "c7bf2c45a2880ed76eee3f3ef0a43cbb83b94971daa576fc3adf121a80b99280"
+    },
+    "dorm_isolation_cost": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 2578,
+      "astSha256": "02895ab4cad99be40c1d8c731a930e9c5da4e8b5f7e2d06751f62678026e0bf0"
+    },
+    "_slot_takable": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 2497,
+      "astSha256": "5d8c12c7212c893ad8aed5feb978a4574b8b832e73b3535a826701a6a2c89ad1"
+    },
+    "_find_dorm_slot": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 2619,
+      "astSha256": "00f6e40201584ded4caae49baa9277172915f0e40298bd64f73d22deb00fb5e6"
+    },
+    "assign_dorm": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 2757,
+      "astSha256": "dd95e04896ec1b78ae149ecc9c24bbb177d1c0c34d7796e54ffebcf759994599"
+    },
+    "current_mood": {
+      "path": "arknights_mower/utils/operators.py",
+      "line": 3093,
+      "astSha256": "58963c56b17d52f3bd6cd550deb5900b48cc2346eca6d287b7642615b775140c"
+    },
+    "plan_dorm_isolation": {
+      "path": "arknights_mower/utils/scheduler_task.py",
+      "line": 2473,
+      "astSha256": "ff4232338d8e92e210f599cc116bc61a3832d688fa656a2464c2fd06ecb29636"
+    }
+  },
+  "cases": [
+    {
+      "name": "equal-tier newcomers",
+      "options": {},
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "C",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "B",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "existing resident",
+      "options": {
+        "residentB": true
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "C",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "B",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "reserved arrival slot",
+      "options": {
+        "reserved": [
+          [
+            "dormitory_1",
+            1
+          ]
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "product reservation",
+      "options": {
+        "productReserved": true
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "different recovery tiers",
+      "options": {
+        "priorityB": true
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "C",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "B",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "explicit order equal recovery key",
+      "options": {
+        "explicitOrder": true
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "C",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "B",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "explicit order different recovery key",
+      "options": {
+        "explicitOrder": true,
+        "moodC": 11
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "C",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "B",
+          "Current"
+        ]
+      }
+    }
+  ],
+  "isolationCases": [
+    {
+      "name": "new high-tier arrival can exchange an existing ordinary resident",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B",
+            "operatorType": "high",
+            "restingPriority": "high"
+          },
+          {
+            "name": "C",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 2
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": "C"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": ""
+          }
+        ],
+        "dormIsolation": [
+          [
+            "A",
+            "B"
+          ]
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "reservedSlots": [],
+      "reservedNames": [],
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "reserved ordinary resident name",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B"
+          },
+          {
+            "name": "C",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 2
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          },
+          {
+            "name": "X1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 3,
+            "workaholic": true
+          },
+          {
+            "name": "X2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 3,
+            "workaholic": true
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": "X1"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": "C"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": "X2"
+          }
+        ],
+        "dormIsolation": [
+          [
+            "A",
+            "B"
+          ]
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "reservedSlots": [],
+      "reservedNames": [
+        "C"
+      ],
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "reserved ordinary bed",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B"
+          },
+          {
+            "name": "C",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 2
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          },
+          {
+            "name": "X1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 3,
+            "workaholic": true
+          },
+          {
+            "name": "X2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 3,
+            "workaholic": true
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": "X1"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": "C"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": "X2"
+          }
+        ],
+        "dormIsolation": [
+          [
+            "A",
+            "B"
+          ]
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "reservedSlots": [
+        [
+          "dormitory_2",
+          2
+        ]
+      ],
+      "reservedNames": [],
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "product-reserved ordinary bed",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B"
+          },
+          {
+            "name": "C",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 2
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          },
+          {
+            "name": "X1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 3,
+            "workaholic": true
+          },
+          {
+            "name": "X2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 3,
+            "workaholic": true
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": "X1"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": "C"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": "X2"
+          }
+        ],
+        "dormIsolation": [
+          [
+            "A",
+            "B"
+          ]
+        ],
+        "reservedProductBeds": [
+          [
+            "dormitory_2",
+            2,
+            "C"
+          ]
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "reservedSlots": [],
+      "reservedNames": [],
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "excluded ordinary resident",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B"
+          },
+          {
+            "name": "C",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 2
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          },
+          {
+            "name": "X1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 3,
+            "workaholic": true
+          },
+          {
+            "name": "X2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 3,
+            "workaholic": true
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": "X1"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": "C"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": "X2"
+          }
+        ],
+        "dormIsolation": [
+          [
+            "A",
+            "B"
+          ]
+        ],
+        "freeBlacklist": [
+          "C"
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "reservedSlots": [],
+      "reservedNames": [],
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "retained ordinary resident",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B"
+          },
+          {
+            "name": "C",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 2
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          },
+          {
+            "name": "X1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 3,
+            "workaholic": true
+          },
+          {
+            "name": "X2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 3,
+            "workaholic": true
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": "X1"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": "C"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": "X2"
+          }
+        ],
+        "dormIsolation": [
+          [
+            "A",
+            "B"
+          ]
+        ],
+        "freeRoomExclusions": [
+          "C"
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "reservedSlots": [],
+      "reservedNames": [],
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "implicit future admission protects its reserved bed",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B"
+          },
+          {
+            "name": "C",
+            "currentRoom": "room_1_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": "C"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": ""
+          }
+        ],
+        "dormIsolation": [
+          [
+            "A",
+            "B"
+          ]
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ]
+      },
+      "reservedSlots": [],
+      "reservedNames": [],
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "Free",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "Current",
+          "B"
+        ]
+      }
+    },
+    {
+      "name": "new first-bed arrival yields for isolation",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B",
+            "operatorType": "high",
+            "restingPriority": "high"
+          },
+          {
+            "name": "C"
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": ""
+          }
+        ],
+        "dormIsolation": [
+          [
+            "K1",
+            "B"
+          ]
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "Current",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "reservedSlots": [],
+      "reservedNames": [],
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "C",
+          "Current",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "higher recovery tier takes new first bed when isolation score ties",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B"
+          },
+          {
+            "name": "C",
+            "operatorType": "high",
+            "restingPriority": "high"
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": ""
+          }
+        ],
+        "dormIsolation": [
+          [
+            "K1",
+            "B"
+          ]
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "C",
+          "Current"
+        ]
+      },
+      "reservedSlots": [],
+      "reservedNames": [],
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "C",
+          "Free",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "observed full arrival yields first bed to recovering main",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B",
+            "mood": 24
+          },
+          {
+            "name": "C",
+            "operatorType": "high",
+            "restingPriority": "high"
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": ""
+          }
+        ],
+        "dormIsolation": [
+          [
+            "K1",
+            "B"
+          ]
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "B",
+          "C",
+          "Current"
+        ]
+      },
+      "reservedSlots": [],
+      "reservedNames": [],
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "C",
+          "Free",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "ordinary equal-tier residents do not move for morale difference alone",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B",
+            "mood": 1
+          },
+          {
+            "name": "C",
+            "mood": 23
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": ""
+          }
+        ],
+        "dormIsolation": [
+          [
+            "K1",
+            "K2"
+          ]
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "reservedSlots": [],
+      "reservedNames": [],
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "explicit low order still permits cross-tier isolation",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B",
+            "operatorType": "high",
+            "restingPriority": "high"
+          },
+          {
+            "name": "C",
+            "mood": 23
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": ""
+          }
+        ],
+        "dormIsolation": [
+          [
+            "A",
+            "B"
+          ]
+        ],
+        "dormOrder": [
+          "dormitory_1_low",
+          "dormitory_2_low"
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ]
+      },
+      "reservedSlots": [],
+      "reservedNames": [],
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "C",
+          "Current"
+        ],
+        "dormitory_2": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "no new dorm arrivals leaves existing arrangements alone",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 2
+          },
+          {
+            "name": "C"
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": "B"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": ""
+          }
+        ],
+        "dormIsolation": [
+          [
+            "A",
+            "B"
+          ]
+        ]
+      },
+      "input": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ]
+      },
+      "reservedSlots": [],
+      "reservedNames": [],
+      "expected": {
+        "dormitory_1": [
+          "Current",
+          "Current",
+          "B",
+          "Current"
+        ]
+      }
+    },
+    {
+      "name": "a work-room-only newcomer does not trigger dorm reshuffling",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "room_1_1": [
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 2
+          },
+          {
+            "name": "C"
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": "B"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": ""
+          }
+        ],
+        "dormIsolation": [
+          [
+            "A",
+            "B"
+          ]
+        ]
+      },
+      "input": {
+        "room_1_1": [
+          "C"
+        ]
+      },
+      "reservedSlots": [],
+      "reservedNames": [],
+      "expected": {
+        "room_1_1": [
+          "C"
+        ]
+      }
+    }
+  ],
+  "assignmentCases": [
+    {
+      "name": "same takeover tier chooses isolation before smaller recovery gap",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B",
+            "operatorType": "high",
+            "restingPriority": "high"
+          },
+          {
+            "name": "C",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 2,
+            "mood": 23
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          },
+          {
+            "name": "E",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 2,
+            "mood": 1
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": "C"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": "E"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": ""
+          }
+        ],
+        "dormIsolation": [
+          [
+            "A",
+            "B"
+          ]
+        ]
+      },
+      "requester": "B",
+      "used": [
+        0,
+        2,
+        3,
+        5
+      ],
+      "input": {},
+      "expectedPosition": [
+        "dormitory_2",
+        2
+      ]
+    },
+    {
+      "name": "explicit low order does not disable takeover isolation",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B",
+            "operatorType": "high",
+            "restingPriority": "high"
+          },
+          {
+            "name": "C",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 2,
+            "mood": 23
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          },
+          {
+            "name": "E",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 2,
+            "mood": 1
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": "C"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": "E"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": ""
+          }
+        ],
+        "dormIsolation": [
+          [
+            "A",
+            "B"
+          ]
+        ],
+        "dormOrder": [
+          "dormitory_1_low",
+          "dormitory_2_low"
+        ]
+      },
+      "requester": "B",
+      "used": [
+        0,
+        2,
+        3,
+        5
+      ],
+      "input": {},
+      "expectedPosition": [
+        "dormitory_2",
+        2
+      ]
+    },
+    {
+      "name": "explicit low order does not disable empty-bed isolation",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B"
+          },
+          {
+            "name": "C"
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": ""
+          }
+        ],
+        "dormIsolation": [
+          [
+            "A",
+            "B"
+          ]
+        ],
+        "dormOrder": [
+          "dormitory_1_low",
+          "dormitory_2_low"
+        ]
+      },
+      "requester": "B",
+      "used": [],
+      "input": {},
+      "expectedPosition": [
+        "dormitory_2",
+        2
+      ]
+    },
+    {
+      "name": "takeover recovery tier remains ahead of isolation",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B",
+            "operatorType": "high",
+            "restingPriority": "high"
+          },
+          {
+            "name": "C",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 2
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          },
+          {
+            "name": "E",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 2,
+            "operatorType": "high",
+            "restingPriority": "low"
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": "C"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": "E"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": ""
+          }
+        ],
+        "dormIsolation": [
+          [
+            "A",
+            "B"
+          ]
+        ]
+      },
+      "requester": "B",
+      "used": [
+        0,
+        2,
+        3,
+        5
+      ],
+      "input": {},
+      "expectedPosition": [
+        "dormitory_1",
+        2
+      ]
+    },
+    {
+      "name": "equal tier and isolation prefer the smaller recovery gap",
+      "state": {
+        "plan": {
+          "dormitory_1": [
+            "K1",
+            "Free",
+            "Free",
+            "Free"
+          ],
+          "dormitory_2": [
+            "K2",
+            "Free",
+            "Free",
+            "Free"
+          ]
+        },
+        "operators": [
+          {
+            "name": "A",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 1
+          },
+          {
+            "name": "B",
+            "operatorType": "high",
+            "restingPriority": "high"
+          },
+          {
+            "name": "C",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 2,
+            "mood": 23
+          },
+          {
+            "name": "D",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 1
+          },
+          {
+            "name": "K1",
+            "currentRoom": "dormitory_1",
+            "currentIndex": 0
+          },
+          {
+            "name": "K2",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 0
+          },
+          {
+            "name": "E",
+            "currentRoom": "dormitory_2",
+            "currentIndex": 2,
+            "mood": 1
+          }
+        ],
+        "beds": [
+          {
+            "position": [
+              "dormitory_1",
+              1
+            ],
+            "name": "A"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              2
+            ],
+            "name": "C"
+          },
+          {
+            "position": [
+              "dormitory_1",
+              3
+            ],
+            "name": ""
+          },
+          {
+            "position": [
+              "dormitory_2",
+              1
+            ],
+            "name": "D"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              2
+            ],
+            "name": "E"
+          },
+          {
+            "position": [
+              "dormitory_2",
+              3
+            ],
+            "name": ""
+          }
+        ],
+        "dormIsolation": [
+          [
+            "K1",
+            "K2"
+          ]
+        ]
+      },
+      "requester": "B",
+      "used": [
+        0,
+        2,
+        3,
+        5
+      ],
+      "input": {},
+      "expectedPosition": [
+        "dormitory_1",
+        2
+      ]
+    }
+  ]
+}

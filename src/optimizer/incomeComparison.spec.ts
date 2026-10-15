@@ -7,6 +7,23 @@ const report=()=>runScheduleSimulationBridge(createDefaultWorkspace(),{sampleHou
 const cases=():IncomeCase[]=>[1,2].flatMap(seed=>[.25,.125].map(step=>{const c=summarizeIncome(report());return {...c,seed,step,key:`${seed}:${step}`}}))
 const improved=()=>{const c=cases();c.forEach(x=>{x.daily.lmd+=100;x.closing.lmd+=100});return c}
 describe('actual net income comparison',()=>{
+ it('accepts finite inventory assumptions for net resource comparisons while composite remains potential-only',()=>{
+  const workspace=createDefaultWorkspace()
+  workspace.compatibility.backupPlans=[{name:'inventory',trigger:"op_data.inventory_count('赤金') > 999999",plan:{}}]
+  const finite=[1,2].flatMap(seed=>[.25,.125].map(maxStepHours=>{
+   const r=runScheduleSimulationBridge(workspace,{sampleHours:1,maxStepHours,production:{seed,droneTarget:'none',initialResources:{gold:4,lmd:1600}}},{idleOperators:[]}).report!
+   expect(r.success,JSON.stringify(r.diagnostics)).toBe(true)
+   expect(r.diagnostics.some(d=>d.code==='FINITE_INVENTORY_MODEL')).toBe(true)
+   const summary=summarizeIncome(r)
+   expect(summary.eligible,JSON.stringify(summary.issues)).toBe(true)
+   expect(summary.assumptions.some(d=>d.code==='FINITE_INVENTORY_MODEL')).toBe(true)
+   expect(summary.output?.mode).toBe('settled')
+   return summary
+  }))
+  expect(compareIncome(finite,finite,'lmd').status).toBe('unchanged')
+  expect(compareIncome(finite,finite,'exp').status).toBe('unchanged')
+  expect(compareIncome(finite,finite,'composite')).toMatchObject({status:'ineligible',reasons:['综合评分要求忽略库存约束的完成产出']})
+ })
  it('uses the shared completed-production score with the report weights',()=>{
   const r=runScheduleSimulationBridge(createDefaultWorkspace(),{sampleHours:24,warmupHours:0,production:{seed:1,droneTarget:'none'}},{idleOperators:[]}).report!
   r.inputs.options.productionWeights={exp:3,gold:4,orders:5,fragments:6,orundum:7}

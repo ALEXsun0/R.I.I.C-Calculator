@@ -18,6 +18,7 @@ export function validateBackupPlans(workspace: RosterWorkspace, validate: (works
     try {
       if (!record(raw) || raw.plan !== undefined && !record(raw.plan) || raw.conf !== undefined && !record(raw.conf) || raw.task !== undefined && !record(raw.task)) throw new Error('plan/conf/task 格式错误')
       const effective: RosterWorkspace = JSON.parse(JSON.stringify(workspace))
+      const detachedBackup = effective.compatibility.backupPlans[index]
       effective.compatibility.backupPlans = []
       for (const [room, value] of Object.entries(record(raw.plan) ? raw.plan : {})) {
         roomId = room as MowerRoomId
@@ -40,7 +41,7 @@ export function validateBackupPlans(workspace: RosterWorkspace, validate: (works
           facility.slots[slotIndex] = {...binding(slot), occupant: slot.agent === 'Free' ? {kind: 'free'} : {kind: 'operator', operatorId: resolveOperatorCharId(slot.agent)}, groupBindings: (slot.group_bindings as unknown[] | undefined)?.map(binding)}
         })
       }
-      mergeMowerBackupConfig(effective.mainPlan.conf, record(raw.conf) ? raw.conf : {})
+      mergeMowerBackupConfig(effective.mainPlan.conf, record(detachedBackup) && record(detachedBackup.conf) ? detachedBackup.conf : {})
       const task: Record<string, string[]> = {}
       for (const [room, targets] of Object.entries(record(raw.task) ? raw.task : {})) {
         roomId = room as MowerRoomId

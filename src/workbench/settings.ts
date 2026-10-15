@@ -1,6 +1,8 @@
 import { normalizeProductionWeights, type ProductionWeights } from '../domain/productionWeights'
+import type { SimulationInventory } from '../domain/simulationInventory'
 
 export interface SimulationSettings {
+  initialInventory?: SimulationInventory
   sampleDays: number
   warmupDays: number
   step: number
@@ -19,6 +21,7 @@ export interface SimulationSettings {
 }
 
 export interface CalculationConfig {
+  initialInventory?: SimulationInventory
   productionWeights?: ProductionWeights
   droneTarget: 'gold' | 'exp' | 'trading' | 'none'
   droneTradingRoomId: string

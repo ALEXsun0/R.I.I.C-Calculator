@@ -51,6 +51,8 @@ export class MowerOperatorState {
  }
  needToRefresh(nowMicros:number,hours=2,room=''):boolean {if(['歌蕾蒂娅','见行者'].includes(this.nativeName))hours=.5;return this.timeStampMicros===undefined||this.timeStampMicros+toMowerMicros(hours)<nowMicros||room.startsWith('dorm')&&!this.room.startsWith('dorm')}
 }
+/** Ordinary dorm release shares this saved full-mood evidence with task planning. */
+export function hasObservedFullMood(op:MowerOperatorState|undefined):boolean {return !!op&&op.timeStampMicros!==undefined&&op.mood>=0&&op.mood<=24&&op.mood>=op.upperLimit}
 export function hasRestingMood(op:MowerOperatorState|undefined,nowMicros:number):boolean {return !!op&&op.timeStampMicros!==undefined&&op.mood>=0&&op.mood<=24&&op.currentMood(nowMicros)>=0&&op.currentMood(nowMicros)<=24}
 export const restingMood=(op:MowerOperatorState|undefined,nowMicros:number)=>op&&hasRestingMood(op,nowMicros)?op.currentMood(nowMicros):24
 export interface MowerMoodPolicy {restingThreshold:number;rescueThreshold:number;experimentalDormLogic?:boolean;alpha?:boolean}

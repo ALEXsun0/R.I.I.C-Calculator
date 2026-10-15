@@ -2,7 +2,7 @@
 import type {MowerSchedulingData} from './mowerSchedulingData'
 import type {MowerOperatorState} from './mowerOperatorState'
 import type {MowerTaskPlan} from './mowerTaskQueue'
-import {mowerMatchReplacements} from './mowerAlphaDorm'
+import {mowerMatchReplacements,alphaPosition} from './mowerAlphaDorm'
 
 export type MowerGroupTransitions=Record<string,boolean>
 export function mowerArrangementGroupTransitions(data:MowerSchedulingData,plan:MowerTaskPlan):MowerGroupTransitions {
@@ -47,10 +47,10 @@ export function mowerWorkingReplacementBlocked(data:MowerSchedulingData,names:It
  return false
 }
 /** Mutates only the caller's plan, and only after every shared cover has a matching. */
-export function normalizeMowerSharedArrangement(data:MowerSchedulingData,plan:MowerTaskPlan,transitions=mowerArrangementGroupTransitions(data,plan)):boolean {
+export function normalizeMowerSharedArrangement(data:MowerSchedulingData,plan:MowerTaskPlan,transitions=mowerArrangementGroupTransitions(data,plan),explicitSlots:ReadonlySet<string>=new Set()):boolean {
  const shifting=Object.entries(transitions).flatMap(([group,resting])=>resting?data.shiftGroupMembers(group):[])
  if(mowerWorkingReplacementBlocked(data,shifting,plan))return false
- const followers=Object.values(data.operators).filter(op=>op.multiGroup&&(op.index<(plan[op.room]?.length??0)||op.groupBindings.some(binding=>binding.group in transitions)))
+ const followers=Object.values(data.operators).filter(op=>op.multiGroup&&!explicitSlots.has(alphaPosition(op.room,op.index))&&(op.index<(plan[op.room]?.length??0)||op.groupBindings.some(binding=>binding.group in transitions)))
  if(!followers.length)return true
  const managed=new Set(followers.map(op=>op.room+'\0'+op.index))
  const reserved=new Set([...data.reservedProductReplacements,...data.excludedCandidates,...Object.entries(plan).flatMap(([room,row])=>row.filter((name,index)=>!managed.has(room+'\0'+index)&&!['','Current','Free'].includes(name)))])

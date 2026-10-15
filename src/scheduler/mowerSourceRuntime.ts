@@ -29,7 +29,7 @@ import {MowerOperatorState,type MowerGroupBinding} from './mowerOperatorState'
 import {MowerSchedulingData,MowerDormState} from './mowerSchedulingData'
 import {MowerTask,MowerTaskQueue,MOWER_TASK_TYPES as T,toMowerMicros,type MowerTaskPlan} from './mowerTaskQueue'
 import {executeMowerTaskArrangementSteps,type MowerRoomReturn,type MowerBackupResult} from './mowerTaskExecutor'
-import {mowerUpdateDetail,mowerRefreshDormTime,mowerCorrectDorm,mowerRoomReadIndexes,shouldMowerReadMood} from './mowerObservations'
+import {mowerUpdateDetail,mowerRefreshDormTime,mowerCorrectDorm,mowerRoomReadIndexes,shouldMowerReadMood,mowerHasMeasuredDormDeparture} from './mowerObservations'
 import {mowerIsDormReplacement,planMowerCorrection} from './mowerCorrection'
 import {planMowerOrdinary,mowerGetRestingPlan,mowerTryReorder,mowerPlanningHasNearTask} from './mowerOrdinaryPlanning'
 import {planMowerMetadata,mowerRestUnitKey} from './mowerMetadata'
@@ -82,8 +82,8 @@ export function makeMowerSchedulingData(s:RuntimeState,previous?:{data:MowerSche
   const record=OPERATOR_MAP.get(op.name),skills=record?.skillSlots?.flat()??record?.skills??[]
   op.singleRecoveryManager=managerNames.has(op.name)&&skills.some(skill=>skill.description.replace(/<[^>]*>/g,'').includes('进驻宿舍时，使该宿舍内除自身以外心情未满的某个干员每小时恢复'))
  }
- const runOrderRooms=config.mowerRunOrderEnabled===false?{}:previous?.data.runOrderRooms??{}
- if(config.mowerRunOrderEnabled!==false)for(const [room,slots] of Object.entries(source))if(room.startsWith('room')&&slots.some(slot=>slot.replacement.some(id=>isTradeRunOrderOperator(id)&&((OPERATOR_MAP.get(id)?.name??id)!=='U-Official'||isConfiguredTradeRoom(config,room)))))runOrderRooms[room]={}
+ const runOrderRooms=config.mowerRunOrderEnabled===false||config.mowerMaintenanceRunOrderPaused?{}:{...previous?.data.runOrderRooms}
+ if(config.mowerRunOrderEnabled!==false&&!config.mowerMaintenanceRunOrderPaused)for(const [room,slots] of Object.entries(source))if(room.startsWith('room')&&slots.some(slot=>slot.replacement.some(id=>isTradeRunOrderOperator(id)&&((OPERATOR_MAP.get(id)?.name??id)!=='U-Official'||isConfiguredTradeRoom(config,room)))))runOrderRooms[room]={}
  const oldBeds=new Map(previous?.data.dorms.map(b=>[b.position[0]+'_'+b.position[1],b]))
  normalizeMowerRecoveryBeds(config)
  const configuredBeds=[...config.beds]
@@ -112,6 +112,8 @@ export function getMowerSourceRuntime(s:RuntimeState):MowerSourceRuntime {
  const source=s.mowerSource
  if(source.config!==s.config){
   source.data=makeMowerSchedulingData(s,source);source.config=s.config;source.firstInit=false
+  if(s.config.mowerMaintenanceRunOrderPaused)source.queue.tasks=source.queue.tasks.filter(task=>
+   ![T.RUN_ORDER,T.REFRESH_TIME].includes(task.type)||task===source.activeTask||task===source.execution?.task||task.backupShiftActive||Object.keys(task.plan).length>0)
   if(s.config.mowerServices?.enableParty===false){
    source.partyTimeMicros=null
    source.queue.tasks=source.queue.tasks.filter(task=>![T.CLUE,T.CLUE_PARTY].includes(task.type))
@@ -126,7 +128,7 @@ export function getMowerSourceRuntime(s:RuntimeState):MowerSourceRuntime {
 function nextMowerDecisionMicros(s:RuntimeState,rates:RuntimeRates):number {
  const {data,queue}=getMowerSourceRuntime(s),queued=nextMowerRunRecoveryMicros(queue,data.nowMicros,data.alpha,s.config.mowerTaskScheduling)
  const moraleHours=nextRosterEventHours(s,rates,false)
- const conditionWake=s.mowerShiftModel?.nextConditionWakeMicros?.(data)??Infinity
+ const conditionWake=Math.min(s.mowerShiftModel?.nextConditionWakeMicros?.(data)??Infinity,s.mowerBackupObservationWakeMicros?.()??Infinity)
  return Math.min(queued,conditionWake,Number.isFinite(moraleHours)?data.nowMicros+Math.max(1,toMowerMicros(moraleHours)):Infinity)
 }
 function physicalRoom(s:RuntimeState,room:string,length:number):string[] {
@@ -161,7 +163,7 @@ function currentRoomChanged(s:RuntimeState,op:MowerOperatorState,startedWorking=
  }
  if(solved.size)queue.tasks.push(new MowerTask({time:s.time}))
 }
-function observeRoom(s:RuntimeState,rates:RuntimeRates,room:string,task?:MowerTask,readTimes:number[]=[]):void {
+function observeRoom(s:RuntimeState,rates:RuntimeRates,room:string,task?:MowerTask,readTimes:number[]=[],departingPlan?:readonly string[]):void {
  const {data,queue}=getMowerSourceRuntime(s),names=physicalRoom(s,room,data.plan[room]?.length??5),recognized=new Set(names.filter(Boolean))
  readTimes=mowerRoomReadIndexes(data,room,task,readTimes)
  const trueExhaustRooms=new Set(['central'])
@@ -177,7 +179,8 @@ function observeRoom(s:RuntimeState,rates:RuntimeRates,room:string,task?:MowerTa
    op.alpha=data.alpha
   }
   if(!op)continue
-  const read=shouldMowerReadMood(data,name,room,index,readTimes,task,queue.find({ignoreRunOrders:data.adjustForRunOrders===false}))
+  const departing=departingPlan!==undefined&&index<departingPlan.length&&departingPlan[index]!=='Current'&&!departingPlan.includes(name)
+  const read=departing&&task?.type!==T.FIAMMETTA||shouldMowerReadMood(data,name,room,index,readTimes,task,queue.find({ignoreRunOrders:data.adjustForRunOrders===false}))
   const previousPosition:[string,number]=[op.currentRoom,op.currentIndex]
   const displayedMood=read?s.morale[name]!:op.currentMood(data.nowMicros)
   const missing=mowerUpdateDetail(data,name,read?s.morale[name]!:op.mood,room,index,read,trueExhaustRooms,(changed,started)=>currentRoomChanged(s,changed,started))
@@ -191,8 +194,10 @@ function observeRoom(s:RuntimeState,rates:RuntimeRates,room:string,task?:MowerTa
   }
  }
  for(const op of Object.values(data.operators))if(op.currentRoom===room&&!recognized.has(op.name)){
+  const measuredDeparture=data.alpha&&mowerHasMeasuredDormDeparture(data,op,room,names,task)
   const bed=data.getDormByName(op.name)?.[1];if(bed?.name===op.name)bed.reset()
   op.currentRoom='';currentRoomChanged(s,op);op.currentIndex=-1
+  if(data.alpha){if(measuredDeparture)op.depletionRate=0;else op.timeStampMicros=undefined}
   if(data.alpha&&room.startsWith('dorm')&&task?.strictMoodLimit&&task.metadata===op.name)op.restMoodReleaseLimit=op.upperLimit
   if(data.freeRoom&&task&&task.type!==T.SHIFT_OFF){const release=queue.find({type:T.RELEASE_DORM,metadata:op.name});if(release&&release!==task){if(data.alpha){release.removeReleaseDormOperator(op.name);if(!Object.keys(release.plan).length)queue.consume(release)}else queue.consume(release)}}
  }
@@ -308,6 +313,8 @@ function* arrangeRoom(s:RuntimeState,rates:RuntimeRates,room:string,names:string
   if(data.alpha&&room.startsWith('dorm')&&!fiaArrangement&&getTime)observeRoom(s,rates,room,task,refreshDormIndexes())
   return restoration
  }
+ // Native get_agent_from_room(departing_plan) reads departures before selection.
+ if(data.alpha&&task.type!==T.RUN_ORDER&&task.type!==T.FIAMMETTA&&room!=='train')observeRoom(s,rates,room,task,[],resolved)
  if(task.type===T.FIAMMETTA&&fia&&resolved.length===2&&resolved.includes(fia)){
   fiammettaCharge=true
   restoration=sharedRestoration
@@ -450,7 +457,7 @@ export function mowerRunOrderContext(s:RuntimeState):[RunOrderPlanningState,RunO
  const seam:RunOrderPlanningSeam={
   nowMicros:()=>toMowerMicros(s.time),
   currentDormOccupants:room=>getMowerSourceRuntime(s).data.currentRoom(room),
-  scheduling:{enableMastery:s.config.mowerTaskScheduling?.enableMastery,maintenance:s.config.mowerTaskScheduling?.maintenance,adjustForRunOrders:s.config.mowerTaskScheduling?.adjustForRunOrders},
+  scheduling:{...s.config.mowerTaskScheduling,alpha:source.data.alpha},
  }
  return [state,seam]
 }
@@ -493,8 +500,10 @@ export function settleMowerSource(s:RuntimeState,rates:RuntimeRates,onPhase?:(ph
   return {changed,generated}
  }
 
- if(!source.execution&&!source.phaseExecution&&!source.runReturn&&source.conditionWakeMicros!==undefined&&source.conditionWakeMicros<=source.data.nowMicros){
+ const observedWake=!source.execution&&!source.phaseExecution&&source.runReturn?s.mowerBackupObservationWakeMicros?.():undefined
+ if(!source.execution&&!source.phaseExecution&&(!source.runReturn||observedWake!==undefined&&observedWake<=source.data.nowMicros)&&source.conditionWakeMicros!==undefined&&source.conditionWakeMicros<=source.data.nowMicros){
   delete source.conditionWakeMicros
+  if(observedWake!==undefined)delete source.runReturn
   backup('END')
  }
 
@@ -849,6 +858,10 @@ export function nextMowerSourceActionHours(s:RuntimeState,rates?:RuntimeRates):n
   if(!source.planningWake||source.planningWake.timeMicros>source.data.nowMicros+1)source.planningWake=nextMowerMoodPlanningWake(s,source.data,rates)
  }
  if(running===undefined)source.conditionWakeMicros??=s.mowerShiftModel?.nextIdleConditionWakeMicros?.(source.data)
- const next=running??Math.min(source.queue.tasks[0]?.timeMicros??Infinity,source.planningWake?.timeMicros??Infinity,source.conditionWakeMicros??Infinity)
+ // New ledger or product observations may wake an idle/sleeping outer run, never an in-flight room operation.
+ const observationWake=!source.execution&&!source.phaseExecution?s.mowerBackupObservationWakeMicros?.():undefined
+ if(observationWake!==undefined)source.conditionWakeMicros=Math.min(source.conditionWakeMicros??Infinity,observationWake)
+ const dispatch=running??Math.min(source.queue.tasks[0]?.timeMicros??Infinity,source.planningWake?.timeMicros??Infinity,source.conditionWakeMicros??Infinity)
+ const next=Math.min(dispatch,observationWake??Infinity)
  return Math.max(0,(next-source.data.nowMicros)/3_600_000_000)
 }

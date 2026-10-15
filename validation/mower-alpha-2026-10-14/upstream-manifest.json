@@ -1,0 +1,36 @@
+{
+  "repository": "https://github.com/ArkMowers/arknights-mower",
+  "revision": "3de2b2ac6f1aeff6513b63faaeea4b2369cf8856",
+  "previousTarget": "ab0a4e5bec23f6f8d7c37b0648f05dda28f31866",
+  "checkedDate": "2026-10-14",
+  "license": "MIT",
+  "sourceSha256": {
+    "arknights_mower/solvers/base_schedule.py": "367630dce97edaf4d51299fdfe094248ebe3800d1f79f15cb09198f1bbb1be07",
+    "arknights_mower/utils/operators.py": "607b3433afc187a44c531e0a614cea69f6df9668f578a37202930d64b3c250ce",
+    "arknights_mower/utils/scheduler_task.py": "1e6a233e12f4398e93ae7064d93cbddf94159e12dd2b6bd31ad985caf9a3c872",
+    "arknights_mower/utils/resting_priority.py": "aa317803cf62bed8583cb6167a2ebd9cff018e6a4be5f03a73f3b2c45d6a5d18",
+    "arknights_mower/utils/emergency_recovery.py": "6aca0184e8afda260ed2c939ea8403136cb6eb4562414b75fb3ab82859313d11",
+    "arknights_mower/utils/news_checker.py": "6cb47f122deec17f85ce2b2bd526a582c55328c200a54699e8448bb42b8ce7fd",
+    "arknights_mower/utils/backup_validation.py": "d8497b4e7e112478cfeb9dcb3138ef87684b57c42729572d965eacb2b93e9fca",
+    "arknights_mower/utils/config/plan.py": "3cbb5a4ae5d6b58ce3cd058cb0f991cd8abfb3e6a45ec211fc4524fab30bccca",
+    "arknights_mower/utils/plan.py": "724030b1f2a33a3e84229898654dee5839c7cacf0ffd73fbfb884d93c46c1191",
+    "ui/src/components/PlanAdvancedSettings.vue": "8ad6cc02392e84e63ddb0689771820ea0616aa32d040379decf8de2f0ade078d"
+  },
+  "scope": [
+    "dorm isolation before admission and takeover ranking",
+    "reserved names and explicit backup-entry slots",
+    "daily reset and maintenance windows with explicit simulation-clock inputs",
+    "merged refresh rules reconfirmed against upstream",
+    "explicit task positions retained during correction and shared arrangement normalization",
+    "group timing anchors and sequential shared-primary returns"
+  ],
+  "limitations": [
+    "not a full native scheduler port",
+    "no automatic emergency-recovery lifecycle",
+    "no simulation wall-clock epoch or generated mastery completion tasks",
+    "ideal run orders retain production-clock timing",
+    "Fiammetta behavior retained at user request",
+    "complete prioritize_new_dorm_recovery and persistent return windows are not ported",
+    "342 schedule still exhibits dense charge and backup-transition tasks; full warmup and sample unverified"
+  ]
+}

@@ -4,7 +4,7 @@ import {normalizeMowerSharedArrangement,mowerSameGroupPrimaryReplacement} from '
 import {mowerReplacementCandidates,type MowerOperatorState} from './mowerOperatorState'
 import type {MowerSchedulingData} from './mowerSchedulingData'
 import type {MowerTaskSchedulingOptions} from './mowerTaskScheduling'
-import {alphaCorrectGroupDorms} from './mowerAlphaDorm'
+import {alphaCorrectGroupDorms,alphaPosition} from './mowerAlphaDorm'
 import {MowerTask,MOWER_TASK_TYPES as T,fromMowerMicros,toMowerMicros,type MowerTaskPlan,type MowerTaskQueue} from './mowerTaskQueue'
 const placeholders=new Set(['','Current','Free'])
 const requested=(plan:MowerTaskPlan,room:string,index:number)=>plan[room]?.[index]??'Current'
@@ -62,7 +62,7 @@ export function preferMowerRestingReplacements(data:MowerSchedulingData,plan:Mow
   if(names.every(n=>n==='Current'))delete plan[room]
  }
 }
-export function mowerCorrectionPlan(data:MowerSchedulingData,skipDorm=false):MowerTaskPlan {
+export function mowerCorrectionPlan(data:MowerSchedulingData,skipDorm=false,explicitSlots:ReadonlySet<string>=new Set()):MowerTaskPlan {
  const plan:MowerTaskPlan={}
  const set=(room:string,index:number,name:string)=>{(plan[room]??=Array(data.plan[room]!.length).fill('Current'))[index]=name}
  for(const [room,names] of Object.entries(data.plan))for(const [index,name] of names.entries()){
@@ -88,7 +88,29 @@ export function mowerCorrectionPlan(data:MowerSchedulingData,skipDorm=false):Mow
  for(const [room,names] of Object.entries(plan))if(skipDorm&&room.startsWith('dorm')&&names.every(n=>n==='Free'||n==='Current'))delete plan[room]
  for(const op of Object.values(data.operators))if(data.busyRestingNames.has(op.name)&&op.room==='train')delete plan.train
  preferMowerRestingReplacements(data,plan)
- if(data.alpha){alphaCorrectGroupDorms(data,plan);if(!normalizeMowerSharedArrangement(data,plan))return {}; for(const [room,names] of Object.entries(plan))if(room.startsWith('dorm')){names.forEach((name,index)=>{if(data.restMoodComplete(name)&&data.currentOperator(room,index)?.name!==name)names[index]='Current'});if(names.every(n=>n==='Current'))delete plan[room]}return plan}
+ if(data.alpha){
+  alphaCorrectGroupDorms(data,plan)
+  for(const [room,names] of Object.entries(plan))if(room.startsWith('dorm')){
+   names.forEach((name,index)=>{if(data.restMoodComplete(name)&&data.currentOperator(room,index)?.name!==name)names[index]='Current'})
+   if(names.every(n=>n==='Current'))delete plan[room]
+  }
+  // Explicit backup positions retain physical occupancy through correction.
+  // Source: 3de2b2ac agent_get_mood and _merge_shift_transition (MIT).
+  const explicit:{room:string;index:number;name:string}[]=[],destinations=new Map<string,string>()
+  for(const [room,names] of Object.entries(data.plan))names.forEach((_,index)=>{
+   if(!explicitSlots.has(alphaPosition(room,index)))return
+   const name=data.currentOperator(room,index)?.name??'Free'
+   explicit.push({room,index,name});if(!placeholders.has(name))destinations.set(name,alphaPosition(room,index))
+  })
+  for(const [room,names] of Object.entries(plan))names.forEach((name,index)=>{
+   const destination=destinations.get(name)
+   if(destination!==undefined&&destination!==alphaPosition(room,index))names[index]='Current'
+  })
+  for(const {room,index,name} of explicit)set(room,index,name)
+  if(!normalizeMowerSharedArrangement(data,plan,undefined,explicitSlots))return {}
+  for(const [room,names] of Object.entries(plan))if(names.every(n=>n==='Current'))delete plan[room]
+  return plan
+ }
  for(const group of groups){
   const members=data.group(group),residents=members.map(n=>data.operators[n]!).filter(op=>op.room.startsWith('dorm'))
   const recalling=members.some(n=>{const op=data.operators[n]!;return !op.room.startsWith('dorm')&&!op.workaholic&&requested(plan,op.room,op.index)===n})

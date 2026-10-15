@@ -223,3 +223,19 @@ it('uses an imported idle-only library without rejecting on-duty roster operator
  expect(result.segments.some(segment=>Object.values(segment.bedOccupants).includes(id('芬'))),JSON.stringify(result.segments.slice(0,3).map(x=>x.bedOccupants))).toBe(true)
  expect(result.segments.every(segment=>Object.values(segment.bedOccupants).every(name=>[id('砾'),id('斑点'),...idleNames.map(id)].includes(name)))).toBe(true)
 })
+
+it.each([['刺玫',18],['撷英调香师',20]] as const)('integrates %s separate fatigue extra only until morale %s',(provider,threshold)=>{
+ const ws=createDefaultWorkspace()
+ ws.mainPlan.facilities.dormitory_1.level=5
+ ws.mainPlan.facilities.dormitory_1.slots=[provider,'杜林','芬'].map(name=>({occupant:{kind:'operator' as const,operatorId:name},groupId:null,replacements:[]}))
+ const schedule=compileRosterSchedule(ws,{operatorMorale:{[id('芬')]:threshold-1}})
+ const before=structuredClone(schedule)
+ for(const maxStepHours of [.05,1]){
+  const report=simulateSchedule(schedule,{sampleHours:.5,maxStepHours})
+  expect(report.success).toBe(true)
+  // First point recovers at 4.35/h; the remaining time recovers at 4.25/h.
+  const expected=threshold+(.5-1/4.35)*4.25
+  expect(report.operators.find(op=>op.operatorId===id('芬'))!.finalMorale).toBeCloseTo(expected,7)
+ }
+ expect(schedule).toEqual(before)
+})

@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-14",
+  "baseCommit": "da1b51d3bc142ba1f4e1eb879a060df87f88a5d8",
+  "mowerSource": "3de2b2ac6f1aeff6513b63faaeea4b2369cf8856",
+  "testRounds": [
+    {
+      "file": "tests.json",
+      "success": true,
+      "tests": 341,
+      "passed": 341,
+      "failed": 0,
+      "files": 30
+    },
+    {
+      "file": "final-tests.json",
+      "success": true,
+      "tests": 100,
+      "passed": 100,
+      "failed": 0,
+      "files": 10
+    }
+  ],
+  "typecheck": true,
+  "productionBuild": true,
+  "structureCheck": true,
+  "diffCheck": true,
+  "skillPackageValidation": true,
+  "buildWarnings": [
+    "Existing chunk size warning"
+  ],
+  "privateOriginalPlan": {
+    "modified": false,
+    "allBackupPlansRetained": true,
+    "testInventoryIsSeparateFromUserSettings": true,
+    "warmupHours": 3,
+    "sampleHours": 45,
+    "success": true,
+    "elapsedHours": 48,
+    "wallSeconds": 28.253867250000003,
+    "concurrentBuild": true,
+    "inventoryMode": "finite",
+    "maximumLedgerConservationError": 2.5011104298755527e-12
+  },
+  "browser": {
+    "localUrl": "http://127.0.0.1:4173/",
+    "sixInputsRendered": true,
+    "scrollableModalAndFooterVerified": true,
+    "userSettingsSavedDuringVerification": false
+  },
+  "backupSha256": "7e9a11f9b0101e176dfbfc7564bfd2370ce5550ae5ea7d7baf0502cf3709caf7",
+  "workerSha256": {
+    "calculationWorker-D6GV1mtT.js": "e80e89d24b32286d15ed4d70a13f21d588fc9047775448dfa74093778ea78625",
+    "candidateSimulationWorker-D3D5Nfy_.js": "e353c19fe1c5dade3759db9b97aa2bba6f38d0afdc3e91a84c8e9b43ab895e70",
+    "smartRosterWorker-BeBgy7OC.js": "bdce4ea18b4eb7b1864d8d9f2b5e8439adda000870f79d79a33b955f8d756ce6"
+  },
+  "gameDeviceVerified": false,
+  "windowsInstallationSynced": false,
+  "standaloneSkillPublished": false,
+  "draftPullRequest": "https://github.com/Panda-Panta/R.I.I.C-Calculator/pull/11"
+}

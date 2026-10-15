@@ -201,6 +201,7 @@ function exportJson(mode: ExportReportMode = 'summary'): void {
       <!-- Resource inflow/outflow balance table -->
       <section v-if="report.production" class="log-section">
         <h4 class="section-heading">采样期间收支与库存</h4>
+        <p v-if="report.production.assumptions.inventoryMode === 'finite'">有限库存：收益按实际收取和交付统计，初始库存不计收入。预热与采样连续，无外源收入或自动补货。</p>
         <div class="table-wrapper">
           <table class="log-table">
             <thead>

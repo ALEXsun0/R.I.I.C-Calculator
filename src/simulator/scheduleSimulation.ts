@@ -1,4 +1,5 @@
 import {createSimulationActivityMonitor, type SimulationActivity} from './simulationActivity'
+import {resolveInventoryProduction} from './inventorySimulation'
 import { parseProduct, serializeProduct } from '../domain/mowerProducts'
 import {createMowerClueIO} from './mowerNativeClueIO'
 import {createMowerProductionIO} from './mowerNativeProductionIO'
@@ -110,7 +111,7 @@ export function projectScheduleState(schedule:CompiledSchedule,state:RuntimeStat
 export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimulationOptions={},onProgress?:(progress:ScheduleSimulationProgress)=>void):ScheduleSimulationReport {
  const schedulingModel=options.schedulingModel??'mower-default'
  if(!['mower-default','mower-alpha'].includes(schedulingModel))throw new Error('Invalid scheduling model')
- options={...options,schedulingModel}
+ options={...options,schedulingModel,production:resolveInventoryProduction(schedule,options.production)}
  assertRunOrderMode(options.production?.runOrderMode)
  assertRunOrderMode(schedule.assumptions.runOrderSimulationMode)
  schedule=structuredClone(schedule)
@@ -136,8 +137,9 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
   assumptions:{schedulingModel,sampleHours,warmupHours,maxStepHours,warmupModel,restingThreshold:schedule.assumptions.restingThreshold??.65,operationDurationHours:0,dormAtmosphere:'各宿舍默认等级上限；可逐室覆盖',singleRecoveryTarget:'优先采用 Mower 已确认的入驻顺序；无有效确认时采用槽位顺序，允许显式覆盖'},
   inputs:{schedule:structuredClone(schedule),options:structuredClone(options)},operators:[],rooms:[],events:[],segments:[],diagnostics:[]}
  const diagnostic=(code:string,message:string)=>{if(!report.diagnostics.some(d=>d.code===code&&d.message===message))report.diagnostics.push({code,message})}
+ if(options.production?.inventoryMode==='finite')diagnostic('FINITE_INVENTORY_MODEL','使用预设初始库存；从预热开始连续扣料、收取和交付，采样时不重置。无外源收入或自动补货；缺料停止相应生产或交付。回收站随机材料未计入物品库存。')
  for(const d of schedule.diagnostics)diagnostic(d.code,d.message)
- diagnostic('MOWER_SCHEDULING_MODEL',schedulingModel==='mower-default'?'使用 Mower 默认兼容换班策略；按六阶段评估副表，保留完整任务保护':'使用 Mower alpha 排班模型（ab0a4e5）：副表收敛、共享绑组与动态宿舍床位')
+ diagnostic('MOWER_SCHEDULING_MODEL',schedulingModel==='mower-default'?'使用 Mower 默认兼容换班策略；按六阶段评估副表，保留完整任务保护':'使用 Mower alpha 排班模型（80c97ee60 增量适配）：副表收敛、共享绑组与宿舍隔离')
  if(schedule.diagnostics.some(d=>d.severity==='error'||d.code==='UNKNOWN_OPERATOR'))return report
  const inventory=options.operatorInventory===undefined?undefined:compileOperatorInventory(options.operatorInventory)
  const operatorRecords=inventory?inventoryOperatorRecords(inventory):undefined
@@ -385,9 +387,9 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
  }
  let steps=0,lastProgress=-1,lastPhase=''
  const activityMonitor=onProgress?createSimulationActivityMonitor():undefined
- // Keep numerical morale integration boundaries independent of production subdivisions.
- // Real native I/O actions still advance this same clock and can change staffing.
- const independentMoraleClock=!!production&&(options.production?.runOrderMode??'ideal')==='ideal'
+ // Production-only subdivisions preserve the independent morale clock. Inventory/product
+ // conditions can change staffing at those boundaries and must recompute from live morale.
+ const independentMoraleClock=!!production&&!state.mowerBackupObservationWakeMicros&&(options.production?.runOrderMode??'ideal')==='ideal'
  let moraleStep:{end:number;morale:Record<string,number>;actionAt:number}|undefined
  const reportProgress=()=>{
   if(!onProgress)return

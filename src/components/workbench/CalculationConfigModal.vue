@@ -9,6 +9,9 @@ import { droneFacilities } from '../../workbench/droneTargets'
 import type { RosterWorkspace } from '../../domain/roster'
 import ProductionWeightsEditor from './ProductionWeightsEditor.vue'
 import { normalizeProductionWeights } from '../../domain/productionWeights'
+import { normalizeSimulationInventory, type SimulationInventory } from '../../domain/simulationInventory'
+import { workspaceUsesInventoryConditions } from '../../scheduler/backupInventory'
+import SimulationInventoryEditor from './SimulationInventoryEditor.vue'
 
 const props = defineProps<{ open: boolean; workspace: RosterWorkspace; initial: CalculationConfig }>()
 const emit = defineEmits<{ close: []; confirm: [config: CalculationConfig] }>()
@@ -17,6 +20,9 @@ const useOperatorInventory = ref(true)
 const jayeElite0 = ref(false)
 const weights = ref(normalizeProductionWeights())
 const weightsValid = ref(true)
+const initialInventory = ref<SimulationInventory>()
+const inventoryValid = ref(true)
+const inventoryRequired = computed(() => workspaceUsesInventoryConditions(props.workspace))
 const facilities = computed(() => droneFacilities(props.workspace))
 watch(() => props.open, open => {
   if (!open) return
@@ -26,10 +32,12 @@ watch(() => props.open, open => {
     (saved ? 'none' : facilities.value.find(f => f.target === props.initial.droneTarget)?.roomId ?? 'none')
   useOperatorInventory.value = props.initial.useOperatorInventory ?? true
   jayeElite0.value = props.initial.jayeElite0 ?? false
+  initialInventory.value = props.initial.initialInventory
   weights.value = normalizeProductionWeights(props.initial.productionWeights)
 }, { immediate: true })
 function confirm() {
-  if (!weightsValid.value) return
+  if (!weightsValid.value || !inventoryValid.value) return
+  const inventory = normalizeSimulationInventory(initialInventory.value === undefined && inventoryRequired.value ? {} : initialInventory.value)
   const selected = facilities.value.find(f => f.roomId === room.value)
   emit('confirm', {
     droneTarget: selected?.target ?? 'none',
@@ -38,15 +46,17 @@ function confirm() {
     useOperatorInventory: useOperatorInventory.value,
     jayeElite0: jayeElite0.value,
     productionWeights: normalizeProductionWeights(weights.value),
+    ...(inventory === undefined ? {} : { initialInventory: inventory }),
   })
 }
 </script>
 
 <template>
-  <NModal :show="open" preset="card" title="计算产出" :style="{ width: '520px', maxWidth: '95vw' }" @update:show="!$event && emit('close')">
+  <NModal :show="open" preset="card" title="计算产出" :style="{ width: '520px', maxWidth: '95vw', maxHeight: '90vh' }" :content-style="{ overflowY: 'auto' }" @update:show="!$event && emit('close')">
     <div class="calculation-config" data-test="calculation-config">
       <p>选择本次模拟的无人机加速目标。计算将在后台进行，可随时中止。</p>
       <ProductionWeightsEditor v-model="weights" @validity-change="weightsValid = $event" />
+      <SimulationInventoryEditor v-model="initialInventory" :required="inventoryRequired" @validity-change="inventoryValid = $event" />
       <label>无人机加速目标
         <select v-model="room" data-test="calculation-drone-target">
           <option value="none">不使用无人机加速</option>
@@ -65,7 +75,7 @@ function confirm() {
     <template #footer>
       <div class="calculation-actions">
         <NButton @click="emit('close')">取消</NButton>
-        <NButton type="primary" data-test="confirm-calculation" :disabled="!weightsValid" @click="confirm">开始计算</NButton>
+        <NButton type="primary" data-test="confirm-calculation" :disabled="!weightsValid || !inventoryValid" @click="confirm">开始计算</NButton>
       </div>
     </template>
   </NModal>

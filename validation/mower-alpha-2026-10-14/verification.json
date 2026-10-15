@@ -1,0 +1,81 @@
+{
+  "upstreamRevision": "3de2b2ac6f1aeff6513b63faaeea4b2369cf8856",
+  "baseline": "97f4f198be05d89a67d11703bf6d20c918855b18",
+  "focusedTests": {
+    "schedulerAndUI": {
+      "files": 24,
+      "passed": 317
+    },
+    "additionalWiring": {
+      "files": 1,
+      "passed": 6
+    },
+    "productAndDrones": {
+      "files": 4,
+      "passed": 26
+    },
+    "uniqueTotal": 349
+  },
+  "checks": {
+    "typecheck": "passed",
+    "productionBuild": "passed with existing chunk-size warning",
+    "structure": "passed",
+    "diffCheck": "passed",
+    "local4173Source": "updated modules served"
+  },
+  "replay": {
+    "input": "privately confirmed plan13 without two inventory backups",
+    "warmupHours": 72,
+    "sampleHours": 168,
+    "seed": 42,
+    "success": true,
+    "runnerExitCode": 0,
+    "diagnosticWallSeconds": 113.479,
+    "deferredShifts": 65,
+    "resolvedDeferredShifts": 65,
+    "longestDeferredHours": 29.236077,
+    "limitations": [
+      "shared replacement conflict retries observed",
+      "diagnostic overhead prevents treating elapsed time as browser benchmark"
+    ],
+    "sourceStage": "before merging origin/main 04def42"
+  },
+  "remaining": [
+    "342 original schedule full replay not completed; dense Fiammetta and backup-transition tasks remain",
+    "not a complete native scheduler port; see upstream-manifest.json"
+  ],
+  "privateInputsPublished": false,
+  "liveDeviceTests": false,
+  "windowsSync": false,
+  "integratedMain": "04def42",
+  "integratedFocusedTests": {
+    "files": 35,
+    "passed": 401
+  },
+  "delivery": {
+    "draftPullRequest": "https://github.com/Panda-Panta/R.I.I.C-Calculator/pull/11",
+    "implementationCommit": "dd8d5a4",
+    "mainIntegrationCommit": "6e5d8db",
+    "pushed": true
+  },
+  "integratedReplay": {
+    "input": "privately confirmed plan13 without two inventory backups",
+    "warmupHours": 72,
+    "sampleHours": 168,
+    "seed": 42,
+    "success": true,
+    "runnerExitCode": 0,
+    "diagnosticWallSeconds": 80.265,
+    "deferredShifts": 65,
+    "resolvedDeferredShifts": 65,
+    "longestDeferredHours": 29.236077,
+    "limitations": [
+      "shared replacement conflict retries observed",
+      "diagnostic overhead prevents treating elapsed time as browser benchmark"
+    ],
+    "sourceStage": "after merging origin/main 04def42",
+    "sourceManifestSha256": "36df9c5ebba5c1666c21b46f2cd5a3ca887d5412ecd4ee7b9ead240614bbb8e9",
+    "sourceHashesMatchFinalWorkingTree": true,
+    "newDiagnosticsComparedWithPreMerge": false
+  }
+}

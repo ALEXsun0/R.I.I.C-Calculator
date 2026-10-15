@@ -110,3 +110,97 @@ describe('read-only wall-clock simulation activity',()=>{
   expect(JSON.stringify(s)).toBe(before);expect(source.queue.tasks).toBe(queue);expect(source.data.operators.A).toBe(operator)
  })
 })
+
+describe('evidence-based simulation findings',()=>{
+ it('prioritizes a diagnosed group over high event counts and labels historical evidence',()=>{
+  const {s}=nativeState();s.events=Array.from({length:10},()=>event(['B']))
+  s.diagnostics=[{code:'group-blocked',message:'group:main: insufficient available candidates or beds; original occupants retained'}]
+  const activity=createSimulationActivityMonitor(()=>0).capture(s,10)!
+  expect(activity.operators.map(op=>op.id)).toEqual(['A','B'])
+  expect(activity.findings).toEqual([{code:'group-blocked',kind:'constraint',message:expect.stringMatching(/曾报告.*当前关联干员：A.*不表示当前仍未解决/),operatorIds:['A']}])
+ })
+ it('resolves an exact bed-conflict name without attributing the queued task',()=>{
+  const {s,source}=nativeState();source.data.operators.A!.nativeName='原生甲'
+  s.morale.B=12;source.queue.tasks=[new MowerTask({plan:{room_1_1:['B']}})]
+  s.diagnostics=[{code:'mower-shift-bed-conflict',message:'原生甲: forced dorm task waits for valid recovery beds'}]
+  const activity=createSimulationActivityMonitor(()=>0).capture(s,0)!
+  expect(activity.findings?.[0]).toMatchObject({operatorIds:['A'],message:expect.stringContaining('原生甲')})
+  expect(activity.findings?.[0]?.message).not.toContain('B')
+  expect(activity.task?.source).toBe('queued')
+ })
+ it('keeps unstructured preview errors unattributed and translates explicit known IDs',()=>{
+  const s=state();s.diagnostics=[{code:'mower-backup-cycle',message:'副表条件循环，令当前预演终止'},{code:'mower-task-exception',message:`预演异常：${id('远牙')}`}]
+  const activity=createSimulationActivityMonitor(()=>0).capture(s,0)!
+  expect(activity.findings?.find(f=>f.code==='mower-backup-cycle')?.operatorIds).toEqual([])
+  expect(activity.findings?.find(f=>f.code==='mower-task-exception')).toMatchObject({operatorIds:[id('远牙')],message:expect.stringContaining('远牙')})
+ })
+ it('quantifies completed shift events and excludes position corrections',()=>{
+  const s=state(),worker=id('令')
+  s.events=[event([worker],'shift-off'),{...event([worker],'shift-on'),time:.01}, {...event([worker],'shift-off'),time:.02},{...event([worker],'shift-on'),time:.03}, {...event([worker],'shift-on'),reason:'position-correction'}]
+  const finding=createSimulationActivityMonitor(()=>0).capture(s,5)!.findings?.[0]
+  expect(finding).toMatchObject({code:'repeated-shifts',kind:'activity',operatorIds:[worker],message:expect.stringContaining('令 上班 2 次、下班 2 次，模拟时间跨度 1.8 分钟')})
+  expect(finding?.message).toContain('原因未确定')
+ })
+ it('requires both shift directions and does not infer a cause from queued plans',()=>{
+  const {s,source}=nativeState();source.queue.tasks=[new MowerTask({plan:{room_1_1:['A']},type:T.SHIFT_OFF})]
+  s.events=[event(['A']),event(['A']),event(['A'],'shift-off')]
+  expect(createSimulationActivityMonitor(()=>0).capture(s,3)!.findings).toBeUndefined()
+ })
+ it('counts each backup separately and charges only from observed events',()=>{
+  const s=state();s.events=[0,1,2].flatMap(index=>[
+   {...event([],'backup-plan'),backupIndex:0,backupName:'库存副表',active:index%2===0,time:index},
+   {...event([id('菲亚梅塔'),id('令')],'fiammetta'),time:index},
+  ])
+  const findings=createSimulationActivityMonitor(()=>0).capture(s,6)!.findings!
+  expect(findings).toEqual([
+   {code:'repeated-backup-switches',kind:'activity',operatorIds:[],message:expect.stringContaining('库存副表 切换 3 次，模拟时间跨度 120 分钟')},
+   {code:'repeated-fiammetta',kind:'activity',operatorIds:[id('菲亚梅塔'),id('令')],message:expect.stringContaining('菲亚充能 3 次')},
+  ])
+ })
+ it('reports tiny charge amounts from paired target observations without declaring them wasted',()=>{
+  const s=state();s.events=[{...event([id('菲亚梅塔'),id('令')],'fiammetta'),moraleBefore:[24,23.9],moraleAfter:[23.9,24]}]
+  const finding=createSimulationActivityMonitor(()=>0).capture(s,1)!.findings?.[0]
+  expect(finding).toMatchObject({code:'small-fiammetta-charge',kind:'activity',operatorIds:[id('令')],message:expect.stringContaining('令：23.9 → 24，增加 0.1')})
+  expect(finding?.message).toContain('不表示充能无效或解释演算变慢')
+ })
+ it.each([
+  {moraleBefore:undefined,moraleAfter:[24,24]},
+  {moraleBefore:[24,NaN],moraleAfter:[24,24]},
+  {moraleBefore:[24,24],moraleAfter:[24,23]},
+  {moraleBefore:[24,22.9],moraleAfter:[24,24]},
+  {moraleBefore:[24,-1],moraleAfter:[24,0]},
+ ])('does not invent a small-charge amount from missing/invalid observations %j',detail=>{
+  const s=state();s.events=[{...event(['fia','target'],'fiammetta'),...detail}]
+  expect(createSimulationActivityMonitor(()=>0).capture(s,1)!.findings).toBeUndefined()
+ })
+ it('limits output to six deduplicated findings and ignores unrelated diagnostics',()=>{
+  const s=state();s.diagnostics=[{code:'informational',message:'普通配置提示'},...Array.from({length:10},(_,i)=>({code:'mower-task-exception',message:`预演异常 ${i}`})),{code:'mower-task-exception',message:'预演异常 9'}]
+  const findings=createSimulationActivityMonitor(()=>0).capture(s,0)!.findings!
+  expect(findings).toHaveLength(6);expect(new Set(findings.map(f=>f.message)).size).toBe(6)
+  expect(findings[0]?.message).toContain('预演异常 9')
+ })
+ it('expires activity findings with the monitor window but retains explicitly historical diagnostics',()=>{
+  let wall=0;const monitor=createSimulationActivityMonitor(()=>wall),s=state()
+  s.diagnostics=[{code:'mower-backup-cycle',message:'循环'}]
+  s.events=Array.from({length:3},()=>event(['fia','target'],'fiammetta'))
+  expect(monitor.capture(s,3)!.findings).toHaveLength(2)
+  wall=16000;expect(monitor.capture(s,4)!.findings).toHaveLength(1)
+  expect(monitor.latest!.findings![0]!.message).toContain('曾报告')
+ })
+ it('ignores diagnostic group labels that happen to equal an operator ID',()=>{
+  const s=state();s.diagnostics=[{code:'group-blocked',message:`group:${id('令')}: insufficient available candidates or beds; original occupants retained`}]
+  expect(createSimulationActivityMonitor(()=>0).capture(s,0)!.findings?.[0]?.operatorIds).toEqual([])
+ })
+})
+
+it('keeps evidence capture read-only and leaves a normal state without findings',()=>{
+ const {s,source}=nativeState();s.diagnostics=[{code:'mower-shift-bed-conflict',message:'A: forced dorm task waits for valid recovery beds'}]
+ s.events=[{...event(['fia','A'],'fiammetta'),moraleBefore:[24,24],moraleAfter:[24,24]}]
+ Object.freeze(s.events);Object.freeze(s.diagnostics);Object.freeze(source.queue.tasks)
+ const before=JSON.stringify(s),events=s.events,diagnostics=s.diagnostics
+ const finding=createSimulationActivityMonitor(()=>0).capture(s,1)!
+ expect(finding.findings).toHaveLength(2)
+ expect(JSON.stringify(s)).toBe(before);expect(s.events).toBe(events);expect(s.diagnostics).toBe(diagnostics)
+ const healthy=state();healthy.diagnostics=[{code:'constructor',message:'not a diagnostic'}, {code:'info',message:'排班完成'}]
+ expect(createSimulationActivityMonitor(()=>0).capture(healthy,1)!.findings).toBeUndefined()
+})

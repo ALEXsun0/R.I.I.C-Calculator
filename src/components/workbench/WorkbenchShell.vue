@@ -12,6 +12,7 @@ import type { MowerRoomId, RosterWorkspace } from '../../domain/roster'
 import { compileOperatorInventory } from '../../domain/operatorInventory'
 import { inventoryOperatorRecords } from '../../domain/operatorContext'
 import CalculationConfigModal from './CalculationConfigModal.vue'
+import CalculationBottleneckSummary from './CalculationBottleneckSummary.vue'
 
 import PlanToolbar from './PlanToolbar.vue'
 import LayoutPresetBar from './LayoutPresetBar.vue'
@@ -78,7 +79,7 @@ const validationResult = computed<ValidationResult>(() => {
 })
 
 const { smartRosterConfigModalOpen, generationProgress, handleAutoGenerate, handleConfirmSmartRosterConfig, handleAbortAutoGenerate } = useSmartRosterGeneration(store, session)
-const { calculationConfigOpen, calculationProgress, calculationTiming, calculationSilence, handleCalculate, handleConfirmCalculation, handleAbortCalculation } = useWorkbenchCalculation(store, session, validationResult)
+const { calculationBottleneckSummary, calculationConfigOpen, calculationProgress, calculationTiming, calculationSilence, handleCalculate, handleConfirmCalculation, handleAbortCalculation } = useWorkbenchCalculation(store, session, validationResult)
 const { handleInventoryChange, handleInventoryImported } = useWorkbenchPersistence(store, session)
 
 // Focus FacilityEditor when room selection changes
@@ -307,6 +308,8 @@ defineExpose({
         </label>
       </div>
     </header>
+
+    <CalculationBottleneckSummary v-if="calculationBottleneckSummary" :summary="calculationBottleneckSummary" />
 
     <!-- Reachable Toolbar Section (shown on workbench tab) -->
     <div v-show="activeTab === 'workbench'" class="toolbar-sticky-wrapper">

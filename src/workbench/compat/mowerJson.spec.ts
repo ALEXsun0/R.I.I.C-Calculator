@@ -189,8 +189,8 @@ describe('Mower JSON Compatibility Layer', () => {
       expect(res.warnings).toHaveLength(0)
       expect(res.power).toEqual({
         generation: 540,
-        consumption: 480, // This fixture omits the training room.
-        margin: 60,
+        consumption: 540, // Omitted training staff still leave the default built training room.
+        margin: 0,
         sufficient: true,
       })
 

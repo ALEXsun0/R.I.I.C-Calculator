@@ -9,6 +9,10 @@ vi.hoisted(() => {
 })
 import WorkbenchShell from './WorkbenchShell.vue'
 import PlanToolbar from './PlanToolbar.vue'
+import { normalizeSimulationInventory } from '../../domain/simulationInventory'
+import { EDITION } from '../../domain/edition'
+import { createDefaultConfig } from '../../domain/defaults'
+import { calculate } from '../../engine/calculate'
 
 const workers: TestWorker[] = []
 class TestWorker {
@@ -27,6 +31,56 @@ beforeEach(() => {
   wrapper = mount(WorkbenchShell, { global: { plugins: [createPinia()] } })
 })
 afterEach(() => { wrapper.unmount(); vi.useRealTimers(); vi.unstubAllGlobals(); document.body.innerHTML = '' })
+
+it('sends finite initial inventory to the worker, persists it and can return to potential output', async () => {
+  wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '', initialInventory: { gold: 12, exp: 1500 } })
+  await wrapper.vm.$nextTick()
+  const production = workers[0]!.postMessage.mock.calls[0]![0].options.simulationOptions.production
+  expect(production).toMatchObject({ outputMode: 'settled', inventoryMode: 'finite', initialResources: normalizeSimulationInventory({ gold: 12, exp: 1500 }) })
+  const key = `arc-income-calculator-sim-settings-v1-${EDITION.storageNamespace}`
+  expect(JSON.parse(localStorage.getItem(key)!).initialInventory).toEqual(production.initialResources)
+  wrapper.unmount()
+  wrapper = mount(WorkbenchShell, { global: { plugins: [createPinia()] } })
+  expect(wrapper.vm.simSettings.initialInventory).toEqual(production.initialResources)
+  wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '', initialInventory: undefined })
+  await wrapper.vm.$nextTick()
+  const disabled = workers[1]!.postMessage.mock.calls[0]![0].options.simulationOptions.production
+  expect(disabled.outputMode).toBe('potential')
+  expect(disabled.inventoryMode).toBeUndefined()
+  expect(disabled.initialResources).toBeUndefined()
+  expect(JSON.parse(localStorage.getItem(key)!).initialInventory).toBeUndefined()
+})
+
+it('forces zero finite stock for inventory conditions even when a caller omits the UI field', () => {
+  wrapper.vm.store.workspace.compatibility.backupPlans = [{ name: '库存', trigger: "op_data.inventory_count('源石碎片') > 0" }]
+  wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '' })
+  expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationOptions.production).toMatchObject({ outputMode: 'settled', inventoryMode: 'finite', initialResources: normalizeSimulationInventory({}) })
+})
+
+it('does not launch or overwrite saved settings when initial inventory is invalid', () => {
+  const previous = wrapper.vm.simSettings.initialInventory
+  wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '', initialInventory: { gold: -.5 } })
+  expect(workers).toHaveLength(0)
+  expect(wrapper.vm.isCalculating).toBe(false)
+  expect(wrapper.vm.calculationError).toContain('安全整数')
+  expect(wrapper.vm.simSettings.initialInventory).toEqual(previous)
+})
+
+it.each([{ gold: -1 }, { exp: 1.5 }, { gold: '12' }, null, { drone: 1 }])('preserves invalid saved initial inventory and blocks calculation: %j', async initialInventory => {
+  wrapper.unmount()
+  const key = `arc-income-calculator-sim-settings-v1-${EDITION.storageNamespace}`
+  localStorage.setItem(key, JSON.stringify({ sampleDays: 7, initialInventory }))
+  wrapper = mount(WorkbenchShell, { global: { plugins: [createPinia()] } })
+  await wrapper.vm.$nextTick()
+  expect(wrapper.vm.simSettings.initialInventory).toEqual(initialInventory)
+  wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '', initialInventory: wrapper.vm.simSettings.initialInventory })
+  await wrapper.vm.$nextTick()
+  expect(workers).toHaveLength(0)
+  expect(wrapper.vm.isCalculating).toBe(false)
+  expect(wrapper.vm.calculationError).toBeTruthy()
+  expect(wrapper.vm.simSettings.initialInventory).toEqual(initialInventory)
+  expect(JSON.parse(localStorage.getItem(key)!).initialInventory).toEqual(initialInventory)
+})
 
 it('asks for drone settings before launching a cancellable background calculation', async () => {
   await wrapper.get('[data-test="tab-settings"]').trigger('click')
@@ -116,6 +170,66 @@ it('wires slow activity and unresponsive observations through the toolbar and cl
   await wrapper.vm.$nextTick()
   expect(wrapper.find('[data-test="calculation-activity"]').exists()).toBe(false)
   expect(wrapper.get('[data-test="calculation-progress-row"]').text()).toContain('约剩余')
+})
+
+it('keeps a stopped calculation summary above every page and clears it when a new calculation starts', async () => {
+  wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '' })
+  const activity = { status: 'slow', message: '演算正在推进', capturedHours: 48, windowSeconds: 15, advancedHours: .03, iterations: 80,
+    operators: [{ id: 'aroma', name: '阿罗玛', morale: 2, upperLimit: 20, groups: ['贸易组'], room: 'room_1_1', eventCount: 4 }], recentEvents: [{ label: '下班', count: 4 }] }
+  workers[0]!.onmessage!({ data: { type: 'progress', progress: { label: '正在采样', fraction: .25, activity } } } as MessageEvent)
+  workers[0]!.onmessage!({ data: { type: 'progress', progress: { label: '正在汇总报告', fraction: .99 } } } as MessageEvent)
+  const staleMessage = workers[0]!.onmessage!
+  wrapper.vm.handleAbortCalculation()
+  await wrapper.vm.$nextTick()
+  const summary = wrapper.get('[data-test="calculation-bottleneck-summary"]')
+  expect(summary.text()).toContain('演算已中止')
+  expect(summary.text()).toContain('阿罗玛')
+  expect(summary.text()).toContain('正在汇总报告')
+  expect(summary.element.previousElementSibling?.tagName).toBe('HEADER')
+  await wrapper.get('[data-test="tab-logs"]').trigger('click')
+  expect(wrapper.get('[data-test="calculation-bottleneck-summary"]').isVisible()).toBe(true)
+  await wrapper.get('[data-test="tab-settings"]').trigger('click')
+  expect(wrapper.get('[data-test="calculation-bottleneck-summary"]').isVisible()).toBe(true)
+  wrapper.vm.handleCalculate()
+  await wrapper.vm.$nextTick()
+  expect(wrapper.find('[data-test="calculation-bottleneck-summary"]').exists()).toBe(true)
+  wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '' })
+  staleMessage({ data: { type: 'error', error: 'stale failure' } } as MessageEvent)
+  await wrapper.vm.$nextTick()
+  expect(wrapper.find('[data-test="calculation-bottleneck-summary"]').exists()).toBe(false)
+})
+
+it('shows startup failures independently of missing bottleneck observations', async () => {
+  vi.stubGlobal('Worker', class { constructor() { throw new Error('worker unavailable') } })
+  wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '' })
+  await wrapper.vm.$nextTick()
+  const summary = wrapper.get('[data-test="calculation-bottleneck-summary"]')
+  expect(summary.text()).toContain('演算失败')
+  expect(summary.text()).toContain('未收到演算观测')
+  expect(summary.get('[data-test="bottleneck-error"]').text()).toContain('worker unavailable')
+})
+
+it('keeps an observed constraint in the completed summary after the worker returns its report', async () => {
+  wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '' })
+  workers[0]!.onmessage!({ data: { type: 'progress', progress: { label: '正在采样', fraction: .5, activity: {
+    status: 'running', message: '演算正在推进', capturedHours: 120, windowSeconds: 15, advancedHours: 24, iterations: 80,
+    operators: [], recentEvents: [], findings: [{ code: 'group-blocked', kind: 'constraint', message: '曾报告替补不足；不表示仍未解决。', operatorIds: [] }],
+  } } } } as MessageEvent)
+  workers[0]!.onmessage!({ data: { type: 'complete', result: {
+    success: true, report: calculate(createDefaultConfig()),
+  }, timelineData: null } } as MessageEvent)
+  await wrapper.vm.$nextTick()
+  const summary = wrapper.get('[data-test="calculation-bottleneck-summary"]')
+  expect(summary.text()).toContain('演算已完成')
+  expect(summary.get('[data-test="bottleneck-diagnostics"]').text()).toContain('曾报告替补不足')
+  expect(wrapper.vm.isCalculating).toBe(false)
+})
+
+it('retains a distinct summary when a workspace change stops the active calculation', async () => {
+  wrapper.vm.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '' })
+  wrapper.vm.store.workspace.name = 'changed during calculation'
+  await wrapper.vm.$nextTick()
+  expect(wrapper.get('[data-test="calculation-bottleneck-summary"]').text()).toContain('排班已变更，演算已停止')
 })
 
 it('shows a recoverable error when workers are unavailable instead of running on the UI thread', async () => {
