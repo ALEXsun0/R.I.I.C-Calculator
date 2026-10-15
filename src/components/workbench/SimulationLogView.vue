@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import type { ScheduleSimulationReport } from '../../simulator/scheduleSimulation'
 import { getRoomDisplayName } from '../../workbench/operatorHelpers'
-import { mowerReportMetrics } from '../../workbench/mowerReportMetrics'
+import { mowerReportMetrics, receptionClueMetrics } from '../../workbench/mowerReportMetrics'
 import { downloadReportJson, serializeReportJson, type ExportReportMode } from '../../workbench/reportExport'
 import ScheduleTimelineGantt from './ScheduleTimelineGantt.vue'
 import type { TimelineDataset } from '../../workbench/timeline/timelineModel'
@@ -21,6 +21,7 @@ const searchKeyword = ref('')
 const selectedRoom = ref<string>('all')
 const copySuccess = ref(false)
 const mowerMetrics = computed(() => props.report ? mowerReportMetrics(props.report) : null)
+const clueMetrics = computed(() => props.report ? receptionClueMetrics(props.report) : null)
 const specialOrderRows = computed(() => {
   const metrics = mowerMetrics.value
   if (!metrics) return []
@@ -237,6 +238,14 @@ function exportJson(mode: ExportReportMode = 'summary'): void {
         <p v-if="specialOrderRows.length" data-test="special-order-distribution">采样期特殊订单：<template v-for="(item, index) in specialOrderRows" :key="item.kind">{{ index ? ' · ' : '' }}{{ item.label }} {{ number(item.count) }} 单（{{ number(item.lmd) }} 龙门币）</template></p>
         <p>Mower 工休图按心情记录变化估算；下方工作占比统计非疲劳工作时间，不能直接视为同一指标。</p>
       </section>
+
+      <section v-if="clueMetrics" class="log-section" data-test="reception-clues">
+        <h4 class="section-heading">线索产出</h4>
+        <p>日均 {{ number(clueMetrics.clueCount) }} 条；采样完成 {{ number(clueMetrics.clueTotal) }} 条；期末未完成进度 {{ number(clueMetrics.progress * 100) }}%。</p>
+        <p>全程开启交流；仅统计采样期完成的线索，未完成进度不计入条数，不计信用和加权收入。</p>
+      </section>
+
+      <p v-else-if="!report.receptionClues" class="log-section">这份历史报告未统计线索，重新演算后可查看。</p>
 
       <!-- Facility average efficiency table -->
       <section v-if="report.rooms && report.rooms.length > 0" class="log-section">

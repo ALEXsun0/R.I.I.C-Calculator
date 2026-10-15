@@ -83,6 +83,7 @@ function makeMockReport(): ScheduleSimulationReport {
 describe('reportExport', () => {
   it('creates summary report with empty segments while preserving all key fields', () => {
     const original = makeMockReport()
+    original.receptionClues = { completed: 7, progress: .9, exchangeMode: 'always-on' }
     expect(original.segments.length).toBe(2)
 
     const summary = createSummaryReport(original)
@@ -93,6 +94,7 @@ describe('reportExport', () => {
     expect(summary.diagnostics).toEqual(original.diagnostics)
     expect(summary.assumptions).toEqual(original.assumptions)
     expect(summary.inputs).toEqual(original.inputs)
+    expect(summary.receptionClues).toEqual(original.receptionClues)
   })
 
   it('serializes summary report with indentation for readability', () => {

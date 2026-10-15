@@ -2,6 +2,7 @@ import {readFileSync} from 'node:fs'
 import {expect,it} from 'vitest'
 import {importMowerJson} from '../workbench/compat/mowerJson'
 import {runCalculationBridge} from '../workbench/calculationBridge'
+import {MORALE_EPSILON} from '../scheduler/rosterRuntime'
 
 it('keeps the nine-backup legacy roster complete with PR11 recovery and PR12 retained-task scheduling',async()=>{
  // Let Vitest publish the task before entering the synchronous long simulation.
@@ -24,7 +25,11 @@ it('keeps the nine-backup legacy roster complete with PR11 recovery and PR12 ret
  // exactly restores 0.007896864444444445h and the old 43-charge timeline.
  // The current mechanism completes the same unchanged 240h input with 39
  // charges; the healthy-provider grant has separate fatigue boundary tests.
- expect(gladiia!.exhaustedHours).toBeCloseTo(1.4115031240458271,8)
+ // PR17's additional drone-panel clicks shift the fatigue interval endpoints
+ // by 29.276 microseconds in total. Keep the original reference within the
+ // simulator's existing hour-boundary epsilon (1e-8 hours = 36 microseconds).
+ expect(Math.abs(gladiia!.exhaustedHours-1.4115031240458271)).toBeLessThanOrEqual(MORALE_EPSILON)
+ expect(result.simulationReport!.events.filter(event=>event.type==='fiammetta')).toHaveLength(39)
  expect(workspace).toEqual(before)
  expect(workspace.compatibility.backupPlans).toHaveLength(9)
  // Preserve all nine conditions; recovery changes can legitimately prevent a
