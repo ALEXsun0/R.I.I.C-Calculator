@@ -448,6 +448,22 @@ describe('alpha shared group validation', () => {
     expect(validateRosterWorkspace(imported).criticalErrors.some(e => e.message.includes('空组名最多一列'))).toBe(true)
   })
 
+  it.each([false, true])('rejects a personal empty dorm binding in either position in main and backup plans: %s', emptyFirst => {
+    const ws = createDefaultWorkspace()
+    ws.mainPlan.facilities.dormitory_4.slots = Array.from({length: 5}, () => ({occupant: {kind: 'free' as const}, groupId: null, replacements: []}))
+    ws.mainPlan.facilities.room_1_2.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_286_cast3'}, groupId: 'A', replacements: ['char_500_noirc']}
+    const named = {groupId: 'A', replacements: ['Free']}, personal = {groupId: null, replacements: ['char_192_falco']}
+    ws.mainPlan.facilities.dormitory_1.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_123_fang'}, ...(emptyFirst ? personal : named), groupBindings: [emptyFirst ? named : personal]}
+    const message = '宿舍多绑组不能配置个人空组名列；个人轮休仅适用于非宿舍工作主班。'
+    expect(validateRosterWorkspace(ws).criticalErrors).toContainEqual(expect.objectContaining({code: 'INVALID_CONFIG', roomId: 'dormitory_1', message}))
+
+    ws.mainPlan.facilities.dormitory_1.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_123_fang'}, ...named}
+    expect(validateRosterWorkspace(ws).criticalErrors).toEqual([])
+    const namedSource = {group: 'A', replacement: ['Free']}, personalSource = {group: '', replacement: ['翎羽']}
+    ws.compatibility.backupPlans = [{name: '宿舍个人空列', trigger: 'True', plan: {dormitory_1: {plans: [{agent: '芬', ...(emptyFirst ? personalSource : namedSource), group_bindings: [emptyFirst ? namedSource : personalSource]}]}}}]
+    expect(validateRosterWorkspace(ws).criticalErrors).toContainEqual(expect.objectContaining({code: 'INVALID_CONFIG', roomId: 'dormitory_1', message: `副表 宿舍个人空列：${message}`}))
+  })
+
   it('requires fixed working anchors for every shared group and grouped Free dorm', () => {
     const ws = createDefaultWorkspace()
     ws.mainPlan.facilities.dormitory_4.slots = Array.from({length: 5}, () => ({occupant: {kind: 'free' as const}, groupId: null, replacements: []}))
@@ -467,6 +483,9 @@ describe('alpha shared group validation', () => {
     ws.mainPlan.facilities.room_1_2.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_192_falco'}, groupId: 'A', replacements: ['char_500_noirc']}
     ws.mainPlan.facilities.room_2_1.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_286_cast3'}, groupId: 'B', replacements: ['char_500_noirc']}
     expect(validateRosterWorkspace(ws).criticalErrors).toEqual([])
+    ws.compatibility.backupPlans = [{name: '具名宿舍多绑组', trigger: 'True', plan: {dormitory_1: JSON.parse(exportMowerJson(ws)).plan1.dormitory_1}}]
+    expect(validateRosterWorkspace(ws).criticalErrors).toEqual([])
+    ws.compatibility.backupPlans = []
     slot.groupBindings[0]!.replacements = ['char_240_wyvern', 'char_240_wyvern']
     expect(validateRosterWorkspace(ws).criticalErrors.some(e => e.code === 'DUPLICATE_REPLACEMENT')).toBe(true)
     slot.groupBindings[0] = {groupId: '', replacements: ['Free']}

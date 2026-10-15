@@ -78,3 +78,16 @@ it('rejects invalid inventory and observation intervals', () => {
   expect(() => timeline.observe(reception(), 2, 1)).toThrow('Invalid reception clue observation interval')
   expect(() => timeline.observe(reception(), 0, Infinity)).toThrow('Invalid reception clue observation interval')
 })
+
+it.each([[0, .0855], [1, .0855], [2, .0905]] as const)('gates monster cuisine on Senshi E%s without changing other resources', (phase, expected) => {
+  const config = reception('char_4142_laios')
+  config.facilityOperatorIds.dormitories[0] = ['char_4143_sensi']
+  const inventory = compileOperatorInventory([{ operator: '森西', elitePhase: phase, level: 1 }])
+  const timeline = createReceptionClueTimeline(0, inventory)
+  timeline.observe(config, 0, 1)
+  expect(timeline.report().progress).toBeCloseTo(expected, 8)
+  config.efficiencyResources.monsterCuisine = 3
+  const explicit = createReceptionClueTimeline(0, inventory)
+  explicit.observe(config, 0, 1)
+  expect(explicit.report().progress).toBeCloseTo(.0885, 8)
+})

@@ -47,6 +47,7 @@ export function validateMowerRosterRules(workspace: RosterWorkspace): MowerRoste
     if (slot.groupBindings?.length) {
       const groupNames = columns.map(binding => binding.groupId?.trim() ?? '')
       if (new Set(groupNames).size !== groupNames.length) add(entry, '多绑组的组名不能重复，空组名最多一列。')
+      if (dorm && groupNames.some(group => !group)) add(entry, '宿舍多绑组不能配置个人空组名列；个人轮休仅适用于非宿舍工作主班。')
     }
     for (const binding of columns) {
       const seen = new Set<string>()

@@ -105,3 +105,75 @@ it('gates reception synergies on awake coworkers and uses actual identity', () =
     expect(normal - receptionClueEfficiency(config, phases), provider).toBeCloseTo(additional + .05)
   }
 })
+
+const byName = (name: string) => OPERATORS.find(operator => operator.name === name)!.charId
+
+it.each(['乌有', '隐现', '乌啾', '月禾'])('counts %s office speed only while the provider works', name => {
+  const config = reception(byName('塞雷娅'))
+  const provider = byName(name)
+  config.facilityOperatorIds.office = [provider]
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.72)
+  config.operatorMorale[provider] = 0
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.62)
+  config.operatorMorale[provider] = 24
+  config.facilities.office = 0
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.62)
+})
+
+it.each([['老鲤', 0, 0], ['老鲤', 2, .25], ['魔王', 0, 0], ['魔王', 2, .15], ['月禾', 0, 0]] as const)(
+  'gates external %s E%s skills on the supplied inventory', (name, phase, bonus) => {
+    const config = reception(byName('塞雷娅'))
+    const provider = byName(name)
+    config.operatorRecords = inventoryOperatorRecords(compileOperatorInventory([{ operator: name, elitePhase: phase, level: 1 }]))
+    if (name === '月禾') config.facilityOperatorIds.office = [provider]
+    else config.controlOperatorIds = [provider]
+    expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.62 + bonus)
+  },
+)
+
+it('takes the highest control speed and disables an exhausted provider', () => {
+  const config = reception(byName('塞雷娅'))
+  config.controlOperatorIds = [byName('老鲤'), byName('魔王')]
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.87)
+  config.operatorMorale[byName('老鲤')] = 0
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.77)
+  config.operatorMorale[byName('魔王')] = 0
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.62)
+})
+
+it('adds Wisdel and student cooperation to the highest control bonus using physical occupants', () => {
+  const config = reception(byName('伊内丝'), byName('真理'))
+  const baseline = receptionClueEfficiency(config, phases)
+  config.controlOperatorIds = ['老鲤', '维什戴尔', '怒潮凛冬'].map(byName)
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(baseline + .4)
+  // These triggers say "stationed", so exhaustion removes personal skills but retains presence.
+  config.operatorMorale[byName('伊内丝')] = 0
+  config.operatorMorale[byName('真理')] = 0
+  config.controlOperatorIds = []
+  const passive = receptionClueEfficiency(config, phases)
+  config.controlOperatorIds = ['老鲤', '维什戴尔', '怒潮凛冬'].map(byName)
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(passive + .4)
+})
+
+it.each([[0, .04, .2], [1, .05, .25]] as const)('counts present Minos cards and caps Varkis E%s speed', (phase, perCard, cap) => {
+  const config = reception(byName('塞雷娅'))
+  config.controlOperatorIds = [byName('摆渡人')]
+  config.operatorRecords = inventoryOperatorRecords(compileOperatorInventory([{ operator: '摆渡人', elitePhase: phase, level: 1 }]))
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.62 + perCard)
+  config.facilityOperatorIds.dormitories[0] = ['帕拉斯', '火神', '铸铁', '埃拉托', '断罪者'].map(byName)
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.62 + cap)
+  config.controlOperatorIds.push(byName('老鲤'))
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.87)
+})
+
+it('sums unlocked Amoris slots before comparing with other control speed', () => {
+  const config = reception(byName('塞雷娅'))
+  config.controlOperatorIds = [byName('祐天寺若麦')]
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.67)
+  config.controlOperatorIds.push(byName('丰川祥子'))
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.72)
+  config.operatorRecords = inventoryOperatorRecords(compileOperatorInventory([{ operator: '祐天寺若麦', elitePhase: 0, level: 1 }]))
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.67)
+  config.controlOperatorIds.push(byName('老鲤'))
+  expect(receptionClueEfficiency(config, phases)).toBeCloseTo(1.87)
+})

@@ -3,6 +3,7 @@ import type { AppConfig } from '../../domain/types'
 import { matchesRiicIdentity } from '../../domain/riicIdentity'
 import { buildRiicGlobalContext } from '../globalContext'
 import { isSupportOperatorWorking } from './conditions'
+import { receptionClueProviderBonus, receptionMonsterCuisine } from './receptionClueProviders'
 
 export const RECEPTION_CLUE_BASE_HOURS = 20
 const RARITY_BONUS: Readonly<Record<number, number>> = { 4: 2, 5: 4, 6: 5 }
@@ -36,6 +37,7 @@ export function receptionClueEfficiency(
     (ambience >= 4000 ? 15 : ambience >= 3000 ? 10 : ambience >= 2000 ? 5 : 0)
   let global: ReturnType<typeof buildRiicGlobalContext> | undefined
   const resources = () => (global ??= buildRiicGlobalContext(config))
+  bonus += receptionClueProviderBonus(config, resources)
   const controlWorking = (id: string) =>
     config.controlOperatorIds.includes(id) && isSupportOperatorWorking(config, id)
   const identityMatches = (id: string, dimension: Parameters<typeof matchesRiicIdentity>[1], value: string) => {
@@ -112,7 +114,7 @@ export function receptionClueEfficiency(
               ).length
           break
         case 'meet_spd_bd[001]':
-          bonus += resources().monsterCuisine * 2
+          bonus += receptionMonsterCuisine(config) * 2
           break
         case 'meet_spd_bd[002]':
           bonus += Math.floor(resources().worldlyFireworks / 10)
