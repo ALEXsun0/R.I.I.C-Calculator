@@ -257,16 +257,7 @@
 import { ref, computed } from 'vue'
 import rawOperatorsData from '../../data/riic-skills-database.json'
 import { getOperatorAvatarUrl, resolveAssetUrl } from '../../workbench/operatorHelpers'
-
-interface SkillSynergyFaction {
-  name: string
-  members: string[]
-}
-
-interface SkillSynergy {
-  operators?: string[]
-  factions?: SkillSynergyFaction[]
-}
+import { formatRiicSkillDescription, type RiicSkillSynergy } from '../../workbench/riicSkillDescription'
 
 interface RiicSkillItem {
   slot: number
@@ -281,7 +272,7 @@ interface RiicSkillItem {
   buffColor: string
   textColor: string
   description: string
-  synergy: SkillSynergy | null
+  synergy: RiicSkillSynergy | null
   skillIcon: string
 }
 
@@ -497,51 +488,8 @@ const onSkillIconError = (event: Event) => {
 }
 
 // Rich Description Formatting
-const highlightStats = (desc: string): string => {
-  return desc.replace(/([+-]?\d+(?:\.\d+)?%?)/g, '<span class="stat-num">$1</span>')
-}
-
-const formatRichDesc = (desc: string, synergy: SkillSynergy | null): string => {
-  let html = desc
-
-  // 1. Replace factions
-  const factionPlaceholders: Array<{ ph: string; fullTag: string }> = []
-  if (synergy?.factions && synergy.factions.length > 0) {
-    for (let i = 0; i < synergy.factions.length; i++) {
-      const f = synergy.factions[i]!
-      const ph = `___FACTION_${i}___`
-      const memberHtml = f.members
-        .map((m) => {
-          return `<span class="popover-op-chip">
-            <img class="popover-chip-avatar" src="${getAvatarUrl(m)}" onerror="this.style.display='none'" />
-            <span>${m}</span>
-          </span>`
-        })
-        .join('')
-      const fullTag = `<span class="tag-faction-wrap"><span class="tag-faction">🏛️ ${f.name}</span><span class="faction-popover"><span class="popover-header">🏛️ ${f.name} 成员名单 (${f.members.length}人)</span><span class="popover-members">${memberHtml}</span></span></span>`
-      factionPlaceholders.push({ ph, fullTag })
-      html = html.split(f.name).join(ph)
-    }
-  }
-
-  // 2. Highlight Synergy Operators
-  if (synergy?.operators && synergy.operators.length > 0) {
-    for (const opName of synergy.operators) {
-      const opTag = `<span class="tag-op-wrap"><span class="tag-op"><img class="chip-avatar-inline" src="${getAvatarUrl(opName)}" onerror="this.style.display='none'" /><span>@${opName}</span></span></span>`
-      html = html.split(opName).join(opTag)
-    }
-  }
-
-  // 3. Highlight stats in remaining text
-  html = highlightStats(html)
-
-  // 4. Restore faction tags
-  for (const item of factionPlaceholders) {
-    html = html.split(item.ph).join(item.fullTag)
-  }
-
-  return html
-}
+const formatRichDesc = (desc: string, synergy: RiicSkillSynergy | null): string =>
+  formatRiicSkillDescription(desc, synergy, getAvatarUrl)
 </script>
 
 <style scoped>

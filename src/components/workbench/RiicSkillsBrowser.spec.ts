@@ -5,8 +5,62 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import RiicSkillsBrowser from './RiicSkillsBrowser.vue'
+import { getOperatorAvatarUrl } from '../../workbench/operatorHelpers'
+import rawOperators from '../../data/riic-skills-database.json'
 
 describe('RiicSkillsBrowser.vue', () => {
+  it('renders real Alanna faction labels and complete platform member popovers', async () => {
+    const wrapper = mount(RiicSkillsBrowser)
+    try {
+      await wrapper.get<HTMLInputElement>('[data-test="search-operator-input"]').setValue('阿兰娜')
+      const card = wrapper.get('[data-test="op-card-阿兰娜"]')
+      const factions = card.findAll('.tag-faction-wrap')
+      const platform = rawOperators.find(op => op.name === '阿兰娜')!.skills[0]!.synergy!.factions![0]!
+      expect(factions).toHaveLength(2)
+      for (const faction of factions) {
+        expect(faction.get('.tag-faction').text()).toBe(`🏛️ ${platform.name}`)
+        expect(faction.get('.popover-header').text()).toBe(`🏛️ ${platform.name} 成员名单 (${platform.members.length}人)`)
+        expect(faction.findAll('.popover-op-chip > span').map(member => member.text())).toEqual(platform.members)
+        expect(faction.findAll('.popover-chip-avatar').map(image => image.attributes('src'))).toEqual(platform.members.map(getOperatorAvatarUrl))
+        expect(faction.find('.stat-num').exists()).toBe(false)
+      }
+      expect(card.text()).not.toContain('___FACTION_')
+      expect(card.findAll('.skill-desc-text > .stat-num').map(stat => stat.text())).toEqual(['1', '+5%', '1', '+10%', '+15%'])
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('keeps the real Wenmi synergy avatar URL intact in Alanna description', async () => {
+    const wrapper = mount(RiicSkillsBrowser)
+    try {
+      await wrapper.get<HTMLInputElement>('[data-test="search-operator-input"]').setValue('阿兰娜')
+      const tag = wrapper.get('[data-test="op-card-阿兰娜"] .tag-op')
+      expect(tag.get('img').attributes('src')).toBe(getOperatorAvatarUrl('温米'))
+      expect(tag.text()).toBe('@温米')
+      expect(tag.find('.stat-num').exists()).toBe(false)
+      expect(tag.get('img').attributes('onerror')).toBe("this.style.display='none'")
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('preserves Lancet-2 as a linked operator in the real Eunectes skill', async () => {
+    const wrapper = mount(RiicSkillsBrowser)
+    try {
+      await wrapper.get<HTMLInputElement>('[data-test="search-operator-input"]').setValue('森蚺')
+      const card = wrapper.get('[data-test="op-card-森蚺"]')
+      const skill = card.findAll('.skill-item').find(item => item.find('.tag-op').exists())!
+      const tag = skill.get('.tag-op')
+      expect(tag.text()).toBe('@Lancet-2')
+      expect(tag.get('img').attributes('src')).toBe(getOperatorAvatarUrl('Lancet-2'))
+      expect(tag.find('.stat-num').exists()).toBe(false)
+      expect(skill.get('.skill-desc-text > .stat-num').text()).toBe('+2')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it('renders correctly with operator cards and header stats', () => {
     const wrapper = mount(RiicSkillsBrowser)
 

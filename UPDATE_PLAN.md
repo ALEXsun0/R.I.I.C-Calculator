@@ -9,6 +9,11 @@
 - 验收与交付：先保留具体失败日志并构建能复现该失败的反馈入口，修复后对等复测、必要类型/构建/结构及安全脚本检查，记录与候选树一致的证据并独立审查。通过后自己的 PR 正常合并，实际 Release 工作流成功且发布 ZIP/SHA256/路径/资源完整性核验通过；存在相关程序改动时按现有安全脚本预览、备份、同步并核对哈希。最终记录实际程序运行结果、真实 Release/提交、备份、安装状态和未验证边界。
 - 候选本机验证：等效 Release 环境下20资源测试与原单例排班合计21项通过、进程退出0，另外36项仅被定向名称过滤；单例34.847秒，原输入/seed42/annotate/调用/全部断言保留。主agent核对实际两文件diff及patch-boundaries.json，强制类型检查、结构索引、既有领域skill完整性和差异检查均通过；实际云端整条Release与原生运行证据仍需核验，不能将定向通过当最终发布成功。
 - 用户追加skill同步：将自有仓库修复→最终候选审查验证→普通合并→拉取实际主线→备份/保留数据/哈希核验后同步软件目录的约定加入通用agent-dev-workflow skill，具体仓库与软件路径由各项目配置。workflow_skill_update 独占本任务 artifacts/skill/，先定位规范源并备份、stage供主agent审查，再按授权安全更新安装副本/ZIP并核验；不写RIIC源码/远程、其他用户工作或全局memories，最终结果单列在本次交付回执。
+- Skill交付已核验：规范源（Documents/Codex/2026-10-12/agent-skill-1-2-subagent-3-3/outputs/agent-dev-workflow）、全局 .agents/skills 安装副本及原ZIP已安全更新，仅改SKILL.md、references/delivery.md、references/development-modes.md，其他17文件字节/元数据未变。20文件源/安装/stage/ZIP哈希与CRC、源/安装quick_validate和各48相对引用检查通过，主agent独立重验一致；ZIP SHA256 d045a3b33b34867ad66b7dd46c274999b024e2a889fbff507ea3ee917d9765c3。旧源/安装/ZIP备份及receipt位于本次artifacts/skill。规范源无Git，未虚构远程发布；新独立会话自动加载尚未验证。
+
+- 原生运行新发现与修复边界：实际已安装EXE在独立WebView2 profile成功启动、两次worker演算及编辑器→收益→返回→再次演算的草稿保留；技能页真实DOM暴露FACTION占位符和被破坏的头像标签/URL。原因是formatRichDesc在插入HTML或含数字占位符后统一highlighStats，数字替换误伤标记与百分号编码。该显示缺陷纳入最终候选，尚不能声称全页正常；不代表排班收益规则有错。release_ci_diagnosis转为独占RiicSkillsBrowser.vue、其既有spec以及专职src/workbench/riicSkillDescription.ts/.spec.ts，先真实数据DOM回归红→绿，再保持数值/联动名称/头像/浮窗结构完整，不改源数据和计算。原组件与测试另存backup/ui-before并逐项核验；主agent独占结构索引/计划。新head使此前仅CI两文件的审查结论只对d39faa6有效，最终扩展候选需重新审查、构建、真实云端Release和安装后原生复测。
+
+- 技能显示修复与回归：原Vue组件8项通过、阿兰娜派系/温米头像/森蚺Lancet-2三项真实DOM红测失败。专职纯formatter先匹配最长联动词，仅对余下正文数值高亮，文本与属性转义，保留原class/浮窗/hover结构、含数字干员名和URL；数据、搜索/分类/阶段、排班与收益机制不变。组件11项与纯formatter10项最终合计21项通过、退出0，红测和中间断言定位日志保留在ui-fix；主agent已读全部实际diff及模块。新文件已纳入结构索引，接下来对最终固定树强制类型/生产构建和独立复审，再通过既有自有PR15正常合并并执行真实云端发布。
 
 ---
 
