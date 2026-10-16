@@ -216,7 +216,7 @@ describe('integrated Mower source scheduler',()=>{
 
 
 it('starts an exhausted shift before observed morale reaches zero',()=>{
- const config=fixture();config.mowerAlpha=true;config.initialMorale.A=.18;config.mowerSourceRules!.exhaustRequire=['A']
+ const config=fixture();config.mowerAlpha=true;config.initialMorale!.A=.18;config.mowerSourceRules!.exhaustRequire=['A']
  const state=createRosterRuntime(config),source=getMowerSourceRuntime(state)
  source.initial=false;source.firstInit=false
  for(const [slot,name] of Object.entries(state.occupants)){const op=source.data.operators[name]!;op.currentRoom=slot.slice(0,slot.lastIndexOf('_'));op.currentIndex=Number(slot.slice(slot.lastIndexOf('_')+1));op.mood=state.morale[name]??24;op.timeStampMicros=0}
