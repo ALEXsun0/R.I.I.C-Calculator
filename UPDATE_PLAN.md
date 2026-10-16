@@ -758,7 +758,8 @@
 - 基线：4c1be6e0a224b56af346396891042e003e888867，工作区干净。源码备份 `artifacts/dorm-selection-parity-20261017/source-before.tar`，SHA-256 `fc515853161207037cd804371a84bb763a889decdb462dccef81483b06cf44d9`。本机缺少 Windows 私有流程 skill，沿用项目 DEVELOPMENT_WORKFLOW.md。
 - 分工：主 agent 修改 src/scheduler/mowerSelection.ts、mowerDormRecovery.ts、mowerSourceRuntime.ts，维护计划、结构索引与交付；测试 subagent 仅移植 src/scheduler/mowerDormSelectionParity.spec.ts。保留用户排班、干员库和安装配置。
 - 验证：新增用例先在旧逻辑复现，再验证普通入宿、临时保留、个人上限、名单观察和恢复任务；运行相关调度测试、类型检查、独立构建、结构索引及 skill 包校验。模块证据不冒充整表长测或真实游戏验收。
-- 交付：按用户既有授权普通推送 ALEXsun0 fork 的 codex/mower-recent-recovery-sync 分支，更新现有源码 PR；不合并、不同步 Windows 安装。本地实现及验证已完成，待普通推送和远端核对。
+- 交付：按用户既有授权普通推送 ALEXsun0 fork 的 codex/mower-recent-recovery-sync 分支，更新现有源码 PR；不合并、不同步 Windows 安装。实现、验证及普通推送已完成，现有源码 PR 已更新。
 
 - 本轮验证：新增 7 项在修改前全部失败，同步后通过；11 个定向文件 102 项通过，覆盖入宿准入、普通和临时选人、个人上限、恢复排序、实际任务入口、单回路由、菲亚保留观察、床位预约及源码独有维护跑单。类型检查、独立 Vite 构建、结构索引、skill 包完整性和查询检查通过；构建保留既有大分块提示。没有重新执行整表长测或真实设备验收。
 - 独立复核无阻断：选人和宿舍恢复模块与固定 Mower 来源逐字一致，运行入口仅保留本仓已有维护跑单、失败任务调度及副表过滤差异。本轮不修改领域 skill 内容或数据，包清单无需重建。
+- 远端核对：源码提交 cc0b373ee36da666b2d31c4fc369eb21f84eb990 已被 ALEXsun0 fork 接收，现有源码 PR 的 head 一致且无合并冲突。Vercel 预览检查因要求团队授权而失败；本地构建通过，未完成远端预览部署。未合并或安装。
