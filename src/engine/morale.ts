@@ -374,7 +374,8 @@ function computeRates(
       otherFacilityLabel = `重岳·孤光共照（人间烟火 ${resourceValues.fireworks}）`
     }
   }
-  for (const target of active.filter(item => item.roomType !== 'control')) {
+  // cc.c.room2 explicitly lists these five facilities; recycling is outside its scope.
+  for (const target of active.filter(item => ['power','manufacture','trading','office','reception'].includes(item.roomType))) {
     const mlynarRecovery = mlynarActive ? mlynarExpansion + (['power','office','reception'].includes(target.roomType) ? .1 : 0) : 0
     const recovery = Math.max(mlynarRecovery, otherFacilityRecovery)
     if (mlynarActive && target.roomType === 'power') add(target, 0, '玛恩纳候选效果：发电站 -0.1/h，与扩展合计后参与同类最高')

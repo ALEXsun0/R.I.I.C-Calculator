@@ -3,7 +3,7 @@ import type {MowerTaskPlan} from './mowerTaskQueue'
 // Source: c6bdbb292fe7fcd84c6dfb66154a12a1a9bc5b88 (MIT, Copyright 2021 Nano).
 import {hasRestingMood,rescueMoodThreshold,restingMood,type MowerOperatorState} from './mowerOperatorState'
 import type {MowerSchedulingData,MowerDormState} from './mowerSchedulingData'
-import {alphaRestingTier,alphaRestingKey,compareAlphaKeys,alphaSlotTakable,alphaFindDormSlot} from './mowerAlphaDorm'
+import {alphaRestingTier,alphaRestingKey,compareAlphaKeys,alphaSlotTakable,alphaFindDormSlot,mowerMatchReplacements} from './mowerAlphaDorm'
 function defaultOnly(data:MowerSchedulingData){if(data.policy.experimentalDormLogic)throw new Error('Experimental resting tiers require their source port')}
 export function mowerStandbyCanYield(data:MowerSchedulingData,op:MowerOperatorState):boolean {
  return data.canStandby(op)&&hasRestingMood(op,data.nowMicros)&&restingMood(op,data.nowMicros)>=rescueMoodThreshold(op,data.policy)
@@ -68,6 +68,26 @@ export function mowerStandbyCandidates(data:MowerSchedulingData,names:string[]):
  const hasAnchor=data.dorms.some(b=>{const op=data.operators[b.name];return !!op&&data.effectiveFreeSlot(b)&&op.isHigh()&&(data.alpha?!data.canStandby(op)&&!data.restMoodComplete(op.name):op.restingPriority==='high')})
  return new Set(names.filter(n=>{const op=data.operators[n]!;return data.canStandby(op)&&(anchors.has(op.group)||op.independentRest&&op.groupBindings.some(binding=>!!binding.group&&anchors.has(binding.group))||!op.group&&hasAnchor)}))
 }
+/** Retry failed greedy admission without consuming the scarce beds of lower-priority members. */
+function alphaMatchGroupBeds(data:MowerSchedulingData,ordered:string[],optional:Set<string>,activeGroups:Set<string>|undefined,plan:MowerTaskPlan,reservedSlots:ReadonlySet<string>):{name:string;index:number}[]|undefined {
+ const mandatory=ordered.filter(name=>!optional.has(name)),choices:Record<string,string[]>={}
+ for(const name of mandatory){
+  const seen=new Set<number>(),indices:string[]=[]
+  for(let index=alphaFindDormSlot(data,name,seen,activeGroups,plan,reservedSlots);index!==undefined;index=alphaFindDormSlot(data,name,seen,activeGroups,plan,reservedSlots)){
+   seen.add(index);indices.push(String(index))
+  }
+  choices[name]=indices
+ }
+ const matched=mowerMatchReplacements(choices);if(!matched)return undefined
+ const assignments=mandatory.map(name=>({name,index:Number(matched[name])})),used=new Set(assignments.map(item=>item.index)),pending=structuredClone(plan)
+ const reserve=(name:string,index:number)=>{const [room,position]=data.dorms[index]!.position;(pending[room]??=Array(data.plan[room]!.length).fill('Current'))[position]=name}
+ for(const {name,index} of assignments)reserve(name,index)
+ for(const name of ordered.filter(name=>optional.has(name))){
+  const index=alphaFindDormSlot(data,name,used,activeGroups,pending,reservedSlots)
+  if(index!==undefined){used.add(index);assignments.push({name,index});reserve(name,index)}
+ }
+ return assignments
+}
 export function mowerAssignDormGroup(data:MowerSchedulingData,names:string[],activeGroups?:Set<string>,departingNames?:ReadonlySet<string>,plan:MowerTaskPlan={},reservedSlots:ReadonlySet<string>=new Set()):MowerDormState[]|undefined {
  defaultOnly(data)
  const required=names.filter(n=>!data.restMoodComplete(n)),optional=mowerStandbyCandidates(data,required)
@@ -80,7 +100,12 @@ export function mowerAssignDormGroup(data:MowerSchedulingData,names:string[],act
  const used=new Set<number>(),assignments:{name:string;index:number}[]=[]
  for(const name of ordered){
   const index=data.alpha?alphaFindDormSlot(data,name,used,activeGroups,pending,reservedSlots):mowerFindDormSlot(data,name,used,true,departingNames)
-  if(index===undefined){if(optional.has(name))continue;return undefined}
+  if(index===undefined){
+   if(optional.has(name))continue
+   const matched=data.alpha?alphaMatchGroupBeds(data,ordered,optional,activeGroups,plan,reservedSlots):undefined
+   if(!matched)return undefined
+   assignments.splice(0,assignments.length,...matched);break
+  }
   used.add(index);assignments.push({name,index})
   const [room,position]=data.dorms[index]!.position
   ;(pending[room]??=Array(data.plan[room]!.length).fill('Current'))[position]=name
