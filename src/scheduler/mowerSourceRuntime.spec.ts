@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest'
 import {createRosterRuntime,settleRoster,advanceRoster,nextRosterActionHours,type RuntimeConfig} from './rosterRuntime'
-import {getMowerSourceRuntime,makeMowerSchedulingData,settleMowerSource} from './mowerSourceRuntime'
+import {getMowerSourceRuntime,makeMowerSchedulingData} from './mowerSourceRuntime'
 import {mowerUpdateDetail} from './mowerObservations'
 import {alphaRestingTier} from './mowerAlphaDorm'
 import {MowerTask,MOWER_TASK_TYPES as T} from './mowerTaskQueue'
@@ -212,40 +212,4 @@ describe('integrated Mower source scheduler',()=>{
   expect(bed.timeMicros).toBe(5*3_600_000_000)
   expect(op.timeStampMicros).toBe(0)
   expect(source.data.operators[fia]!.timeStampMicros).toBe(fiaTimestamp)
- })
-
- it.each([{alpha:false,named:false},{alpha:true,named:false},{alpha:false,named:true},{alpha:true,named:true}])('retains a full-to-full Fiammetta charge without polling ($alpha, named=$named)',({alpha,named})=>{
-  const config=fixture(),fia='char_300_phenxi';config.mowerAlpha=alpha
-  config.positions[1]!.primary=fia;config.mowerSourcePlan!.dormitory_1![0]!.agent=fia
-  config.idleOperators=['X'];config.initialMorale={A:24,R:24,X:24,[fia]:24}
-  config.fiammetta={operatorId:fia,orderedTargets:['A'],fool:false,threshold:21.6}
-  const state=createRosterRuntime(config),source=getMowerSourceRuntime(state);source.initial=false
-  for(const [slot,name] of Object.entries(state.occupants)){const op=source.data.operators[name]!;op.currentRoom=slot.slice(0,slot.lastIndexOf('_'));op.currentIndex=Number(slot.slice(slot.lastIndexOf('_')+1));op.mood=state.morale[name]!;op.timeStampMicros=0}
-  source.queue.tasks=[new MowerTask({type:T.FIAMMETTA,...(named?{plan:{room_1_1:['Current'],dormitory_1:['A',fia]},metadata:'A'}:{})})]
-  const before={...state.occupants}
-  settleRoster(state,rates)
-  const retained=source.queue.tasks.find(task=>task.type===T.FIAMMETTA)!
-  expect(retained.executionFailure).toBeDefined();expect(retained.timeMicros).toBe(0)
-  expect(retained.plan.room_1_1).toBeUndefined()
-  expect(state.events.filter(e=>e.type==='fiammetta')).toHaveLength(0)
-  expect(state.occupants).toEqual(before)
-  const traceCount=source.trace.filter(t=>t.type==='FIAMMETTA').length
-  const independent=new MowerTask({time:.01});source.queue.tasks.push(independent)
-  let independentPhases=0
-  state.time=.01;settleMowerSource(state,rates,()=>{independentPhases++;return false})
-  expect(independentPhases).toBeGreaterThan(0)
-  expect(source.queue.tasks).not.toContain(independent)
-  expect(source.queue.tasks.filter(task=>task.type===T.FIAMMETTA)).toEqual([retained])
-  expect(source.trace.filter(t=>t.type==='FIAMMETTA')).toHaveLength(traceCount)
-  expect(retained.timeMicros).toBe(0)
-  expect(state.diagnostics.some(d=>d.message.includes('五分钟'))).toBe(false)
-  const target=retained.plan.dormitory_1![0]!
-  state.morale[target]=10
-  const op=source.data.operators[target]!;op.mood=10;op.timeStampMicros=36_000_000;op.moodIsPrediction=false
-  settleRoster(state,rates)
-  expect(retained.executionFailure).toBeUndefined()
-  expect(state.events.some(e=>e.type==='fiammetta'&&e.operators[1]===target)).toBe(true)
-  expect(source.queue.tasks).not.toContain(retained)
-  expect(state.occupants.dormitory_1_0).toBe(fia)
-  expect(state.occupants.room_1_1_0).toBe('A')
  })

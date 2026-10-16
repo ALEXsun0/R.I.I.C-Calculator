@@ -31,6 +31,16 @@ function fixture(groupHole=false,padding='known'){
  return {room,agents,data,task,queue,operators,trace,ensure,marker,restore:()=>{physical=[...agents];observe()}}
 }
 describe('actual alpha default dorm recovery ordering',()=>{
+ it.each([false,true])('never proactively targets a single-recovery provider, sole unfinished recipient=%s',sole=>{
+  const f=fixture();f.ensure();f.restore();f.operators.H!.singleRecoveryManager=true
+  if(sole)for(const name of ['R','Q'])f.operators[name]!.mood=24
+  f.task.dormRecoveryRestore=[];f.trace.length=0
+  expect(mowerRecoveryTarget(f.data,f.room,f.agents)).toBeUndefined()
+  expect(f.ensure()).toBe(false)
+  expect(f.trace).toEqual([])
+  expect(mowerConfirmedRecoveryTarget(f.data,f.room,'M0')).toBeUndefined()
+  expect(mowerConfirmedRecoveryTargets(f.data).size).toBe(0)
+ })
  it('matches establishing, reusing and manager-away-and-back native markers',()=>{
   const f=fixture(),cases=oracle.cases
   expect({ordered:f.ensure(),marker:f.marker(),pending:f.task.dormRecoveryRestore,intermediate:f.trace,bedTimerCleared:f.data.getDormByName('H')![1].timeMicros===undefined}).toEqual(cases[0]!.output)
