@@ -1,17 +1,28 @@
-import { runCalculationBridge, type CalculationBridgeOptions, type CalculationBridgeResult } from './calculationBridge'
+import { runCalculationBridge, type CalculationBridgeOptions } from './calculationBridge'
 import type { RosterWorkspace } from '../domain/roster'
-import { buildTimelineData, type TimelineDataset } from './timeline/timelineModel'
+import { buildTimelineData } from './timeline/timelineModel'
 import type { SimulationActivity } from '../simulator/simulationActivity'
+import { createCalculationResultSender, type CalculationResultAcknowledgement, type CalculationResultMessage } from './calculationResultTransport'
 
 export interface CalculationProgress { label: string; fraction: number; activity?: SimulationActivity }
 export type CalculationWorkerMessage =
   | { type: 'progress'; progress: CalculationProgress }
-  | { type: 'complete'; result: CalculationBridgeResult; timelineData: TimelineDataset | null }
+  | CalculationResultMessage
   | { type: 'error'; error: string }
 
-self.onmessage = (event: MessageEvent<{ workspace: RosterWorkspace; options: CalculationBridgeOptions }>) => {
-  const send = (message: CalculationWorkerMessage) => self.postMessage(message)
+export type CalculationWorkerRequest = { workspace: RosterWorkspace; options: CalculationBridgeOptions } | CalculationResultAcknowledgement
+
+const send = (message: CalculationWorkerMessage) => self.postMessage(message)
+const sender = createCalculationResultSender(send)
+let started = false
+self.onmessage = async (event: MessageEvent<CalculationWorkerRequest>) => {
   try {
+    if ('type' in event.data && event.data.type === 'result-ack') {
+      sender.acknowledge(event.data.sequence)
+      return
+    }
+    if (!('workspace' in event.data) || started) throw new Error('后台计算请求重复或无效')
+    started = true
     send({ type: 'progress', progress: { label: '正在准备排班与干员数据…', fraction: 0 } })
     const result = runCalculationBridge(event.data.workspace, event.data.options, p => {
       const warmup = p.phase === 'warmup'
@@ -25,7 +36,7 @@ self.onmessage = (event: MessageEvent<{ workspace: RosterWorkspace; options: Cal
     })
     send({ type: 'progress', progress: { label: '正在汇总产出报告…', fraction: .99 } })
     const timelineData = result.simulationReport ? buildTimelineData(result.simulationReport) : null
-    send({ type: 'complete', result, timelineData })
+    await sender.sendResult({ result, timelineData })
   } catch (error) {
     send({ type: 'error', error: error instanceof Error ? error.message : String(error) })
   }

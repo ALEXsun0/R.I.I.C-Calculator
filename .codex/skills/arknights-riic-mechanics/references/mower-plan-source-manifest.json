@@ -454,5 +454,75 @@
     ],
     "provenance": "Local review corrections; not claimed as byte-identical upstream behavior. Existing GameData catalog and upstream source hashes are unchanged.",
     "gameRuntimeVerified": false
+  },
+  "nativeBedAdmissionCompatibility": {
+    "repository": "ArkMowers/arknights-mower",
+    "commit": "617aef56f233381426107087437262fb6a802287",
+    "branch": "alpha",
+    "checkedAt": "2026-10-16T07:37:55.323Z",
+    "files": [
+      {
+        "path": "arknights_mower/utils/operators.py",
+        "url": "https://raw.githubusercontent.com/ArkMowers/arknights-mower/617aef56f233381426107087437262fb6a802287/arknights_mower/utils/operators.py",
+        "bytes": 133900,
+        "sha256": "9c25bfcc121e2962670a32bb3e0dd8cae72324ad851b6d1a3b77e2b227e85220",
+        "retrievedAtUtc": "2026-10-16T07:37:38.465347+00:00",
+        "retrievedAtAsiaShanghai": "2026-10-16T15:37:38.465347+08:00"
+      },
+      {
+        "path": "arknights_mower/solvers/base_schedule.py",
+        "url": "https://raw.githubusercontent.com/ArkMowers/arknights-mower/617aef56f233381426107087437262fb6a802287/arknights_mower/solvers/base_schedule.py",
+        "bytes": 593123,
+        "sha256": "4a6b977345bcebf96132406763d71f378f9625d61739ded112925fc0046d82e7",
+        "retrievedAtUtc": "2026-10-16T07:37:39.011417+00:00",
+        "retrievedAtAsiaShanghai": "2026-10-16T15:37:39.011417+08:00"
+      },
+      {
+        "path": "arknights_mower/utils/resting_priority.py",
+        "url": "https://raw.githubusercontent.com/ArkMowers/arknights-mower/617aef56f233381426107087437262fb6a802287/arknights_mower/utils/resting_priority.py",
+        "bytes": 5469,
+        "sha256": "aa317803cf62bed8583cb6167a2ebd9cff018e6a4be5f03a73f3b2c45d6a5d18",
+        "retrievedAtUtc": "2026-10-16T07:37:39.364116+00:00",
+        "retrievedAtAsiaShanghai": "2026-10-16T15:37:39.364116+08:00"
+      },
+      {
+        "path": "arknights_mower/utils/scheduler_task.py",
+        "url": "https://raw.githubusercontent.com/ArkMowers/arknights-mower/617aef56f233381426107087437262fb6a802287/arknights_mower/utils/scheduler_task.py",
+        "bytes": 130850,
+        "sha256": "efdf098e741bbf40be62885e9f8c60b434e4991ba5cd84a26879c8b6ca4d391d",
+        "retrievedAtUtc": "2026-10-16T07:37:39.782155+00:00",
+        "retrievedAtAsiaShanghai": "2026-10-16T15:37:39.782155+08:00"
+      },
+      {
+        "path": "arknights_mower/utils/config/plan_advanced.py",
+        "url": "https://raw.githubusercontent.com/ArkMowers/arknights-mower/617aef56f233381426107087437262fb6a802287/arknights_mower/utils/config/plan_advanced.py",
+        "bytes": 1557,
+        "sha256": "e8b79a300e2583680d7f205f49a0d73472e6eeba8cd324181bb72058d7d86153",
+        "retrievedAtUtc": "2026-10-16T07:37:40.102673+00:00",
+        "retrievedAtAsiaShanghai": "2026-10-16T15:37:40.102673+08:00"
+      }
+    ],
+    "scope": "Only ordinary bed takeover and ordered greedy whole-group admission; other engine scopes retain their existing source pins.",
+    "methods": [
+      "bed_takeover_allowed",
+      "Operators._slot_takable",
+      "Operators._find_dorm_slot",
+      "Operators.assign_dorm_group"
+    ],
+    "semantics": [
+      "Resident tiers 0..3 and 7 are protected from ordinary takeover.",
+      "Requester tier must be lower than a resident tier in 4..6.",
+      "Requester tiers 4..6 need an observed mood no greater than 80 percent of their own upper limit.",
+      "Ordered greedy failure for a mandatory member rejects the whole group without mutating beds or the input plan; optional standby members may be omitted.",
+      "No all-bed matching fallback and no extra local reverse-displacement policy."
+    ],
+    "implementationFiles": [
+      "src/scheduler/mowerAlphaDorm.ts",
+      "src/scheduler/mowerDormAssignment.ts"
+    ],
+    "verification": "Unmodified fixed-source Python AST call-chain oracle, tier matrix and measured-mood boundaries; local pure-state regressions. Production acceptance is recorded separately.",
+    "wholeSnapshotFreshness": "stale",
+    "freshnessNote": "GameData and the listed PRTS pages matched. Toolbox character/map and broader old Mower snapshots remain stale; this bounded update does not replace them.",
+    "gameRuntimeVerified": false
   }
 }

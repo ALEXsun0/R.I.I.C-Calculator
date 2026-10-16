@@ -91,7 +91,13 @@ export function alphaSlotTakable(data:MowerSchedulingData,bed:MowerDormState,req
  if(!name)return true
  const op=data.operators[name]
  if(!op||data.freeRoomExcluded(name)||op.currentRoom!==bed.position[0]||op.currentIndex!==bed.position[1]||!requester)return false
- return alphaRestingTier(data,requester)<alphaRestingTier(data,name)||data.emergencyDormAgents.has(name)&&(op.index<2||alphaRestingTier(data,requester)===alphaRestingTier(data,name))&&hasRestingMood(op,data.nowMicros)&&!op.moodIsPrediction&&op.mood>=op.upperLimit
+ // Mower 617aef56f233381426107087437262fb6a802287:
+ // utils/resting_priority.py:bed_takeover_allowed. Tiers 0..3 retain their bed;
+ // standby/replacement requesters need a measured mood at most 80% of their cap.
+ const requesterTier=alphaRestingTier(data,requester),residentTier=alphaRestingTier(data,name)
+ if(!(requesterTier<residentTier&&residentTier>3&&residentTier<7))return false
+ const incoming=data.operators[requester]
+ return requesterTier<=3||!!incoming&&hasRestingMood(incoming,data.nowMicros)&&restingMood(incoming,data.nowMicros)<=incoming.upperLimit*.8
 }
 /** Ordinary beds and sole-Free rooms follow the configured order; multi-Free first beds are a fallback. */
 function singleRecoveryBedCost(bed:MowerDormState,beds:readonly MowerDormState[]):number{

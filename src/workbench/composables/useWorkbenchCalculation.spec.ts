@@ -8,6 +8,7 @@ import { createWorkbenchSession } from '../session'
 import { useRosterWorkbenchStore } from '../store'
 import type { CalculationWorkerMessage } from '../calculationWorker'
 import type { SimulationActivity } from '../../simulator/simulationActivity'
+import { createCalculationResultSender, type CalculationResultMessage, type CalculationResultPayload } from '../calculationResultTransport'
 
 const workers: TestWorker[] = []
 class TestWorker {
@@ -26,6 +27,22 @@ let store: ReturnType<typeof useRosterWorkbenchStore>
 const start = () => api.handleConfirmCalculation({ droneTarget: 'none', droneTradingRoomId: '', useOperatorInventory: false })
 const slow: SimulationActivity = { status: 'slow', message: 'slow', capturedHours: 5, windowSeconds: 15, advancedHours: 0, iterations: 10, operators: [], recentEvents: [] }
 
+async function chunkedResult() {
+  const payload: CalculationResultPayload = {
+    result: { success: true, report: { power: { generation: 0, consumption: 0, margin: 0, sufficient: true }, layoutValid: true,
+      validationMessages: ['完整结果'.repeat(1000)], manufacture: [], trading: [], drones: 0, morale: [], roomShiftDetails: {}, summary: null },
+    validation: { isValid: true, criticalErrors: [], warnings: [], issues: [], power: { generation: 0, consumption: 0, margin: 0, sufficient: true } } },
+    timelineData: { totalHours: 744, warmupHours: 72, observedHours: 672, facilityTracks: [], operatorTracks: [], events: [] },
+  }
+  const messages: CalculationResultMessage[] = []
+  const sender = createCalculationResultSender(message => {
+    messages.push(message)
+    if (message.type === 'result-chunk') queueMicrotask(() => sender.acknowledge(message.sequence))
+  }, { maxChunkBytes: 2048 })
+  await sender.sendResult(payload)
+  return { payload, messages }
+}
+
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'performance'] })
   localStorage.clear()
@@ -39,7 +56,71 @@ beforeEach(() => {
     return () => h('div')
   } }))
 })
-afterEach(() => { wrapper.unmount(); vi.useRealTimers(); vi.unstubAllGlobals() })
+afterEach(() => { wrapper.unmount(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks() })
+
+it('requests a fresh crypto uint32 for every production-mode random-seed request without persisting it', () => {
+  vi.stubEnv('VITEST', '')
+  const pseudoRandom = vi.spyOn(Math, 'random').mockReturnValue(.25)
+  const values = [0xffffffff, 0]
+  const random = vi.fn((array: Uint32Array) => {
+    expect(array).toBeInstanceOf(Uint32Array)
+    expect(array).toHaveLength(1)
+    array[0] = values.shift()!
+    return array
+  })
+  vi.stubGlobal('crypto', { getRandomValues: random })
+  expect(session.simSettings.value.seed).toBe(-1)
+  start()
+  expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationOptions.production.seed).toBe(0xffffffff)
+  api.handleAbortCalculation()
+  start()
+  expect(workers[1]!.postMessage.mock.calls[0]![0].options.simulationOptions.production.seed).toBe(0)
+  expect(random).toHaveBeenCalledTimes(2)
+  expect(random.mock.calls[0]![0]).not.toBe(random.mock.calls[1]![0])
+  expect(pseudoRandom).not.toHaveBeenCalled()
+  expect(session.simSettings.value.seed).toBe(-1)
+})
+
+it.each([0, 42, 0xffffffff])('preserves explicit seed %d without requesting randomness', seed => {
+  vi.stubEnv('VITEST', '')
+  const random = vi.fn(() => { throw new Error('explicit seed must not request randomness') })
+  vi.stubGlobal('crypto', { getRandomValues: random })
+  session.simSettings.value.seed = seed
+  start()
+  expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationOptions.production.seed).toBe(seed)
+  expect(random).not.toHaveBeenCalled()
+  expect(session.calculationError.value).toBeNull()
+})
+
+it('preserves the existing VITEST mock-request seed without borrowing crypto randomness', () => {
+  vi.stubEnv('VITEST', 'true')
+  const random = vi.fn(() => { throw new Error('test branch must not request randomness') })
+  vi.stubGlobal('crypto', { getRandomValues: random })
+  start()
+  expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationOptions.production.seed).toBe(42)
+  expect(random).not.toHaveBeenCalled()
+})
+
+it.each(['unavailable', 'throws'] as const)('shows a %s crypto failure before starting a worker and permits a fresh retry', kind => {
+  vi.stubEnv('VITEST', '')
+  const pseudoRandom = vi.spyOn(Math, 'random').mockReturnValue(.25)
+  vi.stubGlobal('crypto', kind === 'unavailable' ? undefined : { getRandomValues() { throw new Error('crypto request failed') } })
+  start()
+  expect(workers).toHaveLength(0)
+  expect(session.isCalculating.value).toBe(false)
+  expect(session.calculationError.value).toContain('无法启动后台计算')
+  expect(session.calculationError.value).toContain(kind === 'unavailable' ? '安全随机数' : 'crypto request failed')
+  expect(api.calculationBottleneckSummary.value?.outcome).toBe('failed')
+  expect(session.calculationReport.value).toBeNull()
+  expect(vi.getTimerCount()).toBe(0)
+  expect(pseudoRandom).not.toHaveBeenCalled()
+  const random = vi.fn((array: Uint32Array) => { array[0] = 123456789; return array })
+  vi.stubGlobal('crypto', { getRandomValues: random })
+  start()
+  expect(random).toHaveBeenCalledOnce()
+  expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationOptions.production.seed).toBe(123456789)
+  expect(session.calculationError.value).toBeNull()
+})
 
 it('detects missing initial progress after 15 seconds without terminating the worker', () => {
   start()
@@ -169,4 +250,99 @@ it('preserves roster change evidence and startup failures without borrowing the 
   start()
   expect(api.calculationBottleneckSummary.value).toMatchObject({ outcome: 'failed', error: '无法启动后台计算：startup failed', diagnostics: [] })
   expect(api.calculationBottleneckSummary.value?.latest).toBeUndefined()
+})
+
+it('publishes a chunked result only after the complete stream closes and acknowledges every applied chunk', async () => {
+  const { payload, messages } = await chunkedResult()
+  start()
+  const worker = workers[0]!
+  for (const message of messages.slice(0, -1)) {
+    worker.onmessage?.({ data: message } as MessageEvent<CalculationWorkerMessage>)
+    expect(session.isCalculating.value).toBe(true)
+    expect(session.calculationReport.value).toBeNull()
+    expect(session.simulationReport.value).toBeNull()
+    expect(session.timelineData.value).toBeNull()
+  }
+  expect(worker.postMessage.mock.calls.slice(1).map(([message]) => message)).toEqual(messages.filter(message => message.type === 'result-chunk').map(message => ({ type: 'result-ack', sequence: message.sequence })))
+  worker.onmessage?.({ data: messages[messages.length - 1]! } as MessageEvent<CalculationWorkerMessage>)
+  expect(session.isCalculating.value).toBe(false)
+  expect(session.calculationReport.value).toEqual(payload.result.report)
+  expect(session.timelineData.value).toEqual(payload.timelineData)
+  expect(api.calculationBottleneckSummary.value?.outcome).toBe('completed')
+  expect(worker.onmessage).toBeNull()
+  expect(worker.terminate).toHaveBeenCalledOnce()
+})
+
+it('treats arriving report chunks as heartbeats while retaining the last scheduler observation', async () => {
+  const { messages } = await chunkedResult()
+  start()
+  workers[0]!.progress(slow)
+  for (const message of messages) {
+    vi.advanceTimersByTime(14000)
+    workers[0]!.onmessage?.({ data: message } as MessageEvent<CalculationWorkerMessage>)
+    expect(api.calculationSilence.value).toBeNull()
+  }
+  expect(api.calculationBottleneckSummary.value).toMatchObject({ outcome: 'completed', latest: { activity: slow } })
+  expect(api.calculationBottleneckSummary.value?.silence).toBeUndefined()
+  expect(api.calculationBottleneckSummary.value?.progressLabel).toBe('正在整理计算结果…')
+})
+
+it('discards a cancelled partial tree and excludes captured callbacks from that worker after restart', async () => {
+  const { payload, messages } = await chunkedResult()
+  start()
+  const oldMessage = workers[0]!.onmessage!
+  for (const message of messages.slice(0, 2)) oldMessage({ data: message } as MessageEvent<CalculationWorkerMessage>)
+  api.handleAbortCalculation()
+  expect(session.calculationReport.value).toBeNull()
+  expect(session.timelineData.value).toBeNull()
+  start()
+  for (const message of messages.slice(2)) oldMessage({ data: message } as MessageEvent<CalculationWorkerMessage>)
+  oldMessage({ data: { type: 'error', error: 'old failed stream' } } as MessageEvent<CalculationWorkerMessage>)
+  expect(session.isCalculating.value).toBe(true)
+  expect(session.calculationError.value).toBeNull()
+  expect(workers[1]!.postMessage).toHaveBeenCalledTimes(1)
+  for (const message of messages) workers[1]!.onmessage?.({ data: message } as MessageEvent<CalculationWorkerMessage>)
+  expect(session.calculationReport.value).toEqual(payload.result.report)
+})
+
+it.each(['sequence', 'truncated', 'decode', 'ack-send', 'worker-error'] as const)('fails a %s stream without publishing a partial result and permits restart', async kind => {
+  const { messages } = await chunkedResult()
+  start()
+  const worker = workers[0]!
+  const deliver = (message: CalculationWorkerMessage) => worker.onmessage?.({ data: message } as MessageEvent<CalculationWorkerMessage>)
+  deliver(messages[0]!)
+  if (kind === 'sequence') deliver({ type: 'result-chunk', sequence: 9, records: [{ kind: 'value', key: null, value: {} }] })
+  else if (kind === 'truncated') deliver(messages[messages.length - 1]!)
+  else if (kind === 'decode') deliver({ type: 'result-chunk', sequence: 0, records: [{ kind: 'close' }] })
+  else if (kind === 'ack-send') {
+    worker.postMessage.mockImplementation(() => { throw new Error('ack send failed') })
+    deliver(messages[1]!)
+  } else deliver({ type: 'error', error: 'worker failed during transfer' })
+  expect(session.isCalculating.value).toBe(false)
+  expect(session.calculationError.value).toBeTruthy()
+  expect(session.calculationReport.value).toBeNull()
+  expect(session.simulationReport.value).toBeNull()
+  expect(session.timelineData.value).toBeNull()
+  expect(api.calculationBottleneckSummary.value?.outcome).toBe('failed')
+  expect(worker.onmessage).toBeNull()
+  expect(vi.getTimerCount()).toBe(0)
+  start()
+  expect(session.isCalculating.value).toBe(true)
+  expect(session.calculationError.value).toBeNull()
+})
+
+it('terminates an incomplete transfer when the roster changes or the component unmounts', async () => {
+  const { messages } = await chunkedResult()
+  start()
+  workers[0]!.onmessage?.({ data: messages[0]! } as MessageEvent<CalculationWorkerMessage>)
+  store.workspace.name = 'changed while receiving'
+  expect(session.isCalculating.value).toBe(false)
+  expect(session.calculationReport.value).toBeNull()
+  expect(workers[0]!.terminate).toHaveBeenCalledOnce()
+  start()
+  workers[1]!.onmessage?.({ data: messages[0]! } as MessageEvent<CalculationWorkerMessage>)
+  wrapper.unmount()
+  expect(workers[1]!.terminate).toHaveBeenCalledOnce()
+  expect(workers[1]!.onmessage).toBeNull()
+  expect(session.calculationReport.value).toBeNull()
 })
