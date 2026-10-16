@@ -1,4 +1,5 @@
 import {createSimulationActivityMonitor, type SimulationActivity} from './simulationActivity'
+import {isDeferredShiftResolved} from './shiftDeferrals'
 import {resolveInventoryProduction} from './inventorySimulation'
 import { parseProduct, serializeProduct } from '../domain/mowerProducts'
 import {createMowerClueIO} from './mowerNativeClueIO'
@@ -319,7 +320,7 @@ export function simulateSchedule(schedule:CompiledSchedule,options:ScheduleSimul
    settleRoster(state,rates,0,phase)
   }
   const events=state.events.slice(count)
-  for(const [key,episode] of pendingDeferrals)if(events.some(e=>e.type==='shift-off'&&e.time>episode.blockedAt+EPS&&e.operators.length===episode.operatorIds.length&&episode.operatorIds.every(id=>e.operators.includes(id)))){
+  for(const [key,episode] of pendingDeferrals)if(isDeferredShiftResolved(episode,events)){
    episode.resolvedAt=state.time;pendingDeferrals.delete(key)
   }
   for(const d of state.diagnostics.filter(d=>d.code==='group-blocked')){
