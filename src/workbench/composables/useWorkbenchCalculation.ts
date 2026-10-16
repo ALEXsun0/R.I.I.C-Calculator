@@ -149,6 +149,16 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
         }
       }
 
+      let productionSeed = simSettings.value.seed
+      if (productionSeed < 0) {
+        if (typeof process !== 'undefined' && Boolean(process.env?.VITEST)) productionSeed = 42
+        else {
+          const browserCrypto = globalThis.crypto
+          if (!browserCrypto || typeof browserCrypto.getRandomValues !== 'function') throw new Error('当前环境无法提供安全随机数，请在支持浏览器随机数的环境重新计算。')
+          productionSeed = browserCrypto.getRandomValues(new Uint32Array(1))[0]!
+        }
+      }
+
       const options = {
         engine: 'simulation' as const,
         jayeElite0: simSettings.value.jayeElite0 ?? false,
@@ -176,9 +186,7 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
               initialResources: initialInventory,
             }),
             runOrderMode: 'ideal' as const,
-            seed: simSettings.value.seed < 0
-              ? (typeof process !== 'undefined' && Boolean(process.env?.VITEST) ? 42 : Math.floor(Math.random() * 0xffffffff))
-              : simSettings.value.seed,
+            seed: productionSeed,
             droneTarget: simSettings.value.droneTarget,
             droneRoomId: simSettings.value.droneRoomId || undefined,
             droneTradingRoomId: simSettings.value.droneTradingRoomId || undefined,

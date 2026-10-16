@@ -56,7 +56,71 @@ beforeEach(() => {
     return () => h('div')
   } }))
 })
-afterEach(() => { wrapper.unmount(); vi.useRealTimers(); vi.unstubAllGlobals() })
+afterEach(() => { wrapper.unmount(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks() })
+
+it('requests a fresh crypto uint32 for every production-mode random-seed request without persisting it', () => {
+  vi.stubEnv('VITEST', '')
+  const pseudoRandom = vi.spyOn(Math, 'random').mockReturnValue(.25)
+  const values = [0xffffffff, 0]
+  const random = vi.fn((array: Uint32Array) => {
+    expect(array).toBeInstanceOf(Uint32Array)
+    expect(array).toHaveLength(1)
+    array[0] = values.shift()!
+    return array
+  })
+  vi.stubGlobal('crypto', { getRandomValues: random })
+  expect(session.simSettings.value.seed).toBe(-1)
+  start()
+  expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationOptions.production.seed).toBe(0xffffffff)
+  api.handleAbortCalculation()
+  start()
+  expect(workers[1]!.postMessage.mock.calls[0]![0].options.simulationOptions.production.seed).toBe(0)
+  expect(random).toHaveBeenCalledTimes(2)
+  expect(random.mock.calls[0]![0]).not.toBe(random.mock.calls[1]![0])
+  expect(pseudoRandom).not.toHaveBeenCalled()
+  expect(session.simSettings.value.seed).toBe(-1)
+})
+
+it.each([0, 42, 0xffffffff])('preserves explicit seed %d without requesting randomness', seed => {
+  vi.stubEnv('VITEST', '')
+  const random = vi.fn(() => { throw new Error('explicit seed must not request randomness') })
+  vi.stubGlobal('crypto', { getRandomValues: random })
+  session.simSettings.value.seed = seed
+  start()
+  expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationOptions.production.seed).toBe(seed)
+  expect(random).not.toHaveBeenCalled()
+  expect(session.calculationError.value).toBeNull()
+})
+
+it('preserves the existing VITEST mock-request seed without borrowing crypto randomness', () => {
+  vi.stubEnv('VITEST', 'true')
+  const random = vi.fn(() => { throw new Error('test branch must not request randomness') })
+  vi.stubGlobal('crypto', { getRandomValues: random })
+  start()
+  expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationOptions.production.seed).toBe(42)
+  expect(random).not.toHaveBeenCalled()
+})
+
+it.each(['unavailable', 'throws'] as const)('shows a %s crypto failure before starting a worker and permits a fresh retry', kind => {
+  vi.stubEnv('VITEST', '')
+  const pseudoRandom = vi.spyOn(Math, 'random').mockReturnValue(.25)
+  vi.stubGlobal('crypto', kind === 'unavailable' ? undefined : { getRandomValues() { throw new Error('crypto request failed') } })
+  start()
+  expect(workers).toHaveLength(0)
+  expect(session.isCalculating.value).toBe(false)
+  expect(session.calculationError.value).toContain('无法启动后台计算')
+  expect(session.calculationError.value).toContain(kind === 'unavailable' ? '安全随机数' : 'crypto request failed')
+  expect(api.calculationBottleneckSummary.value?.outcome).toBe('failed')
+  expect(session.calculationReport.value).toBeNull()
+  expect(vi.getTimerCount()).toBe(0)
+  expect(pseudoRandom).not.toHaveBeenCalled()
+  const random = vi.fn((array: Uint32Array) => { array[0] = 123456789; return array })
+  vi.stubGlobal('crypto', { getRandomValues: random })
+  start()
+  expect(random).toHaveBeenCalledOnce()
+  expect(workers[0]!.postMessage.mock.calls[0]![0].options.simulationOptions.production.seed).toBe(123456789)
+  expect(session.calculationError.value).toBeNull()
+})
 
 it('detects missing initial progress after 15 seconds without terminating the worker', () => {
   start()
