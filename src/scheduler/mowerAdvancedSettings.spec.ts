@@ -18,6 +18,12 @@ describe('alpha exported scheduling settings', () => {
     expect(config.mowerDroneCountLimit).toBe(30)
     expect(ws).toEqual(before)
   })
+  it('preserves an explicitly saved sixty-minute threshold', () => {
+    const ws = createDefaultWorkspace()
+    ws.compatibility.unrecognizedFields.advanced_settings = { group_mood_gap_threshold_minutes: 60 }
+    const config = compiledScheduleToRuntimeConfig(compileRosterSchedule(ws))
+    expect(config.mowerPolicy?.groupMoodGapThresholdMinutes).toBe(60)
+  })
   it('lets explicit simulator assumptions override imported values', () => {
     const ws = createDefaultWorkspace()
     ws.compatibility.unrecognizedFields.advanced_settings = { resting_threshold: .5 }
@@ -28,7 +34,7 @@ describe('alpha exported scheduling settings', () => {
     ws.compatibility.unrecognizedFields.advanced_settings = { group_mood_gap_threshold_minutes: value }
     expect(compileRosterSchedule(ws).diagnostics.some(d => d.path === 'assumptions.groupMoodGapThresholdMinutes' && d.severity === 'error')).toBe(true)
   })
-  it('uses the alpha sixty minute default regardless of power-plant count', () => {
-    expect(compileRosterSchedule(createDefaultWorkspace()).assumptions.groupMoodGapThresholdMinutes).toBe(60)
+  it('defaults the recovery spread to seventy-five minutes', () => {
+    expect(compileRosterSchedule(createDefaultWorkspace()).assumptions.groupMoodGapThresholdMinutes).toBe(75)
   })
 })
