@@ -1,0 +1,503 @@
+{
+  "commit": "617aef56f233381426107087437262fb6a802287",
+  "scope": "Execute unmodified 617aef Python decision ASTs; no I/O or production simulation.",
+  "sourceHashes": {
+    "arknights_mower/utils/operators.py": "9c25bfcc121e2962670a32bb3e0dd8cae72324ad851b6d1a3b77e2b227e85220",
+    "arknights_mower/utils/resting_priority.py": "aa317803cf62bed8583cb6167a2ebd9cff018e6a4be5f03a73f3b2c45d6a5d18",
+    "arknights_mower/utils/plan.py": "724030b1f2a33a3e84229898654dee5839c7cacf0ffd73fbfb884d93c46c1191"
+  },
+  "takeoverMatrix": [
+    {
+      "requesterTier": 0,
+      "residentTier": 0,
+      "expected": false
+    },
+    {
+      "requesterTier": 0,
+      "residentTier": 1,
+      "expected": false
+    },
+    {
+      "requesterTier": 0,
+      "residentTier": 2,
+      "expected": false
+    },
+    {
+      "requesterTier": 0,
+      "residentTier": 3,
+      "expected": false
+    },
+    {
+      "requesterTier": 0,
+      "residentTier": 4,
+      "expected": true
+    },
+    {
+      "requesterTier": 0,
+      "residentTier": 5,
+      "expected": true
+    },
+    {
+      "requesterTier": 0,
+      "residentTier": 6,
+      "expected": true
+    },
+    {
+      "requesterTier": 0,
+      "residentTier": 7,
+      "expected": false
+    },
+    {
+      "requesterTier": 1,
+      "residentTier": 0,
+      "expected": false
+    },
+    {
+      "requesterTier": 1,
+      "residentTier": 1,
+      "expected": false
+    },
+    {
+      "requesterTier": 1,
+      "residentTier": 2,
+      "expected": false
+    },
+    {
+      "requesterTier": 1,
+      "residentTier": 3,
+      "expected": false
+    },
+    {
+      "requesterTier": 1,
+      "residentTier": 4,
+      "expected": true
+    },
+    {
+      "requesterTier": 1,
+      "residentTier": 5,
+      "expected": true
+    },
+    {
+      "requesterTier": 1,
+      "residentTier": 6,
+      "expected": true
+    },
+    {
+      "requesterTier": 1,
+      "residentTier": 7,
+      "expected": false
+    },
+    {
+      "requesterTier": 2,
+      "residentTier": 0,
+      "expected": false
+    },
+    {
+      "requesterTier": 2,
+      "residentTier": 1,
+      "expected": false
+    },
+    {
+      "requesterTier": 2,
+      "residentTier": 2,
+      "expected": false
+    },
+    {
+      "requesterTier": 2,
+      "residentTier": 3,
+      "expected": false
+    },
+    {
+      "requesterTier": 2,
+      "residentTier": 4,
+      "expected": true
+    },
+    {
+      "requesterTier": 2,
+      "residentTier": 5,
+      "expected": true
+    },
+    {
+      "requesterTier": 2,
+      "residentTier": 6,
+      "expected": true
+    },
+    {
+      "requesterTier": 2,
+      "residentTier": 7,
+      "expected": false
+    },
+    {
+      "requesterTier": 3,
+      "residentTier": 0,
+      "expected": false
+    },
+    {
+      "requesterTier": 3,
+      "residentTier": 1,
+      "expected": false
+    },
+    {
+      "requesterTier": 3,
+      "residentTier": 2,
+      "expected": false
+    },
+    {
+      "requesterTier": 3,
+      "residentTier": 3,
+      "expected": false
+    },
+    {
+      "requesterTier": 3,
+      "residentTier": 4,
+      "expected": true
+    },
+    {
+      "requesterTier": 3,
+      "residentTier": 5,
+      "expected": true
+    },
+    {
+      "requesterTier": 3,
+      "residentTier": 6,
+      "expected": true
+    },
+    {
+      "requesterTier": 3,
+      "residentTier": 7,
+      "expected": false
+    },
+    {
+      "requesterTier": 4,
+      "residentTier": 0,
+      "expected": false
+    },
+    {
+      "requesterTier": 4,
+      "residentTier": 1,
+      "expected": false
+    },
+    {
+      "requesterTier": 4,
+      "residentTier": 2,
+      "expected": false
+    },
+    {
+      "requesterTier": 4,
+      "residentTier": 3,
+      "expected": false
+    },
+    {
+      "requesterTier": 4,
+      "residentTier": 4,
+      "expected": false
+    },
+    {
+      "requesterTier": 4,
+      "residentTier": 5,
+      "expected": true
+    },
+    {
+      "requesterTier": 4,
+      "residentTier": 6,
+      "expected": true
+    },
+    {
+      "requesterTier": 4,
+      "residentTier": 7,
+      "expected": false
+    },
+    {
+      "requesterTier": 5,
+      "residentTier": 0,
+      "expected": false
+    },
+    {
+      "requesterTier": 5,
+      "residentTier": 1,
+      "expected": false
+    },
+    {
+      "requesterTier": 5,
+      "residentTier": 2,
+      "expected": false
+    },
+    {
+      "requesterTier": 5,
+      "residentTier": 3,
+      "expected": false
+    },
+    {
+      "requesterTier": 5,
+      "residentTier": 4,
+      "expected": false
+    },
+    {
+      "requesterTier": 5,
+      "residentTier": 5,
+      "expected": false
+    },
+    {
+      "requesterTier": 5,
+      "residentTier": 6,
+      "expected": true
+    },
+    {
+      "requesterTier": 5,
+      "residentTier": 7,
+      "expected": false
+    },
+    {
+      "requesterTier": 6,
+      "residentTier": 0,
+      "expected": false
+    },
+    {
+      "requesterTier": 6,
+      "residentTier": 1,
+      "expected": false
+    },
+    {
+      "requesterTier": 6,
+      "residentTier": 2,
+      "expected": false
+    },
+    {
+      "requesterTier": 6,
+      "residentTier": 3,
+      "expected": false
+    },
+    {
+      "requesterTier": 6,
+      "residentTier": 4,
+      "expected": false
+    },
+    {
+      "requesterTier": 6,
+      "residentTier": 5,
+      "expected": false
+    },
+    {
+      "requesterTier": 6,
+      "residentTier": 6,
+      "expected": false
+    },
+    {
+      "requesterTier": 6,
+      "residentTier": 7,
+      "expected": false
+    },
+    {
+      "requesterTier": 7,
+      "residentTier": 0,
+      "expected": false
+    },
+    {
+      "requesterTier": 7,
+      "residentTier": 1,
+      "expected": false
+    },
+    {
+      "requesterTier": 7,
+      "residentTier": 2,
+      "expected": false
+    },
+    {
+      "requesterTier": 7,
+      "residentTier": 3,
+      "expected": false
+    },
+    {
+      "requesterTier": 7,
+      "residentTier": 4,
+      "expected": false
+    },
+    {
+      "requesterTier": 7,
+      "residentTier": 5,
+      "expected": false
+    },
+    {
+      "requesterTier": 7,
+      "residentTier": 6,
+      "expected": false
+    },
+    {
+      "requesterTier": 7,
+      "residentTier": 7,
+      "expected": false
+    }
+  ],
+  "takeoverBoundaries": [
+    {
+      "name": "standby-at-80-percent",
+      "requesterTier": 4,
+      "mood": 19.2,
+      "upperLimit": 24,
+      "observed": true,
+      "prediction": null,
+      "expected": true
+    },
+    {
+      "name": "standby-above-80-percent",
+      "requesterTier": 4,
+      "mood": 19.200001,
+      "upperLimit": 24,
+      "observed": true,
+      "prediction": null,
+      "expected": false
+    },
+    {
+      "name": "replacement-at-personal-80-percent",
+      "requesterTier": 5,
+      "mood": 9.6,
+      "upperLimit": 12,
+      "observed": true,
+      "prediction": null,
+      "expected": true
+    },
+    {
+      "name": "replacement-above-personal-80-percent",
+      "requesterTier": 5,
+      "mood": 9.600001,
+      "upperLimit": 12,
+      "observed": true,
+      "prediction": null,
+      "expected": false
+    },
+    {
+      "name": "unknown-mood",
+      "requesterTier": 4,
+      "mood": 1,
+      "upperLimit": 24,
+      "observed": false,
+      "prediction": null,
+      "expected": false
+    },
+    {
+      "name": "invalid-mood",
+      "requesterTier": 4,
+      "mood": -1,
+      "upperLimit": 24,
+      "observed": true,
+      "prediction": null,
+      "expected": false
+    },
+    {
+      "name": "projected-above-80-percent",
+      "requesterTier": 4,
+      "mood": 10,
+      "upperLimit": 24,
+      "observed": true,
+      "prediction": 20,
+      "expected": false
+    },
+    {
+      "name": "priority-near-full",
+      "requesterTier": 0,
+      "mood": 24,
+      "upperLimit": 24,
+      "observed": true,
+      "prediction": null,
+      "expected": true
+    }
+  ],
+  "groupAssignments": [
+    {
+      "name": "protected-hunter-bed",
+      "expected": null,
+      "before": [
+        {
+          "position": [
+            "dormitory_1",
+            0
+          ],
+          "name": "C",
+          "time": 123
+        },
+        {
+          "position": [
+            "dormitory_1",
+            1
+          ],
+          "name": "D",
+          "time": 123
+        },
+        {
+          "position": [
+            "dormitory_1",
+            2
+          ],
+          "name": "",
+          "time": null
+        }
+      ],
+      "after": [
+        {
+          "position": [
+            "dormitory_1",
+            0
+          ],
+          "name": "C",
+          "time": 123
+        },
+        {
+          "position": [
+            "dormitory_1",
+            1
+          ],
+          "name": "D",
+          "time": 123
+        },
+        {
+          "position": [
+            "dormitory_1",
+            2
+          ],
+          "name": "",
+          "time": null
+        }
+      ]
+    },
+    {
+      "name": "reserved-empty-bed-greedy-failure",
+      "expected": null,
+      "before": [
+        {
+          "position": [
+            "dormitory_1",
+            0
+          ],
+          "name": "",
+          "time": null
+        },
+        {
+          "position": [
+            "dormitory_1",
+            1
+          ],
+          "name": "",
+          "time": null
+        }
+      ],
+      "after": [
+        {
+          "position": [
+            "dormitory_1",
+            0
+          ],
+          "name": "",
+          "time": null
+        },
+        {
+          "position": [
+            "dormitory_1",
+            1
+          ],
+          "name": "",
+          "time": null
+        }
+      ]
+    }
+  ]
+}

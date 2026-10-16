@@ -11,6 +11,7 @@ import type { useRosterWorkbenchStore } from '../store'
 import type { ValidationResult } from '../validate'
 import { createCalculationBottleneckTracker, type CalculationBottleneckSummary, type CalculationOutcome } from '../calculationBottlenecks'
 import type { SimulationActivity } from '../../simulator/simulationActivity'
+import { createCalculationResultReceiver } from '../calculationResultTransport'
 
 export interface CalculationSilence {
   seconds: number
@@ -51,6 +52,11 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
     bottleneckTracker = undefined
     const worker = calculationWorker
     calculationWorker = null
+    if (worker) {
+      worker.onmessage = null
+      worker.onerror = null
+      worker.onmessageerror = null
+    }
     worker?.terminate()
     clearInterval(calculationTimer)
     calculationTimer = undefined
@@ -182,6 +188,12 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
 
       const worker = new Worker(new URL('../calculationWorker.ts', import.meta.url), { type: 'module' })
       calculationWorker = worker
+      const receiver = createCalculationResultReceiver()
+      const fail = (message: string) => {
+        if (calculationWorker !== worker) return
+        calculationError.value = message
+        stopCalculation('failed')
+      }
       worker.onmessage = (event: MessageEvent<CalculationWorkerMessage>) => {
         if (calculationWorker !== worker) return
         const message = event.data
@@ -192,22 +204,29 @@ export function useWorkbenchCalculation(store: ReturnType<typeof useRosterWorkbe
           if (message.progress.activity) lastObservation = { activity: message.progress.activity, receivedSeconds: Math.floor((lastProgressAt - started) / 1000) }
           calculationSilence.value = null
           calculationProgress.value = message.progress
-        } else if (message.type === 'complete') {
-          const result = message.result
-          simulationReport.value = result.simulationReport ?? null
-          timelineData.value = message.timelineData
-          if (result.success && result.report) calculationReport.value = result.report
-          else calculationError.value = result.error ?? '收益计算未成功完成'
-          stopCalculation(result.success && result.report ? 'completed' : 'failed')
         } else if (message.type === 'error') {
-          calculationError.value = message.error
-          stopCalculation('failed')
+          fail(message.error)
+        } else {
+          try {
+            const received = receiver.accept(message)
+            lastProgressAt = performance.now()
+            receivedProgress = true
+            calculationSilence.value = null
+            if (received.acknowledge !== undefined) worker.postMessage({ type: 'result-ack', sequence: received.acknowledge })
+            if (!received.complete) {
+              const progress = { label: '正在整理计算结果…', fraction: .99 }
+              bottleneckTracker?.observe(progress, (lastProgressAt - started) / 1000)
+              calculationProgress.value = progress
+              return
+            }
+            const { result, timelineData: timeline } = received.complete
+            simulationReport.value = result.simulationReport ?? null
+            timelineData.value = timeline
+            if (result.success && result.report) calculationReport.value = result.report
+            else calculationError.value = result.error ?? '收益计算未成功完成'
+            stopCalculation(result.success && result.report ? 'completed' : 'failed')
+          } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
         }
-      }
-      const fail = (message: string) => {
-        if (calculationWorker !== worker) return
-        calculationError.value = message
-        stopCalculation('failed')
       }
       worker.onerror = event => fail(`产出计算失败：${event.message || '后台任务执行失败'}`)
       worker.onmessageerror = () => fail('产出计算报告传输失败，请重试。')
