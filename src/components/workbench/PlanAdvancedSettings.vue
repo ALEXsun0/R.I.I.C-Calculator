@@ -43,7 +43,7 @@ const fields: Field[] = [
   { key: 'merge_interval', label: '任务合并间隔', initial: 10, unit: '分钟', when: () => settings.value.free_room === true },
   { key: 'group_rest_in_full_on_mood_gap', label: '同组心情差过大时整组回满', initial: true },
   { key: 'group_mood_gap_threshold_minutes', label: '同组回满时间差阈值', initial: 75, min: 1, max: 1440, integer: true, step: 5, unit: '分钟', when: () => settings.value.group_rest_in_full_on_mood_gap !== false },
-  { key: 'group_mood_gap_max_extra_wait_hours', label: '整组回满最多额外等待', initial: 0, min: 0, max: 24, step: .5, unit: '小时', help: '保留供 Mower 本体使用；收益演算触发后等待本轮休息成员全部回满，不按此上限提前回班。', when: () => settings.value.group_rest_in_full_on_mood_gap !== false },
+  { key: 'group_mood_gap_max_extra_wait_hours', label: '整组回满最多额外等待', initial: 0, min: 0, max: 24, step: .5, unit: '小时', help: '保留供 Mower 本体使用；收益演算触发后等同组单绑非候补主班回满；多绑组只保留明确设置的需要回满。两项要求累加，不按此上限提前回班。', when: () => settings.value.group_rest_in_full_on_mood_gap !== false },
   { key: 'fia_fool', label: '菲亚防呆', initial: true, help: '当菲亚替换干员心情均超过 90% 时，菲亚等待半小时；不确定替换干员心情消耗时启用。' },
   { key: 'assistant_follows_schedule', label: '训练室协助位总是跟随排班', initial: false, exportOnly: true, help: '专精时协助位不使用单独设置的专精工具人，基建排班按排班表替换训练室协助位。' },
   { key: 'fia_threshold', label: '菲亚阈值', initial: .9, percent: true, min: 50, max: 90, step: 5, unit: '%' },
