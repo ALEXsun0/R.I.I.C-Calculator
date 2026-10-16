@@ -31,22 +31,20 @@ function fixture(lowTierBedCount = 4) {
 
 const bedsSnapshot = (data: MowerSchedulingData) => data.dorms.map(bed => ({position: [...bed.position], name: bed.name, timeMicros: bed.timeMicros}))
 
-describe('Mower whole-group bed matching', () => {
-  it('preserves the only four low-tier beds for four low-priority group members', () => {
+describe('Mower native ordered group bed admission', () => {
+  it('does not move a priority member onto a protected primary bed to admit its group', () => {
     const data = fixture()
-    // A legal injective assignment exists: priority takes the main's bed;
-    // each hunter takes a different cover's bed. A greedy first choice loses it.
-    expect(alphaSlotTakable(data, data.dorms[0]!, 'priority')).toBe(true)
+    const before=bedsSnapshot(data)
+    // Native 617aef protects tiers 0..3, even from a higher-priority requester.
+    expect(alphaSlotTakable(data, data.dorms[0]!, 'priority')).toBe(false)
     for (const [index, name] of incoming.slice(1).entries()) {
       expect(alphaSlotTakable(data, data.dorms[index + 1]!, name)).toBe(true)
     }
 
     const assigned = mowerAssignDormGroup(data, incoming)
 
-    expect(assigned).toHaveLength(5)
-    expect(data.dorms[0]!.name).toBe('priority')
-    expect(new Set(assigned!.map(bed => alphaPosition(...bed.position))).size).toBe(5)
-    expect(new Set(assigned!.map(bed => bed.name))).toEqual(new Set(incoming))
+    expect(assigned).toBeUndefined()
+    expect(bedsSnapshot(data)).toEqual(before)
   })
 
   it('rejects four low-priority members when only three takable cover beds exist', () => {
@@ -88,15 +86,28 @@ describe('Mower whole-group bed matching', () => {
   })
 
   it('admits all mandatory members before skipping an optional standby member without a bed', () => {
-    const data = fixture(3)
+    const data = fixture()
     data.operators.hunter4!.restingPriority = 'standby'
 
     const assigned = mowerAssignDormGroup(data, incoming)
 
     expect(assigned).toHaveLength(4)
     expect(new Set(assigned!.map(bed => bed.name))).toEqual(new Set(incoming.slice(0, 4)))
-    expect(data.dorms[0]!.name).toBe('priority')
-    expect(data.dorms[4]!.name).toBe('cover4')
-    expect(data.dorms[4]!.timeMicros).toBe(123)
+    expect(data.dorms[0]!.name).toBe('main')
+    expect(data.dorms[0]!.timeMicros).toBe(123)
+  })
+
+  it('preserves native greedy failure when a later empty bed is reserved for the first member',()=>{
+    const operators={
+      A:new MowerOperatorState({name:'A',room:'work',index:0,currentRoom:'work',currentIndex:0,operatorType:'high',restingPriority:'high',mood:8,timeStampMicros:0}),
+      B:new MowerOperatorState({name:'B',room:'work',index:1,currentRoom:'work',currentIndex:1,operatorType:'high',restingPriority:'low',mood:10,timeStampMicros:0}),
+    }
+    const data=new MowerSchedulingData({alpha:true,nowMicros:0,operators,plan:{work:['A','B'],dormitory_1:['Free','Free']},
+      dorms:[new MowerDormState(['dormitory_1',0]),new MowerDormState(['dormitory_1',1])],
+      restingPriorityNames:['A'],reservedProductBeds:new Map([[alphaPosition('dormitory_1',1),'A']])})
+    const before=bedsSnapshot(data),plan={work:['Current','Current']}
+    expect(mowerAssignDormGroup(data,['A','B'],undefined,undefined,plan)).toBeUndefined()
+    expect(bedsSnapshot(data)).toEqual(before)
+    expect(plan).toEqual({work:['Current','Current']})
   })
 })
