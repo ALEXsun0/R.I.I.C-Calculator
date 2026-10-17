@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createDefaultWorkspace } from '../workbench/defaults'
+import { MowerSchedulingData } from './mowerSchedulingData'
 import { compileRosterSchedule } from './compileRosterSchedule'
 import { compiledScheduleToRuntimeConfig } from './scheduleAdapter'
 
@@ -39,7 +40,9 @@ describe('alpha exported scheduling settings', () => {
     ws.compatibility.unrecognizedFields.advanced_settings = { group_mood_gap_exclusions: value }
     expect(compileRosterSchedule(ws).diagnostics.some(d => d.path === 'assumptions.groupMoodGapExclusions' && d.severity === 'error')).toBe(true)
   })
-  it('defaults the recovery spread to seventy-five minutes', () => {
-    expect(compileRosterSchedule(createDefaultWorkspace()).assumptions.groupMoodGapThresholdMinutes).toBe(75)
+  it('defaults the recovery spread to sixty minutes', () => {
+    expect(compileRosterSchedule(createDefaultWorkspace()).assumptions.groupMoodGapThresholdMinutes).toBe(60)
+    expect(new MowerSchedulingData({ plan: {}, operators: {}, dorms: [], nowMicros: 0 }).groupMoodGapThresholdMinutes).toBe(60)
+    expect(new MowerSchedulingData({ plan: {}, operators: {}, dorms: [], nowMicros: 0, groupMoodGapThresholdMinutes: 75 }).groupMoodGapThresholdMinutes).toBe(75)
   })
 })
