@@ -38,7 +38,7 @@
 
 ## 纳入范围
 
-共 714 个索引文件，其中应用 TypeScript/Vue/CSS 文件 252 个，业务测试文件 315 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
+共 725 个索引文件，其中应用 TypeScript/Vue/CSS 文件 255 个，业务测试文件 323 个。纳入 Git 已登记和未忽略的源码路径，排除仅存本地的忽略文件，保证干净检出可重新生成相同索引。大批头像、技能图标等静态资源按目录汇总；`artifacts/`、`validation/`、`release/`、`dist/`、依赖目录、临时实验和 Git 内部文件不作为源码树展开。`validation/` 保存历史输入与核验记录，`artifacts/` 保存本次生成的证据和备份。
 
 ### 根目录管理入口
 
@@ -510,12 +510,15 @@ src/
 │   ├── mowerBackupConfig.spec.ts
 │   ├── mowerBackupConfig.ts
 │   ├── mowerBackupConvergence.spec.ts
+│   ├── mowerBackupDepartureRecovery.spec.ts
+│   ├── mowerBackupDepartureRecovery.ts
 │   ├── mowerBackupFacilities.spec.ts
 │   ├── mowerBackupRefresh.spec.ts
 │   ├── mowerBackupRefresh.ts
 │   ├── mowerBackupReplacements.ts
 │   ├── mowerBackupRestingJoin.spec.ts
 │   ├── mowerBackupRestingJoin.ts
+│   ├── mowerBackupTransitionConfig.spec.ts
 │   ├── mowerBatchPlanning.spec.ts
 │   ├── mowerBedPool.spec.ts
 │   ├── mowerBedTakeover.spec.ts
@@ -549,6 +552,7 @@ src/
 │   ├── mowerExhaustPreview.spec.ts
 │   ├── mowerExhaustSupport.spec.ts
 │   ├── mowerExhaustSupportDispatch.spec.ts
+│   ├── mowerExplicitCorrectionCycle.spec.ts
 │   ├── mowerExplicitSlots.spec.ts
 │   ├── mowerFiammetta.spec.ts
 │   ├── mowerFiammetta.ts
@@ -560,6 +564,7 @@ src/
 │   ├── mowerGroupFullRecovery.spec.ts
 │   ├── mowerGroupRecovery.ts
 │   ├── mowerGroupReturnStability.spec.ts
+│   ├── mowerGroupTransitionLifecycle.spec.ts
 │   ├── mowerIdealDormRecovery.spec.ts
 │   ├── mowerIdealPlanningBoundaries.spec.ts
 │   ├── mowerIdealRunEntry.spec.ts
@@ -595,9 +600,13 @@ src/
 │   ├── mowerPlanningWake.ts
 │   ├── mowerPolicyParity.spec.ts
 │   ├── mowerPreviewRecovery.spec.ts
+│   ├── mowerPreviewRecoveryWait.spec.ts
+│   ├── mowerPreviewRecoveryWait.ts
 │   ├── mowerReconciliation.spec.ts
 │   ├── mowerRecoveryAllocation.spec.ts
 │   ├── mowerRecoveryBeds.ts
+│   ├── mowerRecoveryDependency.spec.ts
+│   ├── mowerRecoveryDependency.ts
 │   ├── mowerRecycleNotification.spec.ts
 │   ├── mowerRelease.ts
 │   ├── mowerReload.spec.ts
@@ -605,6 +614,7 @@ src/
 │   ├── mowerReplacementCoordination.ts
 │   ├── mowerReplacementCoordinationForecast.spec.ts
 │   ├── mowerReplacementCoordinationRuntime.spec.ts
+│   ├── mowerRetainedCorrection.spec.ts
 │   ├── mowerRetainedRecovery.spec.ts
 │   ├── mowerRetainedRecovery.ts
 │   ├── mowerRosterDeterminism.spec.ts
@@ -638,6 +648,7 @@ src/
 │   ├── mowerSourceContract.spec.ts
 │   ├── mowerSourceRuntime.spec.ts
 │   ├── mowerSourceRuntime.ts
+│   ├── mowerSupportRefresh.spec.ts
 │   ├── mowerTaskDerivation.spec.ts
 │   ├── mowerTaskDerivation.ts
 │   ├── mowerTaskExecutor.spec.ts

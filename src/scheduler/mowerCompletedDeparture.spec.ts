@@ -128,6 +128,61 @@ describe('confirmed ordinary dorm departure keeps measured morale', () => {
 })
 
 describe('group full-rest execution confirmation', () => {
+  it('lets a completed member leave under idle release while preserving the unfinished group and cap', () => {
+    const f = fixture(24, 24), data = f.source.data
+    data.freeRoom = true
+    data.groupRestInFullOnMoodGap = true
+    data.groupMoodGapMaxExtraWaitHours = .5
+    data.groupRecoveryFullMembers.g = ['A', 'B']
+    data.groupRecoveryReturnMicros.g = toMowerMicros(1)
+    finish(f)
+    expect(data.operators.A!.currentRoom).toBe('')
+    expect(data.operators.B!.isResting()).toBe(true)
+    expect(data.groupIsResting('g')).toBe(true)
+    expect(data.groupRecoveryReturnMicros.g).toBe(toMowerMicros(1))
+    expect(mowerGroupRecoveryDeadline(data, 'g').timeMicros).toBe(toMowerMicros(1.5))
+  })
+
+  it('reschedules an early saved return only as far as the original gap cap', () => {
+    const f = fixture(24, 24), data = f.source.data
+    data.groupRestInFullOnMoodGap = true
+    data.groupMoodGapMaxExtraWaitHours = .5
+    data.groupRecoveryFullMembers.g = ['A', 'B']
+    data.groupRecoveryReturnMicros.g = toMowerMicros(1)
+    const task = new MowerTask({ time: 1, type: T.SHIFT_ON, plan: { room_1_1: ['A'], room_1_2: ['B'] } })
+    task.backupShiftActive = true
+    f.source.queue.tasks = [task]
+    finish(f)
+    expect(task.timeMicros).toBe(toMowerMicros(1.5))
+    expect(data.operators.B!.isResting()).toBe(true)
+    expect(data.groupRecoveryReturnMicros.g).toBe(toMowerMicros(1))
+    expect(task.executionFailure).toBeUndefined()
+  })
+
+  it.each([{explicit:false,excluded:false},{explicit:true,excluded:false},{explicit:false,excluded:true},{explicit:true,excluded:true}])('returns with gap cap or exclusion while retaining explicit recovery: %j', ({explicit,excluded}) => {
+    const f = fixture(24, 24), data = f.source.data
+    data.groupRestInFullOnMoodGap = true
+    data.groupMoodGapMaxExtraWaitHours = excluded ? 0 : .5
+    data.groupMoodGapExclusions = excluded ? ['g'] : []
+    data.groupRecoveryFullMembers.g = ['A', 'B']
+    data.groupRecoveryReturnMicros.g = toMowerMicros(.5)
+    data.operators.B!.restInFull = explicit
+    const task = new MowerTask({ time: 1, type: T.SHIFT_ON, plan: { room_1_1: ['A'], room_1_2: ['B'] } })
+    task.backupShiftActive = true
+    f.source.queue.tasks = [task]
+    finish(f)
+    expect(data.operators.A!.currentRoom).toBe(explicit ? room : 'room_1_1')
+    if (!explicit) {
+      advanceRoster(f.state, .5 / 3600, rates)
+      finish(f)
+      expect(data.operators.B!.currentRoom).toBe('room_1_2')
+      expect(data.operators.B!.mood).toBeLessThan(24)
+    } else {
+      expect(data.operators.B!.isResting()).toBe(true)
+      expect(f.source.queue.tasks).toContain(task)
+    }
+  })
+
   it.each([false, true])('reschedules an old return against the observed explicit full-rest deadline, shared=%s', shared => {
     const f = fixture(24, 24)
     f.source.data.operators.B!.restInFull = true
@@ -218,12 +273,14 @@ describe('group full-rest execution confirmation', () => {
       activate: conditions => { activated.push([...conditions]); f.source.data.planConditions = [...conditions] },
     }
     finish(f)
-    expect(task.backupShiftConditions).toEqual([false])
+    expect(task.backupShiftConditions).toEqual(status==='unknown'?undefined:[false])
     expect(activated).toEqual([])
     expect(f.source.data.planConditions).toEqual([true])
     expect(f.source.queue.tasks).toContain(task)
-    expect(task.backupShiftIntent).toEqual(intent)
+    expect(task.backupShiftIntent).toEqual(status==='unknown'?undefined:intent)
+    expect(task.plan).toMatchObject(intent)
     if (status === 'unknown') {
+      expect(task.plan).toEqual(intent)
       expect(task.timeMicros).toBe(toMowerMicros(1))
       expect(task.executionFailure).toBeDefined()
       const plan = structuredClone(task.plan)
