@@ -10,6 +10,18 @@ describe('RosterWorkbenchStore', () => {
     setActivePinia(createPinia())
   })
 
+  it('creates default-group global backups and preserves multi-membership through editing and duplication', () => {
+    const store = useRosterWorkbenchStore()
+    const index = store.addBackupPlan()
+    expect(store.workspace.compatibility.backupPlans[index]).toMatchObject({group_ids: ['default'], type: 'global'})
+    const shared = {name: '共享副表', trigger: 'True', group_ids: ['default', 'rest'], type: 'exclusive'}
+    store.updateBackupPlan(index, shared)
+    const duplicate = store.duplicateBackupPlan(index)
+    shared.group_ids.push('other')
+    expect(store.workspace.compatibility.backupPlans[index]).toMatchObject({group_ids: ['default', 'rest'], type: 'exclusive'})
+    expect(store.workspace.compatibility.backupPlans[duplicate]).toMatchObject({group_ids: ['default', 'rest'], type: 'exclusive'})
+  })
+
   it('initializes with default schemaVersion 8 workspace and selectedRoomId room_1_1', () => {
     const store = useRosterWorkbenchStore()
     expect(store.workspace.schemaVersion).toBe(8)

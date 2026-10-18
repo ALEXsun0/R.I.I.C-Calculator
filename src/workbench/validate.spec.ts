@@ -497,6 +497,42 @@ describe('alpha shared group validation', () => {
 
 
 describe('effective backup validation', () => {
+  it.each(['conditional', 'default'])('does not treat an unconditional backup in %s as globally reachable', groupId => {
+    const ws = createDefaultWorkspace()
+    ws.compatibility.unrecognizedFields.backup_groups = [
+      {id: 'conditional', name: '条件分组', trigger: 'False'},
+      {id: 'always', name: '当前分组', trigger: 'True'},
+    ]
+    ws.mainPlan.facilities.dormitory_4.slots = Array.from({length: 5}, () => ({occupant: {kind: 'free' as const}, groupId: null, replacements: []}))
+    ws.mainPlan.facilities.room_1_1.slots[0] = {occupant: {kind: 'operator', operatorId: 'char_123_fang'}, groupId: 'group', replacements: ['char_240_wyvern']}
+    ws.compatibility.backupPlans = [{name: 'standby', trigger: 'True', group_ids: [groupId], type: 'global', conf: {resting_standby: '芬'}}]
+    const result = validateRosterWorkspace(ws)
+    expect(result.criticalErrors).toEqual([])
+    expect(result.warnings.some(issue => issue.message.includes('缺少决定上下班'))).toBe(true)
+    // Membership in all groups makes the sole unconditional overlay provable.
+    ws.compatibility.backupPlans = [{name: 'standby', trigger: 'True', group_ids: ['default', 'conditional', 'always'], type: 'global', conf: {resting_standby: '芬'}}]
+    expect(validateRosterWorkspace(ws).criticalErrors.some(issue => issue.message.includes('缺少决定上下班'))).toBe(true)
+  })
+
+  it.each([
+    {group_ids: []},
+    {group_ids: ['missing']},
+    {group_ids: ['default', 'default']},
+    {group_ids: 'default'},
+    {type: 'unknown'},
+    {type: ['global']},
+  ])('rejects malformed group membership and type before simulation: %j', selection => {
+    const ws = createDefaultWorkspace()
+    ws.compatibility.backupPlans = [{name: 'invalid selection', trigger: 'True', ...selection}]
+    expect(validateRosterWorkspace(ws).criticalErrors.some(issue => issue.message.includes('副表分组或类型无效'))).toBe(true)
+  })
+
+  it('rejects malformed backup group definitions before simulation', () => {
+    const ws = createDefaultWorkspace()
+    ws.compatibility.unrecognizedFields.backup_groups = [{id: 'same', name: 'A'}, {id: 'same', name: 'B'}]
+    expect(validateRosterWorkspace(ws).criticalErrors.some(issue => issue.message.includes('标识不能重复'))).toBe(true)
+  })
+
   it('checks Current product overlays and shared binding anchors before simulation', () => {
     const ws = createDefaultWorkspace()
     ws.mainPlan.facilities.dormitory_4.slots = Array.from({length: 5}, () => ({occupant: {kind: 'free' as const}, groupId: null, replacements: []}))

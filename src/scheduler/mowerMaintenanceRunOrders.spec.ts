@@ -1,3 +1,4 @@
+import {resolveOperatorCharId} from '../domain/operatorIdentifiers'
 import { describe, expect, it } from 'vitest'
 import { createDefaultWorkspace } from '../workbench/defaults'
 import { compileRosterSchedule } from './compileRosterSchedule'
@@ -8,7 +9,7 @@ import { MowerTask, MOWER_TASK_TYPES as T } from './mowerTaskQueue'
 
 const maintenance = 'op_data.major_maintenance_remaining_hours() <= 0.5'
 const overlay = (agent: string) => ({ room_1_1: { plans: [{ agent, group: '', replacement: agent === '龙舌兰' ? ['芬'] : ['龙舌兰', '香草'] }] } })
-function setup(overrides: Record<string, unknown>[] = [], alpha = true) {
+function setup(overrides: Record<string, unknown>[] = [], alpha = true, configure?: (workspace: ReturnType<typeof createDefaultWorkspace>) => void) {
   const workspace = createDefaultWorkspace()
   for (const [room, primary, replacements] of [
     ['room_1_1', '芬', ['龙舌兰', '香草']], ['room_1_2', '阿罗玛', ['但书']],
@@ -19,6 +20,7 @@ function setup(overrides: Record<string, unknown>[] = [], alpha = true) {
   }
   workspace.mainPlan.conf.workaholic = ['芬', '阿罗玛']
   workspace.compatibility.backupPlans = [{ trigger: maintenance, plan: overlay('龙舌兰'), conf: { workaholic: '龙舌兰' } }, ...overrides]
+  configure?.(workspace)
   const schedule = compileRosterSchedule(workspace, { majorMaintenanceStartHours: 1, idleOperators: [] })
   const config = compiledScheduleToRuntimeConfig(schedule); config.mowerAlpha = alpha
   const state = createRosterRuntime(config), controller = createBackupPlanController(schedule, state)
@@ -45,6 +47,29 @@ describe('maintenance-primary ideal run-order pause', () => {
     expect(controller.active).toEqual([false])
     expect(state.config.runOrderPolicies).toEqual(original)
     expect(Object.keys(getMowerSourceRuntime(state).data.runOrderRooms)).toEqual(['room_1_1', 'room_1_2'])
+  })
+
+  it.each([false, true])('scopes a shared backup maintenance pause to its selected group, alpha=%s', alpha => {
+    const { state, controller } = setup([], alpha, workspace => {
+      workspace.compatibility.unrecognizedFields.backup_groups = [
+        { id: 'ordinary', name: '普通', trigger: "op_data.operators['阿罗玛'].current_mood() >= 10" },
+        { id: 'maintenance', name: '维护', trigger: maintenance },
+      ]
+      workspace.compatibility.backupPlans = [{ group_ids: ['ordinary', 'maintenance'], trigger: 'True', plan: overlay('龙舌兰'), conf: { workaholic: '龙舌兰' } }]
+    })
+    controller.evaluate('END')
+    const ordinaryPolicies = structuredClone(state.config.runOrderPolicies)
+    expect(ordinaryPolicies).toHaveLength(1)
+    expect(controller.active).toEqual([true])
+    const aroma = resolveOperatorCharId('阿罗玛')
+    state.morale[aroma] = 0; getMowerSourceRuntime(state).data.operators[aroma]!.mood = 0
+    state.time = .5; controller.evaluate('END')
+    expect(controller.active).toEqual([true])
+    expect(state.config.runOrderPolicies).toEqual([])
+    state.morale[aroma] = 24; getMowerSourceRuntime(state).data.operators[aroma]!.mood = 24
+    state.time = 1; controller.evaluate('END')
+    expect(controller.active).toEqual([true])
+    expect(state.config.runOrderPolicies).toEqual(ordinaryPolicies)
   })
 
   it('keeps a preceding maintenance identity through a later Current overlay', () => {

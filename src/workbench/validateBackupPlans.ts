@@ -2,6 +2,7 @@ import {resolveOperatorCharId} from '../domain/operatorIdentifiers'
 import {parseProduct} from '../domain/mowerProducts'
 import {assertMowerBackupRoomOwners, assertMowerBackupTaskRooms, mowerBackupRoomCapacity, prepareMowerBackupRoom} from '../domain/mowerBackupFacilities'
 import {mergeMowerBackupConfig} from '../scheduler/mowerBackupConfig'
+import {readBackupGroups, readBackupMembership, type BackupGroup} from '../scheduler/backupGroups'
 import type {MowerGroupBinding, MowerRoomId, RosterWorkspace} from '../domain/roster'
 import type {ValidationIssue, ValidationResult} from './validate'
 
@@ -12,11 +13,17 @@ const record = (value: unknown): value is Record<string, unknown> => !!value && 
  */
 export function validateBackupPlans(workspace: RosterWorkspace, validate: (workspace: RosterWorkspace) => ValidationResult): ValidationIssue[] {
   const issues: ValidationIssue[] = []
+  let groups: BackupGroup[]
+  try { groups = readBackupGroups(workspace) }
+  catch (error) {
+    return [{code: 'INVALID_CONFIG', severity: 'critical', roomId: 'central', message: error instanceof Error ? error.message : String(error)}]
+  }
   for (const [index, raw] of workspace.compatibility.backupPlans.entries()) {
     const label = record(raw) && typeof raw.name === 'string' ? raw.name : String(index + 1)
     let roomId: MowerRoomId = 'central'
     try {
       if (!record(raw) || raw.plan !== undefined && !record(raw.plan) || raw.conf !== undefined && !record(raw.conf) || raw.task !== undefined && !record(raw.task)) throw new Error('plan/conf/task 格式错误')
+      const {groupIds} = readBackupMembership(raw, groups)
       const effective: RosterWorkspace = JSON.parse(JSON.stringify(workspace))
       const detachedBackup = effective.compatibility.backupPlans[index]
       effective.compatibility.backupPlans = []
@@ -50,8 +57,11 @@ export function validateBackupPlans(workspace: RosterWorkspace, validate: (works
       }
       // Independent overlays need not be reachable: two backups can share a
       // trigger and become valid only together. Only one unconditional backup
-      // proves that this isolated state can occur without condition analysis.
-      const reachable = workspace.compatibility.backupPlans.length === 1 && (raw.trigger === true || typeof raw.trigger === 'string' && raw.trigger.trim() === 'True')
+      // proves that this isolated state can occur without condition analysis,
+      // provided it is admitted by every selectable group. Default globals do
+      // not bypass group selection. Conditional reachability stays advisory.
+      const admittedByEveryGroup = groups.every(group => groupIds.includes(group.id))
+      const reachable = workspace.compatibility.backupPlans.length === 1 && admittedByEveryGroup && (raw.trigger === true || typeof raw.trigger === 'string' && raw.trigger.trim() === 'True')
       try { assertMowerBackupRoomOwners(workspace, effective); assertMowerBackupTaskRooms(effective, task) }
       catch (error) {
         issues.push({code: 'INVALID_CONFIG', severity: reachable ? 'critical' : 'warning', roomId,

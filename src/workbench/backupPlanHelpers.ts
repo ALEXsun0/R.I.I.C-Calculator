@@ -25,6 +25,8 @@ export interface MowerBackupPlanFacilityOverride {
 
 export interface MowerBackupPlan {
   name: string
+  group_ids?: string[]
+  type?: 'global' | 'exclusive'
   trigger_timing?: BackupTiming
   trigger: MowerBackupCondition
   task?: Record<string, string[]>
@@ -168,6 +170,8 @@ export function createDefaultBackupPlan(index = 1): MowerBackupPlan {
   return {
     name: `副表 #${index}`,
     trigger: 'True',
+    group_ids: ['default'],
+    type: 'global',
     task: {},
     plan: {},
     conf: {

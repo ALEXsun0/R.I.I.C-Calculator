@@ -102,6 +102,8 @@ describe('backupPlanHelpers', () => {
       expect(plan.name).toBe('副表 #3')
       expect(plan.trigger_timing).toBeUndefined()
       expect(plan.trigger).toBe('True')
+      expect(plan.group_ids).toEqual(['default'])
+      expect(plan.type).toBe('global')
       expect(plan.task).toEqual({})
       expect(plan.conf?.ling_xi).toBe(1)
     })
