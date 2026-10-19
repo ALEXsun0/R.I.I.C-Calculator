@@ -524,5 +524,37 @@
     "wholeSnapshotFreshness": "stale",
     "freshnessNote": "GameData and the listed PRTS pages matched. Toolbox character/map and broader old Mower snapshots remain stale; this bounded update does not replace them.",
     "gameRuntimeVerified": false
+  },
+  "backupGroupCompatibility": {
+    "checkedAt": "2026-10-18",
+    "repository": "ALEXsun0/arknights-mower",
+    "commit": "203f75329d7b07093889fe1630254fd648fde583",
+    "scope": "Backup group selection, multiple memberships and exclusive backups; RIIC maintenance-specific adaptation retained.",
+    "files": [
+      {
+        "path": "arknights_mower/utils/backup_groups.py",
+        "url": "https://raw.githubusercontent.com/ALEXsun0/arknights-mower/203f75329d7b07093889fe1630254fd648fde583/arknights_mower/utils/backup_groups.py",
+        "bytes": 1310,
+        "sha256": "feccccb9c5433aabe1ef1fd832f111c222e004838d1115bccae018c50ab1529f"
+      },
+      {
+        "path": "arknights_mower/utils/config/plan.py",
+        "url": "https://raw.githubusercontent.com/ALEXsun0/arknights-mower/203f75329d7b07093889fe1630254fd648fde583/arknights_mower/utils/config/plan.py",
+        "bytes": 15074,
+        "sha256": "114b395fececacd83a2bf94f6bbaf3810dbde584bc49fad1212146ea5c762fb7"
+      },
+      {
+        "path": "ui/src/riic/vendor/scheduler/backupGroups.ts",
+        "url": "https://raw.githubusercontent.com/ALEXsun0/arknights-mower/203f75329d7b07093889fe1630254fd648fde583/ui/src/riic/vendor/scheduler/backupGroups.ts",
+        "bytes": 1838,
+        "sha256": "e28dabc85a48fa652dafd516f4e52df8bf94190d1e840c631e8c07a63db39d5c"
+      },
+      {
+        "path": "ui/src/riic/vendor/scheduler/backupPlans.ts",
+        "url": "https://raw.githubusercontent.com/ALEXsun0/arknights-mower/203f75329d7b07093889fe1630254fd648fde583/ui/src/riic/vendor/scheduler/backupPlans.ts",
+        "bytes": 40752,
+        "sha256": "93c40207eeac5ee1f7709ce0f1fd19eae4ca6ad93088f1e53f21c3b0661ab216"
+      }
+    ]
   }
 }

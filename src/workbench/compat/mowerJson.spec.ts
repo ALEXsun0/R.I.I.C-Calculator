@@ -1137,3 +1137,23 @@ it('preserves native balanced ling_xi=0 without changing it to perception mode',
  expect(workspace.mainPlan.conf.ling_xi).toBe(0)
  expect(JSON.parse(exportMowerJson(workspace)).conf.ling_xi).toBe(0)
 })
+
+
+it('preserves backup group conditions, multi-membership and types across import and export', () => {
+  const document = {
+    default: 'plan1', plan1: {},
+    backup_groups: [
+      {id: 'default', name: '默认分组', trigger: {}},
+      {id: 'rest', name: '休息分组', trigger: {left: "op_data.operators['令'].is_resting()", operator: '==', right: true}},
+    ],
+    backup_plans: [
+      {name: '共享策略', trigger: 'True', group_ids: ['default', 'rest'], type: 'global', conf: {rest_in_full: '迷迭香'}},
+      {name: '互斥安排', trigger: 'True', group_ids: ['rest'], type: 'exclusive', plan: {}},
+    ],
+  }
+  const first = importMowerJson(JSON.stringify(document))
+  const second = importMowerJson(exportMowerJson(first))
+  const exported = JSON.parse(exportMowerJson(second))
+  expect(exported.backup_groups).toEqual(document.backup_groups)
+  expect(exported.backup_plans).toEqual(document.backup_plans)
+})

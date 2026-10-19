@@ -274,6 +274,8 @@ export const useRosterWorkbenchStore = defineStore('rosterWorkbench', () => {
     const newPlan = plan ? structuredClone(toRaw(plan)) : {
       name: `副表 #${plans.length + 1}`,
       trigger: 'True',
+      group_ids: ['default'],
+      type: 'global',
       task: {},
       plan: {},
       conf: {
