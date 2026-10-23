@@ -1006,6 +1006,7 @@ export function settleMowerSource(s:RuntimeState,rates:RuntimeRates,onPhase?:(ph
   // A completed native phase may release a real reservation. Admit that work before
   // the existing outer-run clock is selected; a next-action query must not discover it late.
   resumeMowerFailedTasks(s,getMowerSourceRuntime(s).data,queue)
+  syncMowerWorkingReplacementChecks(s,getMowerSourceRuntime(s).data,queue)
   if(source.baseRunAborted){
    delete source.baseRunAborted
    source.runReturn={wakeMicros:toMowerMicros(s.time)+(clock?.minimumClockStepMicros??1),finishFallback:false}

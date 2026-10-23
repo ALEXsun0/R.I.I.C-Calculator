@@ -57,7 +57,7 @@ export function syncMowerWorkingReplacementChecks(state:RuntimeState,data:MowerS
   const cover=data.currentOperator(room,index)?.name,target={room,index,owner,cover:cover??''}
   if(cover&&applies(data,target))targets.set(JSON.stringify(target),target)
  })
- const existing=new Set<string>()
+ const existing=new Set<string>();let wake=false
  for(const task of [...queue.tasks]){
   if(!task.workingReplacementCheck)continue
   const key=JSON.stringify(task.workingReplacementCheck)
@@ -67,22 +67,26 @@ export function syncMowerWorkingReplacementChecks(state:RuntimeState,data:MowerS
   if(task.executionFailure){
    if(snapshot===task.workingReplacementSource)continue
    delete task.executionFailure;task.executionRetained=true;task.coordinationDependencyWait=false
+   wake=task.timeMicros<=data.nowMicros||wake
   }
   // New low-mood/rate evidence can advance a deadline; an ordinary reread cannot postpone it.
   if(snapshot!==task.workingReplacementSource&&!task.retainsExecution){
    const op=data.operators[task.workingReplacementCheck.cover]
    const previous=task.workingReplacementSource?JSON.parse(task.workingReplacementSource):undefined
    const old=previous?.operators?.find((item:unknown[])=>item[0]===op?.name)
-   if(JSON.stringify(previous?.environment)!==JSON.stringify(JSON.parse(snapshot).environment)||measured(op,data)&&(op.mood<=op.lowerLimit||Number.isFinite(op.depletionRate)&&op.depletionRate>0&&old?.[3]?.[1]!==op.depletionRate))task.timeMicros=Math.min(task.timeMicros,data.nowMicros)
+   if(JSON.stringify(previous?.environment)!==JSON.stringify(JSON.parse(snapshot).environment)||measured(op,data)&&(op.mood<=op.lowerLimit||Number.isFinite(op.depletionRate)&&op.depletionRate>0&&old?.[3]?.[1]!==op.depletionRate)){
+    task.timeMicros=Math.min(task.timeMicros,data.nowMicros);wake=true
+   }
   }
   task.workingReplacementSource=snapshot
  }
  for(const [key,target] of targets)if(!existing.has(key)&&!concrete.has(target.room+'\0'+target.index)){
   const task=new MowerTask({metadata:'替班心情检查：'+target.cover});task.timeMicros=data.nowMicros;task.workingReplacementCheck=target
-  task.workingReplacementSource=mowerWorkingReplacementSnapshot(data,queue,task,state);queue.tasks.push(task)
+  task.workingReplacementSource=mowerWorkingReplacementSnapshot(data,queue,task,state);queue.tasks.push(task);wake=true
  }
  const source=state.mowerSource
- if(source&&!source.execution&&!source.phaseExecution&&queue.tasks.some(task=>task.workingReplacementCheck&&!task.executionFailure&&task.timeMicros<=data.nowMicros))delete source.runReturn
+ // Only new executable work interrupts a committed outer-run boundary.
+ if(wake&&source&&!source.execution&&!source.phaseExecution)delete source.runReturn
 }
 export function runMowerWorkingReplacementCheck(state:RuntimeState,data:MowerSchedulingData,queue:MowerTaskQueue,task:MowerTask,read:(room:string,index:number)=>void):void{
  const target=task.workingReplacementCheck!

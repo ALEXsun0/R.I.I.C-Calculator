@@ -27,6 +27,27 @@ function fixture(mood=0){
  return {s,source}
 }
 describe('working ordinary replacement checks',()=>{
+ it('admits a cover check before a resumed phase commits its outer-run boundary',()=>{
+  const {s,source}=fixture(1)
+  s.config.mowerRunLoopClock={minimumClockStepMicros:1,notificationSleepMicros:1_000_000}
+  source.queue.tasks=[]
+  source.runFlags={planned:true,todoTask:true,collectNotification:true}
+  source.phaseExecution={steps:(function*(){})(),wakeMicros:0,skipPlanning:false,previewNoop:false}
+  settleRoster(s,rates)
+  const check=source.queue.tasks.find(task=>task.workingReplacementCheck)!
+  expect(check).toBeDefined()
+  expect(check.timeMicros).toBe(0)
+  expect(source.runReturn?.wakeMicros).toBe(1)
+  for(let attempt=0;attempt<3;attempt++){
+   expect(nextRosterActionHours(s,rates)).toBe(1/3_600_000_000)
+   expect(source.queue.tasks.filter(task=>task.workingReplacementCheck)).toEqual([check])
+   expect(source.runReturn?.wakeMicros).toBe(1)
+  }
+  advanceRoster(s,1/3_600_000_000,rates);settleRoster(s,rates)
+  expect(check.time).toBeGreaterThan(s.time)
+  expect(s.occupants.room_1_1_0).toBe('R')
+  expect(s.bedOccupants.dormitory_1_4).toBe('A')
+ })
  it('changes an exhausted cover to the next configured cover without recalling its primary',()=>{
   const {s}=fixture();settleRoster(s,rates)
   expect(s.occupants.room_1_1_0).toBe('S')

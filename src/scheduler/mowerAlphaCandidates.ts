@@ -1,12 +1,11 @@
 import {mowerDormCapacityAllows} from './mowerDormCapacity'
 import {mowerDormCandidateMood} from './mowerSchedulingMood'
 export {mowerDormCandidateMood} from './mowerSchedulingMood'
-import {projectMowerArrangements} from './mowerObservations'
 import {mowerDormIsolationCost,planMowerDormIsolation} from './mowerDormIsolation'
 // Shared dorm candidates and observed-card estimates, Mower alpha b2d9ac8 (MIT).
 import {orderMowerAlphaDormIndices} from './mowerDormOrder'
 import {hasRestingMood} from './mowerOperatorState'
-import {alphaRestingTier,alphaFullDynamicCandidate,alphaFullDormFiller,alphaBedTakeoverAllowed,compareAlphaKeys,alphaPosition,alphaSlotTakable,alphaPrioritizeRecovery,alphaRestoreDisplaced,alphaDormResidents} from './mowerAlphaDorm'
+import {alphaRestingTier,alphaFullDynamicCandidate,alphaFullDormFiller,alphaBedTakeoverAllowed,compareAlphaKeys,alphaPosition,alphaSlotTakable,alphaPrioritizeRecovery} from './mowerAlphaDorm'
 import type {MowerSchedulingData} from './mowerSchedulingData'
 import {MowerTask,MOWER_TASK_TYPES as T,type MowerTaskPlan,type MowerTaskQueue} from './mowerTaskQueue'
 import {simplifyMowerAlphaDormFill} from './mowerAlphaTaskProtection'
@@ -36,10 +35,16 @@ export function mowerAlphaDormCandidates(data:MowerSchedulingData,excluded=new S
 export function mowerDormTaskReservations(data:MowerSchedulingData,pending:MowerTask[]){
  const names=new Set<string>(),slots=new Set<string>()
  for(const task of pending){task.urgentRecoveryReservedNames.forEach(name=>names.add(name));task.urgentRecoveryReservedSlots.forEach(slot=>slots.add(slot))}
- for(const task of pending)for(const [room,row] of Object.entries(task.plan))row.forEach((name,index)=>{
-  if(room.startsWith('dorm')&&name!=='Current')slots.add(alphaPosition(room,index))
-  if(!['Current','Free',''].includes(name)&&!(task.type===T.SHIFT_ON&&data.isStandby(name)))names.add(name)
- })
+ for(const task of pending){
+  const rows=Object.values(task.plan),targets=Object.keys(task.releaseDormTargets())
+  // Future ordinary releases are rebuilt from observed beds after a move.
+  if(task.type===T.RELEASE_DORM&&task.timeMicros>data.nowMicros&&!task.retainsExecution&&!task.strictMoodLimit&&!task.productShiftLocked
+   &&rows.length===1&&targets.length>0&&rows.flat().every(name=>name==='Current'||name==='Free')&&targets.length===rows.flat().filter(name=>name==='Free').length)continue
+  for(const [room,row] of Object.entries(task.plan))row.forEach((name,index)=>{
+   if(room.startsWith('dorm')&&name!=='Current')slots.add(alphaPosition(room,index))
+   if(!['Current','Free',''].includes(name)&&!(task.type===T.SHIFT_ON&&data.isStandby(name)))names.add(name)
+  })
+ }
  return {names,slots}
 }
 function alphaFill(data:MowerSchedulingData,pending:MowerTask[],emptyOnly:boolean){
@@ -75,10 +80,6 @@ function alphaFill(data:MowerSchedulingData,pending:MowerTask[],emptyOnly:boolea
    if(!recoveryNames.has(incoming)&&data.operators[incoming])data.operators[incoming]!.dormMoodFallback=selected.position[0]
   }
   ;(plan[selected.position[0]]??=Array(data.plan[selected.position[0]]!.length).fill('Current'))[selected.position[1]]=incoming
- }
- if(Object.keys(plan).length){
-  const projected=projectMowerArrangements(data,[])
-  alphaRestoreDisplaced(projected,alphaDormResidents(projected),plan,pending.map(task=>Object.assign(new MowerTask({type:task.type}),task,{plan:structuredClone(task.plan)})))
  }
  return {plan,residents,vacancies}
 }
